@@ -1,0 +1,127 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String         @id @default(uuid())
+  name            String?
+  email           String?        @unique
+  phone           String?
+  role            Role[]
+  isVerified      Boolean
+  fundAccountId   String?
+  products        Products[]     @relation("SellerProducts")
+  orders          Order[]        @relation("BuyerOrders")
+  messageSent     Message[]      @relation("Sender")
+  messageReceived Message[]      @relation("Receiver")
+  conversations   Conversation[] @relation("ConversationParticipants")
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model Products {
+  id            String      @id @default(uuid())
+  name          String      @db.Text
+  imageUrl      String?
+  image         String?
+  price         Float
+  refundPeriod  String
+  estimatedTime String
+  description   String
+  sellerId      String
+  seller        User        @relation("SellerProducts", fields: [sellerId], references: [id])
+  categoryId    String
+  category      Category    @relation(fields: [categoryId], references: [id])
+  orders        OrderItem[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([name, id])
+}
+
+model Category {
+  id        String     @id @default(uuid())
+  name      String     @unique
+  products  Products[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Order {
+  id          String      @id @default(uuid())
+  razorpayId  String      @unique
+  buyerId     String
+  buyer       User        @relation("BuyerOrders", fields: [buyerId], references: [id])
+  totalAmount Float
+  status      OrderStatus @default(PENDING)
+  orderItems  OrderItem[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  payment     Payment?
+
+  @@unique([id, razorpayId])
+}
+
+model OrderItem {
+  id        String   @id @default(uuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id])
+  productId String
+  product   Products @relation(fields: [productId], references: [id])
+  price     Float
+  createdAt DateTime @default(now())
+}
+
+model Payment {
+  id        String        @id @default(uuid())
+  orderId   String        @unique
+  order     Order         @relation(fields: [orderId], references: [id])
+  paymentId String        @unique
+  status    PaymentStatus
+  amount    Float
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model Message {
+  id             String   @id @default(uuid())
+  content        String
+  senderId       String
+  receiverId     String
+  conversationId String?
+  createdAt      DateTime @default(now())
+
+  sender       User          @relation("Sender", fields: [senderId], references: [id])
+  receiver     User          @relation("Receiver", fields: [receiverId], references: [id])
+  conversation Conversation? @relation(fields: [conversationId], references: [id])
+}
+
+model Conversation {
+  id           String    @id @default(uuid())
+  participants User[]    @relation("ConversationParticipants")
+  messages     Message[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+enum OrderStatus {
+  PENDING
+  FAILED
+  COMPLETED
+}
+
+enum PaymentStatus {
+  PENDING
+  FAILED
+  COMPLETED
+}
+
+enum Role {
+  BUYER
+  SELLER
+}

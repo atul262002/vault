@@ -1,0 +1,73 @@
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0* Host vault.org.in:443 was resolved.
+* IPv6: (none)
+* IPv4: 127.0.1.1
+*   Trying 127.0.1.1:443...
+* ALPN: curl offers h2,http/1.1
+} [5 bytes data]
+* TLSv1.3 (OUT), TLS handshake, Client hello (1):
+} [512 bytes data]
+*  CAfile: /etc/ssl/certs/ca-certificates.crt
+*  CApath: /etc/ssl/certs
+{ [5 bytes data]
+* TLSv1.3 (IN), TLS handshake, Server hello (2):
+{ [122 bytes data]
+* TLSv1.3 (IN), TLS change cipher, Change cipher spec (1):
+{ [1 bytes data]
+* TLSv1.3 (IN), TLS handshake, Encrypted Extensions (8):
+{ [25 bytes data]
+* TLSv1.3 (IN), TLS handshake, Certificate (11):
+{ [2055 bytes data]
+* TLSv1.3 (IN), TLS handshake, CERT verify (15):
+{ [78 bytes data]
+* TLSv1.3 (IN), TLS handshake, Finished (20):
+{ [52 bytes data]
+* TLSv1.3 (OUT), TLS change cipher, Change cipher spec (1):
+} [1 bytes data]
+* TLSv1.3 (OUT), TLS handshake, Finished (20):
+} [52 bytes data]
+* SSL connection using TLSv1.3 / TLS_AES_256_GCM_SHA384 / x25519 / id-ecPublicKey
+* ALPN: server accepted http/1.1
+* Server certificate:
+*  subject: CN=vault.org.in
+*  start date: Sep 28 15:50:18 2025 GMT
+*  expire date: Dec 27 15:50:17 2025 GMT
+*  subjectAltName: host "vault.org.in" matched cert's "vault.org.in"
+*  issuer: C=US; O=Let's Encrypt; CN=E8
+*  SSL certificate verify ok.
+*   Certificate level 0: Public key type EC/prime256v1 (256/128 Bits/secBits), signed using ecdsa-with-SHA384
+*   Certificate level 1: Public key type EC/secp384r1 (384/192 Bits/secBits), signed using sha256WithRSAEncryption
+*   Certificate level 2: Public key type RSA (4096/152 Bits/secBits), signed using sha256WithRSAEncryption
+* Connected to vault.org.in (127.0.1.1) port 443
+* using HTTP/1.x
+} [5 bytes data]
+> GET /api/auth HTTP/1.1
+> Host: vault.org.in
+> User-Agent: curl/8.12.1
+> Accept: */*
+> 
+* Request completely sent off
+{ [5 bytes data]
+* TLSv1.3 (IN), TLS handshake, Newsession Ticket (4):
+{ [57 bytes data]
+* TLSv1.3 (IN), TLS handshake, Newsession Ticket (4):
+{ [57 bytes data]
+< HTTP/1.1 404 Not Found
+< Server: nginx/1.26.3 (Ubuntu)
+< Date: Wed, 05 Nov 2025 04:30:13 GMT
+< Content-Type: text/html; charset=utf-8
+< Transfer-Encoding: chunked
+< Connection: keep-alive
+< x-clerk-auth-reason: protect-rewrite, dev-browser-missing
+< x-clerk-auth-status: signed-out
+< x-middleware-rewrite: /clerk_1762317013165
+< Cache-Control: private, no-cache, no-store, max-age=0, must-revalidate
+< Vary: RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch, Accept-Encoding
+< link: </_next/static/media/4cf2300e9c8272f7-s.p.woff2>; rel=preload; as="font"; crossorigin=""; type="font/woff2", </_next/static/media/93f479601ee12b01-s.p.woff2>; rel=preload; as="font"; crossorigin=""; type="font/woff2"
+< X-Powered-By: Next.js
+< 
+{ [10506 bytes data]
+<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="/_next/static/css/c316f599b69b6eac.css" data-precedence="next"/><link rel="preload" as="script" fetchPriority="low" href="/_next/static/chunks/webpack-982834f0a013fede.js"/><script src="/_next/static/chunks/4bd1b696-8b35b9699ffb1102.js" async=""></script><script src="/_next/static/chunks/1684-d2ad6e52fd6197b4.js" async=""></script><script src="/_next/static/chunks/main-app-3e059ec65fe63f86.js" async=""></script><script src="/_next/static/chunks/7509-80f0446ceebfc3de.js" async=""></script><script src="/_next/static/chunks/3464-41b484c4b5989022.js" async=""></script><script src="/_next/static/chunks/9352-218788f2c728f296.js" async=""></script><script src="/_next/static/chunks/391-3f07501631d4ac4b.js" async=""></script><script src="/_next/static/chunks/7891-5ee7330bd491f30a.js" async=""></script><script src="/_next/static/chunks/2559-b4df30f49682eb6a.js" async=""></script><script src="/_next/static/chunks/5451-eec8f8dda422ebb9.js" async=""></script><script src="/_next/static/chunks/app/layout-f488558f0d5ce57e.js" async=""></script><script src="https://kind-ocelot-89.clerk.accounts.dev/npm/@clerk/clerk-js@5/dist/clerk.browser.js" data-clerk-js-script="true" async="" crossorigin="anonymous" data-clerk-publishable-key="pk_test_a2luZC1vY2Vsb3QtODkuY2xlcmsuYWNjb3VudHMuZGV2JA"></script><meta name="robots" content="noindex"/><meta name="next-size-adjust" content=""/><title>404: This page could not be found.</title><script src="/_next/static/chunks/polyfills-42372ed130431b0a.js" noModule=""></script></head><body class="__variable_188709 __variable_9a8899 antialiased w-full"><script>((e,t,r,n,a,o,i,s)=>{let l=document.documentElement,c=["light","dark"];function u(t){var r;(Array.isArray(e)?e:[e]).forEach(e=>{let r="class"===e,n=r&&o?a.map(e=>o[e]||e):a;r?(l.classList.remove(...n),l.classList.add(o&&o[t]?o[t]:t)):l.setAttribute(e,t)}),r=t,s&&c.includes(r)&&(l.style.colorScheme=r)}if(n)u(n);else try{let e=localStorage.getItem(t)||r,n=i&&"system"===e?window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light":e;u(n)}catch(e){}})("class","theme","system",null,["light","dark"],null,true,true)</script><div style="font-family:system-ui,&quot;Segoe UI&quot;,Roboto,Helvetica,Arial,sans-serif,&quot;Apple Color Emoji&quot;,&quot;Segoe UI Emoji&quot;;height:100vh;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center"><div><style>body{color:#000;background:#fff;margin:0}.next-error-h1{border-right:1px solid rgba(0,0,0,.3)}@media (prefers-color-scheme:dark){body{color:#fff;background:#000}.next-error-h1{border-right:1px solid rgba(255,255,255,.3)}}</style><h1 class="next-error-h1" style="display:inline-block;margin:0 20px 0 0;padding:0 23px 0 0;font-size:24px;font-weight:500;vertical-align:top;line-height:49px">404</h1><div style="display:inline-block"><h2 style="font-size:14px;font-weight:400;line-height:49px;margin:0">This page could not be found.</h2></div></div></div><!--$--><!--/$--><!--$--><!--/$--><section aria-label="Notifications alt+T" tabindex="-1" aria-live="polite" aria-relevant="additions text" aria-atomic="false"></section><div class="fixed bottom-4 right-4 z-50 sm:bottom-6 sm:right-6 md:bottom-8 md:right-8"><button data-slot="button" class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-[color,box-shadow] disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*=&#x27;size-&#x27;])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-primary text-primary-foreground hover:bg-primary/90 h-9 has-[&gt;svg]:px-3 rounded-full p-3 shadow-lg"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></button></div><script src="/_next/static/chunks/webpack-982834f0a013fede.js" async=""></script><script>(self.__next_f=self.__next_f||[]).push([0])</script><script>self.__next_f.push([1,"1:\"$Sreact.fragment\"\n2:I[94970,[],\"ClientSegmentRoot\"]\n3:I[20450,[\"7509\",\"static/chunks/7509-80f0446ceebfc3de.js\",\"3464\",\"static/chunks/3464-41b484c4b5989022.js\",\"9352\",\"static/chunks/9352-218788f2c728f296.js\",\"391\",\"static/chunks/391-3f07501631d4ac4b.js\",\"7891\",\"static/chunks/7891-5ee7330bd491f30a.js\",\"2559\",\"static/chunks/2559-b4df30f49682eb6a.js\",\"5451\",\"static/chunks/5451-eec8f8dda422ebb9.js\",\"7177\",\"static/chunks/app/layout-f488558f0d5ce57e.js\"],\"default\"]\n4:I[87555,[],\"\"]\n5:I[31295,[],\"\"]\n6:I[59665,[],\"MetadataBoundary\"]\n9:I[59665,[],\"OutletBoundary\"]\nc:I[74911,[],\"AsyncMetadataOutlet\"]\ne:I[59665,[],\"ViewportBoundary\"]\n10:I[26614,[],\"\"]\n11:\"$Sreact.suspense\"\n12:I[74911,[],\"AsyncMetadata\"]\n:HL[\"/_next/static/media/4cf2300e9c8272f7-s.p.woff2\",\"font\",{\"crossOrigin\":\"\",\"type\":\"font/woff2\"}]\n:HL[\"/_next/static/media/93f479601ee12b01-s.p.woff2\",\"font\",{\"crossOrigin\":\"\",\"type\":\"font/woff2\"}]\n:HL[\"/_next/static/css/c316f599b69b6eac.css\",\"style\"]\n"])</script><script>self.__next_f.push([1,"0:{\"P\":null,\"b\":\"gJvYMsheD4RA9r2EdUgg1\",\"p\":\"\",\"c\":[\"\",\"api\",\"auth\"],\"i\":false,\"f\":[[[\"\",{\"children\":[\"/_not-found\",{\"children\":[\"__PAGE__\",{}]}]},\"$undefined\",\"$undefined\",true],[\"\",[\"$\",\"$1\",\"c\",{\"children\":[[[\"$\",\"link\",\"0\",{\"rel\":\"stylesheet\",\"href\":\"/_next/static/css/c316f599b69b6eac.css\",\"precedence\":\"next\",\"crossOrigin\":\"$undefined\",\"nonce\":\"$undefined\"}]],[\"$\",\"$L2\",null,{\"Component\":\"$3\",\"slots\":{\"children\":[\"$\",\"$L4\",null,{\"parallelRouterKey\":\"children\",\"error\":\"$undefined\",\"errorStyles\":\"$undefined\",\"errorScripts\":\"$undefined\",\"template\":[\"$\",\"$L5\",null,{}],\"templateStyles\":\"$undefined\",\"templateScripts\":\"$undefined\",\"notFound\":[[[\"$\",\"title\",null,{\"children\":\"404: This page could not be found.\"}],[\"$\",\"div\",null,{\"style\":{\"fontFamily\":\"system-ui,\\\"Segoe UI\\\",Roboto,Helvetica,Arial,sans-serif,\\\"Apple Color Emoji\\\",\\\"Segoe UI Emoji\\\"\",\"height\":\"100vh\",\"textAlign\":\"center\",\"display\":\"flex\",\"flexDirection\":\"column\",\"alignItems\":\"center\",\"justifyContent\":\"center\"},\"children\":[\"$\",\"div\",null,{\"children\":[[\"$\",\"style\",null,{\"dangerouslySetInnerHTML\":{\"__html\":\"body{color:#000;background:#fff;margin:0}.next-error-h1{border-right:1px solid rgba(0,0,0,.3)}@media (prefers-color-scheme:dark){body{color:#fff;background:#000}.next-error-h1{border-right:1px solid rgba(255,255,255,.3)}}\"}}],[\"$\",\"h1\",null,{\"className\":\"next-error-h1\",\"style\":{\"display\":\"inline-block\",\"margin\":\"0 20px 0 0\",\"padding\":\"0 23px 0 0\",\"fontSize\":24,\"fontWeight\":500,\"verticalAlign\":\"top\",\"lineHeight\":\"49px\"},\"children\":404}],[\"$\",\"div\",null,{\"style\":{\"display\":\"inline-block\"},\"children\":[\"$\",\"h2\",null,{\"style\":{\"fontSize\":14,\"fontWeight\":400,\"lineHeight\":\"49px\",\"margin\":0},\"children\":\"This page could not be found.\"}]}]]}]}]],[\"$\",\"$L6\",null,{\"children\":\"$L7\"}],[]],\"forbidden\":\"$undefined\",\"unauthorized\":\"$undefined\"}]},\"params\":{}}]]}],{\"children\":[\"/_not-found\",[\"$\",\"$1\",\"c\",{\"children\":[null,[\"$\",\"$L4\",null,{\"parallelRouterKey\":\"children\",\"error\":\"$undefined\",\"errorStyles\":\"$undefined\",\"errorScripts\":\"$undefined\",\"template\":[\"$\",\"$L5\",null,{}],\"templateStyles\":\"$undefined\",\"templateScripts\":\"$undefined\",\"notFound\":\"$undefined\",\"forbidden\":\"$undefined\",\"unauthorized\":\"$undefined\"}]]}],{\"children\":[\"__PAGE__\",[\"$\",\"$1\",\"c\",{\"children\":[[[\"$\",\"title\",null,{\"chil100 10486    0 10486    0     0   157k      0 --:--:-- --:--:-- --:--:--  157k
+* Connection #0 to host vault.org.in left intact
+dren\":\"404: This page could not be found.\"}],[\"$\",\"div\",null,{\"style\":\"$0:f:0:1:1:props:children:1:props:slots:children:props:notFound:0:1:props:style\",\"children\":[\"$\",\"div\",null,{\"children\":[[\"$\",\"style\",null,{\"dangerouslySetInnerHTML\":{\"__html\":\"body{color:#000;background:#fff;margin:0}.next-error-h1{border-right:1px solid rgba(0,0,0,.3)}@media (prefers-color-scheme:dark){body{color:#fff;background:#000}.next-error-h1{border-right:1px solid rgba(255,255,255,.3)}}\"}}],[\"$\",\"h1\",null,{\"className\":\"next-error-h1\",\"style\":\"$0:f:0:1:1:props:children:1:props:slots:children:props:notFound:0:1:props:children:props:children:1:props:style\",\"children\":404}],[\"$\",\"div\",null,{\"style\":\"$0:f:0:1:1:props:children:1:props:slots:children:props:notFound:0:1:props:children:props:children:2:props:style\",\"children\":[\"$\",\"h2\",null,{\"style\":\"$0:f:0:1:1:props:children:1:props:slots:children:props:notFound:0:1:props:children:props:children:2:props:children:props:style\",\"children\":\"This page could not be found.\"}]}]]}]}]],[\"$\",\"$L6\",null,{\"children\":\"$L8\"}],null,[\"$\",\"$L9\",null,{\"children\":[\"$La\",\"$Lb\",[\"$\",\"$Lc\",null,{\"promise\":\"$@d\"}]]}]]}],{},null,false]},null,false]},null,false],[\"$\",\"$1\",\"h\",{\"children\":[[\"$\",\"meta\",null,{\"name\":\"robots\",\"content\":\"noindex\"}],[\"$\",\"$1\",\"5sgod4ar47GydHKqj6Esc\",{\"children\":[[\"$\",\"$Le\",null,{\"children\":\"$Lf\"}],[\"$\",\"meta\",null,{\"name\":\"next-size-adjust\",\"content\":\"\"}]]}],null]}],false]],\"m\":\"$undefined\",\"G\":[\"$10\",\"$undefined\"],\"s\":false,\"S\":false}\n"])</script><script>self.__next_f.push([1,"7:[\"$\",\"$11\",null,{\"fallback\":null,\"children\":[\"$\",\"$L12\",null,{\"promise\":\"$@13\"}]}]\n8:[\"$\",\"$11\",null,{\"fallback\":null,\"children\":[\"$\",\"$L12\",null,{\"promise\":\"$@14\"}]}]\nb:null\n13:{\"metadata\":[],\"error\":null,\"digest\":\"$undefined\"}\n14:{\"metadata\":\"$13:metadata\",\"error\":null,\"digest\":\"$undefined\"}\nd:{\"metadata\":\"$13:metadata\",\"error\":null,\"digest\":\"$undefined\"}\nf:[[\"$\",\"meta\",\"0\",{\"charSet\":\"utf-8\"}],[\"$\",\"meta\",\"1\",{\"name\":\"viewport\",\"content\":\"width=device-width, initial-scale=1\"}]]\na:null\n"])</script></body></html>
