@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
     console.log("📥 Fund account endpoint hit");
     const user = await currentUser();
     console.log("👤 Current user:", user);
-    
+
     if (!user) {
       console.log("❌ Unauthenticated user");
       return NextResponse.json({ message: "Unauthenticated user" }, { status: 401 });
@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
     // Step 1: Create Razorpay Contact
     console.log("🔁 Creating Razorpay contact...");
     console.log(`Using credentials: ${process.env.RAZORPAYX_KEY_ID}`);
-    
+
     const contactResponse = await fetch("https://api.razorpay.com/v1/contacts", {
       method: "POST",
       headers: {
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
 
     // Step 2: Create Fund Account based on type
     console.log(`💰 Creating Razorpay fund account (${account_type})...`);
-    
+
     let fundAccountBody: any = {
       contact_id: contact.id,
       account_type,
@@ -257,13 +257,23 @@ export async function POST(request: NextRequest) {
 
     // Step 4: Check if user exists, create or update
     console.log("🗃️ Updating user in DB...");
-    const existingUser = await prisma.user.findUnique({
+    const email = user.emailAddresses?.[0]?.emailAddress;
+
+    let existingUser = await prisma.user.findUnique({
       where: { id: user.id },
     });
 
+    if (!existingUser && email) {
+      console.log("🔍 Checking by email since ID match failed...");
+      existingUser = await prisma.user.findUnique({
+        where: { email },
+      });
+    }
+
     if (existingUser) {
+      console.log(`✅ Found existing user (ID: ${existingUser.id}). Updating...`);
       await prisma.user.update({
-        where: { id: user.id },
+        where: { id: existingUser.id },
         data: {
           phone: phoneNumber,
           fundAccountId: fundAccount.id,
@@ -272,10 +282,11 @@ export async function POST(request: NextRequest) {
       });
       console.log("✅ User updated successfully");
     } else {
+      console.log("➕ No existing user found. Creating new...");
       await prisma.user.create({
         data: {
           id: user.id,
-          email: user.emailAddresses?.[0]?.emailAddress,
+          email: email,
           name: user.firstName,
           fundAccountId: fundAccount.id,
           role: ["SELLER"],
