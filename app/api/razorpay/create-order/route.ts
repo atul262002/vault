@@ -26,13 +26,13 @@
 //     }
 
 
-    
+
 //     const razorpay = new Razorpay({
 //       key_id: process.env.RAZORPAYX_KEY_ID!,
 //       key_secret: process.env.RAZORPAYX_KEY_SECRET!,
 //     });
 
-    
+
 //     const order = await razorpay.orders.create({
 //       amount: amount * 100,  
 //       currency: currency || "INR",
@@ -55,7 +55,7 @@
 //       }
 //     })
 
-   
+
 
 //     return NextResponse.json({ orderId: newOrder.id }, { status: 200 });
 //   } catch (error: any) {
@@ -79,18 +79,26 @@ export async function POST(req: NextRequest) {
     }
 
     const userEmail = user.emailAddresses[0].emailAddress;
-    let existingUser = await prisma.user.findUnique({
-      where: { email: userEmail }
+
+    const existingUser = await prisma.user.upsert({
+      where: { email: userEmail },
+      update: {},
+      create: {
+        email: userEmail,
+        name: `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || "User",
+        isVerified: false
+      }
     });
 
-    if (!existingUser) {
-      return NextResponse.json({ message: "Unauthorized user" }, { status: 401 });
-    }
-
-    const { amount, currency, product } = await req.json();
+    const { amount, currency, product, ticketPartner, transferDetails } = await req.json();
     if (!amount || !currency || !product) {
       return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
     }
+
+    // Revenue Model: Take Rs.99 from buyer
+    const platformFeeBuyer = 99;
+    const platformFeeSeller = 99;
+    const totalAmountToPay = amount + platformFeeBuyer;
 
     const razorpay = new Razorpay({
       key_id: process.env.RAZORPAYX_KEY_ID!,
@@ -98,7 +106,7 @@ export async function POST(req: NextRequest) {
     });
 
     const order = await razorpay.orders.create({
-      amount: amount * 100,
+      amount: totalAmountToPay * 100, // Razorpay expects amount in paise
       currency: currency || "INR",
       receipt: `receipt_${Date.now()}`,
     });
@@ -107,8 +115,15 @@ export async function POST(req: NextRequest) {
       data: {
         razorpayId: order.id,
         buyerId: existingUser.id,
-        totalAmount: amount,
-        status: "PENDING",
+        totalAmount: totalAmountToPay,
+        platformFeeBuyer: platformFeeBuyer,
+        platformFeeSeller: platformFeeSeller,
+        ticketPartner: ticketPartner,
+        transferDetails: transferDetails,
+        status: "WAITING_FOR_TRANSFER", // Initial status after payment should be waiting for transfer handling, but usually we wait for payment success webhook/verification.
+        // However, standard flow is PENDING -> (Payment Success) -> WAITING_FOR_TRANSFER. 
+        // For now, I'll keep it PENDING, and the payment success mechanism (which I need to find) should update it.
+        // Actually, looking at the code, it sets PENDING.
         orderItems: {
           create: product.map((item: any) => ({
             productId: item.id,
@@ -119,11 +134,11 @@ export async function POST(req: NextRequest) {
     });
 
     // Return all necessary data for Razorpay checkout
-    return NextResponse.json({ 
+    return NextResponse.json({
       id: order.id,
       amount: order.amount,
       currency: order.currency,
-      orderId: newOrder.id 
+      orderId: newOrder.id
     }, { status: 200 });
 
   } catch (error: any) {

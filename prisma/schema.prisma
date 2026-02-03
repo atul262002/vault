@@ -64,6 +64,15 @@ model Order {
   updatedAt   DateTime    @updatedAt
   payment     Payment?
 
+  ticketPartner     String?     // e.g. District, BMS, Insider
+  transferDetails   String?     // User input for transfer details
+  evidenceUrl       String?
+  transferStartedAt DateTime?
+  evidenceUploadedAt DateTime?
+  buyerConfirmedAt  DateTime?
+  platformFeeBuyer  Float       @default(0.0)
+  platformFeeSeller Float       @default(0.0)
+
   @@unique([id, razorpayId])
 }
 
@@ -112,7 +121,12 @@ model Conversation {
 enum OrderStatus {
   PENDING
   FAILED
+  WAITING_FOR_TRANSFER
+  TRANSFER_INITIATED
+  EVIDENCE_UPLOADED
   COMPLETED
+  DISPUTED
+  CANCELLED
 }
 
 enum PaymentStatus {

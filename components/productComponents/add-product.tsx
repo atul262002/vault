@@ -91,7 +91,7 @@
 //                 </DialogHeader>
 
 //                 <FormProvider {...form}>
-                
+
 //                     <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-2 gap-4">
 //                         <FormField
 //                             control={form.control}
@@ -303,7 +303,7 @@ export function AddProduct() {
     const [loading, setLoading] = useState<boolean>(false);
     const [uploadProgress, setUploadProgress] = useState<number>(0);
     const [isUploading, setIsUploading] = useState<boolean>(false);
-    
+
     const form = useForm<z.infer<typeof addProductSchema>>({
         resolver: zodResolver(addProductSchema),
         defaultValues: {
@@ -367,6 +367,10 @@ export function AddProduct() {
                 <DialogHeader>
                     <DialogTitle>Add New Product</DialogTitle>
                     <DialogDescription>Fill in the product details below.</DialogDescription>
+                    <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mt-2 mb-4 text-sm" role="alert">
+                        <p className="font-bold">Important:</p>
+                        <p>Multiple ticket transfers are prohibited by some apps – please check the availability of your transfer option before uploading.</p>
+                    </div>
                 </DialogHeader>
 
                 <div className="overflow-y-auto flex-1 pr-2">
@@ -376,7 +380,7 @@ export function AddProduct() {
                                 control={form.control}
                                 name="imageUrl"
                                 render={({ field }) => (
-                                    <FormItem className="col-span-2"> 
+                                    <FormItem className="col-span-2">
                                         <FormLabel>Image Upload</FormLabel>
                                         <FormControl>
                                             <ImageUpload

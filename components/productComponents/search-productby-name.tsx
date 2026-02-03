@@ -295,7 +295,7 @@
 //         };
 
 //         const razorpay = new (window as any).Razorpay(options);
-        
+
 //         // Wait longer for Razorpay modal to be fully interactive
 //         // The modal needs time to render and become clickable
 //         setTimeout(() => {
@@ -322,7 +322,7 @@
 //         setIsChatLoading(false);
 //         return;
 //       }
-      
+
 //       const userData = await userRes.json();
 //       const currentUserId = userData.id;
 
@@ -342,10 +342,10 @@
 //       }
 
 //       const conversation = await conversationRes.json();
-      
+
 //       // Navigate to the conversation using window.location or next/navigation router
 //       window.location.href = `/conversations/${conversation.id}/${sellerId}`;
-      
+
 //     } catch (error) {
 //       console.error("Error starting chat:", error);
 //       alert("Failed to start chat. Please try again.");
@@ -537,6 +537,8 @@ const ProductSearchByName = () => {
   const [isRazorpayReady, setIsRazorpayReady] = useState(false);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const { user } = useUser();
+  const [ticketPartner, setTicketPartner] = useState("");
+  const [transferDetails, setTransferDetails] = useState("");
 
   const onChange: ChangeEventHandler<HTMLInputElement> = (e) => {
     setSearchValue(e.target.value);
@@ -566,7 +568,6 @@ const ProductSearchByName = () => {
   }, [debouncedSearch]);
 
   useEffect(() => {
-    // Check if Razorpay is already loaded
     if ((window as any).Razorpay) {
       setIsRazorpayReady(true);
       return;
@@ -596,13 +597,26 @@ const ProductSearchByName = () => {
       return;
     }
 
+    if (!ticketPartner || !transferDetails) {
+      alert("Please enter Ticket Partner and Transfer Details.");
+      return;
+    }
+
     setIsRazorpayLoading(true);
+
+    // CRITICAL FIX: Close the dialog before opening Razorpay
+    setSelectedProduct(null);
+
+    // Add a small delay to ensure dialog closes before Razorpay opens
+    await new Promise(resolve => setTimeout(resolve, 300));
 
     try {
       const response = await axios.post("/api/razorpay/create-order", {
         amount: product.price,
         currency: "INR",
         product: [{ ...product }],
+        ticketPartner,
+        transferDetails
       });
 
       if (response.status === 200) {
@@ -610,7 +624,7 @@ const ProductSearchByName = () => {
 
         const options = {
           key: "rzp_live_RHmP474HgZJvtk",
-          amount: amount, 
+          amount: amount,
           currency: currency,
           name: "VAULT",
           description: product.name,
@@ -618,13 +632,12 @@ const ProductSearchByName = () => {
           handler: function (res: any) {
             setIsRazorpayLoading(false);
             alert(`Payment successful! Payment ID: ${res.razorpay_payment_id}`);
-            // Verify payment
             verifyPayment(res);
           },
           prefill: {
             name: user?.firstName || user?.fullName || "",
             email: user?.emailAddresses[0].emailAddress || "",
-            contact: user?.phoneNumbers?.[0]?.phoneNumber || "9999999999", // Default phone to skip that step
+            contact: user?.phoneNumbers?.[0]?.phoneNumber || "9999999999",
           },
           notes: {
             product_id: product.id,
@@ -634,12 +647,14 @@ const ProductSearchByName = () => {
             color: "#3399cc",
           },
           modal: {
-            ondismiss: function() {
+            ondismiss: function () {
               setIsRazorpayLoading(false);
             },
             confirm_close: true,
             animation: true,
             backdropclose: false,
+            // MOBILE FIX: Handle escape key properly
+            escape: true,
           },
           config: {
             display: {
@@ -662,16 +677,14 @@ const ProductSearchByName = () => {
         };
 
         const razorpay = new (window as any).Razorpay(options);
-        
+
         razorpay.on('payment.failed', function (response: any) {
           setIsRazorpayLoading(false);
           alert(`Payment failed: ${response.error.description}`);
         });
 
-        // Open modal immediately
         razorpay.open();
-        
-        // Set loading to false after a short delay
+
         setTimeout(() => {
           setIsRazorpayLoading(false);
         }, 800);
@@ -685,7 +698,6 @@ const ProductSearchByName = () => {
 
   const verifyPayment = async (paymentData: any) => {
     try {
-      // Call your backend to verify the payment
       const response = await axios.post("/api/razorpay/verify-payment", {
         razorpay_order_id: paymentData.razorpay_order_id,
         razorpay_payment_id: paymentData.razorpay_payment_id,
@@ -694,7 +706,6 @@ const ProductSearchByName = () => {
 
       if (response.status === 200) {
         console.log("Payment verified successfully");
-        // Redirect to success page or show success message
       }
     } catch (error) {
       console.error("Payment verification failed:", error);
@@ -704,23 +715,21 @@ const ProductSearchByName = () => {
   const handleChat = async (sellerId: string) => {
     setIsChatLoading(true);
     try {
-      // First, fetch the current user
       const userRes = await fetch("/api/user/get-user");
       if (!userRes.ok) {
         alert("Failed to get user information");
         setIsChatLoading(false);
         return;
       }
-      
+
       const userData = await userRes.json();
       const currentUserId = userData.id;
 
-      // Then create or find conversation
       const conversationRes = await fetch('/api/conversations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          participantIds: [currentUserId, sellerId] 
+        body: JSON.stringify({
+          participantIds: [currentUserId, sellerId]
         }),
       });
 
@@ -731,10 +740,8 @@ const ProductSearchByName = () => {
       }
 
       const conversation = await conversationRes.json();
-      
-      // Navigate to the conversation using window.location or next/navigation router
       window.location.href = `/conversations/${conversation.id}/${sellerId}`;
-      
+
     } catch (error) {
       console.error("Error starting chat:", error);
       alert("Failed to start chat. Please try again.");
@@ -811,16 +818,36 @@ const ProductSearchByName = () => {
                 <h2 className="text-2xl font-bold text-gray-800 mb-2">
                   {selectedProduct.name}
                 </h2>
-                <p className="text-3xl text-green-600 font-bold mb-4">
-                  ₹{selectedProduct.price.toFixed(2)}
+                <p className="text-3xl text-green-600 font-bold mb-1">
+                  ₹{(selectedProduct.price + 99).toFixed(2)}
                 </p>
+                <p className="text-xs text-gray-500 mb-4">Includes ₹99 Platform Fee</p>
               </div>
 
-              <div className="flex items-center gap-4">
-                <Button 
+              <div className="space-y-3 mb-4">
+                <div>
+                  <label className="text-sm font-medium">Ticket Partner (District/BMS/Insider)</label>
+                  <Input
+                    placeholder="e.g. BookMyShow"
+                    value={ticketPartner}
+                    onChange={(e) => setTicketPartner(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Transfer Details (Email / Phone)</label>
+                  <Input
+                    placeholder="Details for transfer..."
+                    value={transferDetails}
+                    onChange={(e) => setTransferDetails(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center gap-4">
+                <Button
                   onClick={() => handlePurchase(selectedProduct)}
                   disabled={isRazorpayLoading || !isRazorpayReady}
-                  className="flex-1"
+                  className="flex-1 w-full"
                 >
                   {isRazorpayLoading ? (
                     <>
@@ -836,9 +863,9 @@ const ProductSearchByName = () => {
                     "Purchase Now"
                   )}
                 </Button>
-                <Button 
-                  variant="outline" 
-                  className="flex-1 w-full" 
+                <Button
+                  variant="outline"
+                  className="flex-1 w-full"
                   onClick={() => handleChat(selectedProduct.sellerId)}
                   disabled={isChatLoading}
                 >
@@ -873,16 +900,6 @@ const ProductSearchByName = () => {
                   </p>
                 </div>
               </div>
-
-              {/* <div className="bg-gray-50 rounded-lg p-4">
-                <p className="text-sm text-gray-600 mb-2">Seller Information</p>
-                <p className="font-semibold text-gray-800">
-                  {selectedProduct.seller?.name || "Unknown Seller"}
-                </p>
-                <p className="text-gray-600 text-sm">
-                  {selectedProduct.seller?.email || ""}
-                </p>
-              </div> */}
 
               <div className="text-center pt-4 border-t">
                 <p className="text-gray-400 text-xs">

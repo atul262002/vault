@@ -10,13 +10,15 @@ export async function GET() {
     }
 
     const userEmail = user.emailAddresses[0].emailAddress;
-    const userRecord = await prisma.user.findUnique({
+    const userRecord = await prisma.user.upsert({
       where: { email: userEmail },
+      update: {},
+      create: {
+        email: userEmail,
+        name: `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || "User",
+        isVerified: false
+      }
     });
-
-    if (!userRecord) {
-      return NextResponse.json({ message: "User not found" }, { status: 404 });
-    }
 
     const userId = userRecord.id;
 

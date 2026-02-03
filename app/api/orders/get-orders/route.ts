@@ -10,24 +10,28 @@ export async function GET() {
         }
 
         const userEmail = user.emailAddresses[0].emailAddress;
-        let existingUser = await prisma.user.findUnique({
-            where: { email: userEmail }
+
+        // Upsert user to ensure they exist in DB
+        const existingUser = await prisma.user.upsert({
+            where: { email: userEmail },
+            update: {},
+            create: {
+                email: userEmail,
+                name: `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || "User",
+                isVerified: false
+            }
         });
 
-        if(!existingUser){
-            return NextResponse.json({message:"Unauthourized user"}, {status:401})
-        }
-
         const orders = await prisma.user.findUnique({
-            where:{
-                email:userEmail
+            where: {
+                email: userEmail
             },
-            include:{
-                orders:{
-                    include:{
-                        orderItems:{
-                            include:{
-                                product:true
+            include: {
+                orders: {
+                    include: {
+                        orderItems: {
+                            include: {
+                                product: true
                             }
                         }
                     }
@@ -35,7 +39,7 @@ export async function GET() {
             },
         })
 
-        return NextResponse.json({result:{orders:orders?.orders, existingUser}}, {status:200})
+        return NextResponse.json({ result: { orders: orders?.orders, existingUser } }, { status: 200 })
     } catch (error) {
         return NextResponse.json({ message: "Internal server error" }, { status: 500 })
     }

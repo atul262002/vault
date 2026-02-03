@@ -481,7 +481,6 @@ const ProductSearchByName = () => {
   }, [debouncedSearch]);
 
   useEffect(() => {
-    // Check if Razorpay is already loaded
     if ((window as any).Razorpay) {
       setIsRazorpayReady(true);
       return;
@@ -513,6 +512,12 @@ const ProductSearchByName = () => {
 
     setIsRazorpayLoading(true);
 
+    // CRITICAL FIX: Close the dialog before opening Razorpay
+    setSelectedProduct(null);
+
+    // Add a small delay to ensure dialog closes before Razorpay opens
+    await new Promise(resolve => setTimeout(resolve, 300));
+
     try {
       const response = await axios.post("/api/razorpay/create-order", {
         amount: product.price,
@@ -525,7 +530,7 @@ const ProductSearchByName = () => {
 
         const options = {
           key: "rzp_live_RHmP474HgZJvtk",
-          amount: amount, // Amount from API response (already in paise)
+          amount: amount,
           currency: currency,
           name: "VAULT",
           description: product.name,
@@ -533,13 +538,12 @@ const ProductSearchByName = () => {
           handler: function (res: any) {
             setIsRazorpayLoading(false);
             alert(`Payment successful! Payment ID: ${res.razorpay_payment_id}`);
-            // You can add order verification logic here
             verifyPayment(res);
           },
           prefill: {
             name: user?.firstName || user?.fullName || "",
             email: user?.emailAddresses[0].emailAddress || "",
-            contact: user?.phoneNumbers?.[0]?.phoneNumber || "9999999999", // Default phone to skip that step
+            contact: user?.phoneNumbers?.[0]?.phoneNumber || "9999999999",
           },
           notes: {
             product_id: product.id,
@@ -555,6 +559,7 @@ const ProductSearchByName = () => {
             confirm_close: true,
             animation: true,
             backdropclose: false,
+            escape: true,
           },
           config: {
             display: {
@@ -583,10 +588,8 @@ const ProductSearchByName = () => {
           alert(`Payment failed: ${response.error.description}`);
         });
 
-        // Open modal immediately
         razorpay.open();
         
-        // Set loading to false after a short delay
         setTimeout(() => {
           setIsRazorpayLoading(false);
         }, 800);
@@ -600,7 +603,6 @@ const ProductSearchByName = () => {
 
   const verifyPayment = async (paymentData: any) => {
     try {
-      // Call your backend to verify the payment
       const response = await axios.post("/api/razorpay/verify-payment", {
         razorpay_order_id: paymentData.razorpay_order_id,
         razorpay_payment_id: paymentData.razorpay_payment_id,
@@ -609,7 +611,6 @@ const ProductSearchByName = () => {
 
       if (response.status === 200) {
         console.log("Payment verified successfully");
-        // Redirect to success page or show success message
       }
     } catch (error) {
       console.error("Payment verification failed:", error);
@@ -619,7 +620,6 @@ const ProductSearchByName = () => {
   const handleChat = async (sellerId: string) => {
     setIsChatLoading(true);
     try {
-      // First, fetch the current user
       const userRes = await fetch("/api/user/get-user");
       if (!userRes.ok) {
         alert("Failed to get user information");
@@ -630,7 +630,6 @@ const ProductSearchByName = () => {
       const userData = await userRes.json();
       const currentUserId = userData.id;
 
-      // Then create or find conversation
       const conversationRes = await fetch('/api/conversations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -646,8 +645,6 @@ const ProductSearchByName = () => {
       }
 
       const conversation = await conversationRes.json();
-      
-      // Navigate to the conversation using window.location or next/navigation router
       window.location.href = `/conversations/${conversation.id}/${sellerId}`;
       
     } catch (error) {
@@ -731,11 +728,11 @@ const ProductSearchByName = () => {
                 </p>
               </div>
 
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col sm:flex-row items-center gap-4">
                 <Button 
                   onClick={() => handlePurchase(selectedProduct)}
                   disabled={isRazorpayLoading || !isRazorpayReady}
-                  className="flex-1"
+                  className="flex-1 w-full"
                 >
                   {isRazorpayLoading ? (
                     <>
@@ -788,16 +785,6 @@ const ProductSearchByName = () => {
                   </p>
                 </div>
               </div>
-
-              {/* <div className="bg-gray-50 rounded-lg p-4">
-                <p className="text-sm text-gray-600 mb-2">Seller Information</p>
-                <p className="font-semibold text-gray-800">
-                  {selectedProduct.seller?.name || "Unknown Seller"}
-                </p>
-                <p className="text-gray-600 text-sm">
-                  {selectedProduct.seller?.email || ""}
-                </p>
-              </div> */}
 
               <div className="text-center pt-4 border-t">
                 <p className="text-gray-400 text-xs">
