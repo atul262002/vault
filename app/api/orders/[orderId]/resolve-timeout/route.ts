@@ -42,10 +42,10 @@ export async function POST(
 
         const now = new Date().getTime();
 
-        // SCENARIO 1: Seller Transfer Timeout (90 mins)
+        // SCENARIO 1: Seller Transfer Timeout (60 mins)
         // Buyer claims refund because Seller didn't transfer in time.
         if (order.status === "TRANSFER_INITIATED" && order.transferStartedAt) {
-            const transferDeadline = new Date(order.transferStartedAt).getTime() + 90 * 60000;
+            const transferDeadline = new Date(order.transferStartedAt).getTime() + 60 * 60000;
 
             if (now > transferDeadline) {
                 if (!isBuyer) {
@@ -65,7 +65,7 @@ export async function POST(
                     const subject = `Order #${order.id} Cancelled: Transfer Timeout`;
                     const html = `
                         <h1>Order Cancelled</h1>
-                        <p>The order has been cancelled because the transfer was not completed within the 90-minute window.</p>
+                        <p>The order has been cancelled because the transfer was not completed within the 60-minute window.</p>
                         <p><strong>Refund Status:</strong> Initiated (Mock)</p>
                     `;
                     if (order.buyer.email) sendMail({ to: order.buyer.email, subject, html });
@@ -78,10 +78,10 @@ export async function POST(
             }
         }
 
-        // SCENARIO 2: Buyer Confirmation Timeout (45 mins)
+        // SCENARIO 2: Buyer Confirmation Timeout (30 mins)
         // Seller claims earnings because Buyer didn't confirm in time.
         if (order.status === "EVIDENCE_UPLOADED" && order.evidenceUploadedAt) {
-            const confirmationDeadline = new Date(order.evidenceUploadedAt).getTime() + 45 * 60000;
+            const confirmationDeadline = new Date(order.evidenceUploadedAt).getTime() + 30 * 60000;
 
             if (now > confirmationDeadline) {
                 if (!isSeller) {
@@ -107,7 +107,7 @@ export async function POST(
                     const subject = `Order #${order.id} Completed: Auto-Confirmation`;
                     const html = `
                         <h1>Order Completed</h1>
-                        <p>The order has been auto-completed because the buyer did not confirm within the 45-minute window.</p>
+                        <p>The order has been auto-completed because the buyer did not confirm within the 30-minute window.</p>
                         <p><strong>Funds Status:</strong> Released to Seller</p>
                     `;
                     if (order.buyer.email) sendMail({ to: order.buyer.email, subject, html });

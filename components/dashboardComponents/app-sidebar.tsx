@@ -76,8 +76,8 @@ const data = {
       icon: ShoppingBag,
     },
     {
-      title: "Start Chat",
-      url: "/search",
+      title: "Chats",
+      url: "/chats",
       icon: MessageCircle,
 
     },
@@ -102,13 +102,37 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const [navItems, setNavItems] = React.useState(data.navMain);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const res = await fetch("/api/user/unread-count");
+      if (res.ok) {
+        const { count } = await res.json();
+        setNavItems((prev) =>
+          prev.map((item) =>
+            item.title === "Chats" ? { ...item, badge: count } : item
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Error fetching unread count:", error);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         {/* <NavBrand /> */}
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={navItems} />
         {/* <NavProjects projects={data.projects} /> */}
       </SidebarContent>
       <SidebarFooter>

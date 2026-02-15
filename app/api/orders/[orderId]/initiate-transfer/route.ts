@@ -40,8 +40,8 @@ export async function POST(
 
         // Send email to Buyer
         if (updatedOrder.buyer.email) {
-            // Calculate 90 mins from now
-            const deadline = new Date(updatedOrder.transferStartedAt!.getTime() + 90 * 60000);
+            // Calculate 60 mins from now
+            const deadline = new Date(updatedOrder.transferStartedAt!.getTime() + 60 * 60000);
 
             await import("@/lib/mail").then(({ sendMail }) =>
                 sendMail({
@@ -55,10 +55,10 @@ export async function POST(
                         <h2>What to do next:</h2>
                         <ol>
                             <li>Wait for the seller to complete the transfer on the ticket platform (${updatedOrder.ticketPartner || 'User specified'}).</li>
-                            <li>The seller will upload evidence of the transfer within 90 minutes.</li>
+                            <li>The seller will upload evidence of the transfer within 60 minutes.</li>
                             <li>Once evidence is uploaded, you will need to confirm receipt to release the funds.</li>
                         </ol>
-                        <p><strong>Note:</strong> A flat fee of ₹99 has been applied to this transaction.</p>
+                        <p><strong>Note:</strong> A platform fee of ₹${order.platformFeeSeller} (2.5%) has been applied to this transaction.</p>
                     `
                 })
             );

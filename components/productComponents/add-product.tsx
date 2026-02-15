@@ -452,6 +452,15 @@ export function AddProduct() {
                                                 onChange={(e) => field.onChange(Number(e.target.value))}
                                             />
                                         </FormControl>
+                                        {field.value > 0 && (
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                                Platform Fee (2.5%): ₹{(field.value * 0.025).toFixed(2)}
+                                                <br />
+                                                <span className="font-medium text-green-600">
+                                                    You receive: ₹{(field.value - (field.value * 0.025)).toFixed(2)}
+                                                </span>
+                                            </p>
+                                        )}
                                         <FormMessage />
                                     </FormItem>
                                 )}

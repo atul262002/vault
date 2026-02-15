@@ -3,33 +3,55 @@ import { currentUser } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(req: NextRequest) {
-    const user = await currentUser();
-    const email = user?.emailAddresses[0]?.emailAddress;
+  const user = await currentUser();
+  const email = user?.emailAddresses[0]?.emailAddress;
 
-    if (!email) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  if (!email) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
-    const existingUser = await prisma.user.findUnique({
-        where: { email },
+  const existingUser = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (!existingUser) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
+  const conversations = await prisma.conversation.findMany({
+    where: {
+      participants: {
+        some: { id: existingUser.id }
+      }
+    },
+    include: {
+      participants: true,
+      messages: {
+        orderBy: { createdAt: 'desc' },
+        take: 1,
+      }
+    }
+  });
+
+  const conversationsWithUnread = await Promise.all(conversations.map(async (conversation) => {
+    const unreadCount = await prisma.message.count({
+      where: {
+        conversationId: conversation.id,
+        receiverId: existingUser.id,
+        isRead: false
+      }
     });
+    return {
+      ...conversation,
+      unreadCount,
+      lastMessage: conversation.messages[0]
+    };
+  }));
 
-    if (!existingUser) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  // Sort by last message date
+  conversationsWithUnread.sort((a, b) => {
+    const dateA = a.lastMessage?.createdAt ? new Date(a.lastMessage.createdAt).getTime() : 0;
+    const dateB = b.lastMessage?.createdAt ? new Date(b.lastMessage.createdAt).getTime() : 0;
+    return dateB - dateA;
+  });
 
-    const conversations = await prisma.conversation.findMany({
-        where: {
-            participants: {
-                some: { id: existingUser.id }
-            }
-        },
-        include: {
-            participants: true,
-            messages: {
-                orderBy: { createdAt: 'asc' },
-                take: 1,
-            }
-        }
-    });
-
-    return NextResponse.json(conversations);
+  return NextResponse.json(conversationsWithUnread);
 }
 
 export async function POST(req: NextRequest) {
@@ -41,7 +63,7 @@ export async function POST(req: NextRequest) {
 
   const existing = await prisma.conversation.findFirst({
     where: {
-      AND: participantIds.map((id:any) => ({
+      AND: participantIds.map((id: any) => ({
         participants: { some: { id } }
       }))
     }
@@ -54,7 +76,7 @@ export async function POST(req: NextRequest) {
   const conversation = await prisma.conversation.create({
     data: {
       participants: {
-        connect: participantIds.map((id:any) => ({ id }))
+        connect: participantIds.map((id: any) => ({ id }))
       }
     },
     include: {

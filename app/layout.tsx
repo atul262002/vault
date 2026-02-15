@@ -7,7 +7,7 @@ import { ThemeProvider } from "@/components/ui/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { UserContextProvider } from "@/contexts/userContext";
 // import Chatbot from "@/components/chatbotComponents/chat-bot";
-import TawkToChat from "@/components/freeChatBot/freeChatBot";
+import DraggableChatWidget from "@/components/freeChatBot/draggable-chat-widget";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
- const metadata: Metadata = {
+const metadata: Metadata = {
   title: "Vault",
   description: "Vault keeps your payment safe whether you are shopping online or buying from someone from OLX, Facebook, Instagram, or elsewhere",
 };
@@ -37,11 +37,11 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <UserContextProvider>
-            {children}
+              {children}
             </UserContextProvider>
             <Toaster />
             {/* <Chatbot /> */}
-            <TawkToChat />
+            <DraggableChatWidget />
           </ThemeProvider>
         </body>
       </html>

@@ -723,9 +723,20 @@ const ProductSearchByName = () => {
                 <h2 className="text-2xl font-bold text-gray-800 mb-2">
                   {selectedProduct.name}
                 </h2>
-                <p className="text-3xl text-green-600 font-bold mb-4">
-                  ₹{selectedProduct.price.toFixed(2)}
-                </p>
+                <div className="bg-gray-50 p-3 rounded-md mb-4 space-y-1">
+                  <div className="flex justify-between text-sm text-gray-600">
+                    <span>Product Price:</span>
+                    <span>₹{selectedProduct.price.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm text-gray-600">
+                    <span>Platform Fee (5%):</span>
+                    <span>₹{(selectedProduct.price * 0.05).toFixed(2)}</span>
+                  </div>
+                  <div className="border-t border-gray-200 pt-2 mt-2 flex justify-between items-center font-bold text-lg text-green-600">
+                    <span>Total to Pay:</span>
+                    <span>₹{(selectedProduct.price * 1.05).toFixed(2)}</span>
+                  </div>
+                </div>
               </div>
 
               <div className="flex items-center gap-4">
