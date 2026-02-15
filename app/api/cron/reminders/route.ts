@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
             errors: 0
         };
 
-        const ADMIN_EMAIL = "admin@vault.com"; // Hardcoded Admin Email
+        const ADMIN_EMAIL = "writeatul2002@gmail.com"; // Hardcoded Admin Email
 
         // ---------------------------------------------------------
         // 1. SELLER TIMERS (60 mins)

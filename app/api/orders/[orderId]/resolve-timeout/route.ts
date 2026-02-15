@@ -41,7 +41,7 @@ export async function POST(
         }
 
         const now = new Date().getTime();
-        const ADMIN_EMAIL = "admin@vault.com";
+        const ADMIN_EMAIL = "writeatul2002@gmail.com";
 
         // SCENARIO 1: Seller Transfer Timeout (60 mins)
         // Buyer claims refund because Seller didn't transfer in time.
