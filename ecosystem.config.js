@@ -3,8 +3,8 @@ module.exports = {
     {
       name: "vault",
       cwd: "/root/atul/vault-main/vault",
-      script: "/root/.nvm/versions/node/v22.21.1/bin/npm",
-      args: "run start",
+      script: "node",
+      args: ".next/standalone/server.js",
       env: {
         NODE_ENV: "production",
         PORT: 3000
@@ -13,12 +13,11 @@ module.exports = {
     {
       name: "scheduler",
       cwd: "/root/atul/vault-main/vault",
-      script: "scheduler.js",
+      script: "node",
+      args: "scheduler.js",
       env: {
-        NODE_ENV: "production",
-        // API_URL: "http://localhost:3000/api/cron/reminders" // Optional override
+        NODE_ENV: "production"
       }
     }
   ]
 };
-

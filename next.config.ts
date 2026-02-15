@@ -1,23 +1,24 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: "standalone",   // 👈 ADD THIS
+
   typescript: {
-    ignoreBuildErrors: true, 
+    ignoreBuildErrors: true,
   },
   eslint: {
-    ignoreDuringBuilds: true, 
+    ignoreDuringBuilds: true,
   },
-  images:{
-    remotePatterns:[
+  images: {
+    remotePatterns: [
       {
-        hostname:'ik.imagekit.io'
+        hostname: "ik.imagekit.io",
       },
       {
-        hostname:'images.unsplash.com'
-      }
-    ]
+        hostname: "images.unsplash.com",
+      },
+    ],
   },
-  
 };
 
 export default nextConfig;
