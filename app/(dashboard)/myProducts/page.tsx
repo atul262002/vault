@@ -134,17 +134,18 @@ const MyProducts = () => {
               className="border rounded-lg p-4 shadow-md hover:shadow-lg transition-shadow"
             >
               <img
-                src={product.imageUrl}
+                src={product.imageUrl || ""}
                 alt={product.name}
                 className="w-full h-48 object-cover rounded-md mb-4"
               />
-              
+
+              <p className="text-xs text-gray-500 mt-2">ID: {product.id}</p>
               <h3 className="text-xl font-semibold mb-2">{product.name}</h3>
-              
+
               <p className="text-gray-600 mb-3 line-clamp-2">
                 {product.description}
               </p>
-              
+
               <div className="space-y-2 mb-4">
                 <p className="text-2xl font-bold text-green-600">
                   ₹{product.price}

@@ -220,6 +220,7 @@
 //           prefill: {
 //             name: user?.firstName || "",
 //             email: user?.emailAddresses[0].emailAddress || "",
+//             contact: user?.phoneNumbers?.[0]?.phoneNumber || "",
 //           },
 //           theme: {
 //             color: "#3399cc",
@@ -543,7 +544,7 @@ const ProductSearchByName = () => {
           prefill: {
             name: user?.firstName || user?.fullName || "",
             email: user?.emailAddresses[0].emailAddress || "",
-            contact: user?.phoneNumbers?.[0]?.phoneNumber || "9999999999",
+            contact: user?.phoneNumbers?.[0]?.phoneNumber || "",
           },
           notes: {
             product_id: product.id,
