@@ -41,22 +41,23 @@ export async function GET(req: NextRequest) {
             let shouldSend = false;
             let type = "regular";
 
-            // 5-minute Warning
+            // @ts-ignore
+            const lastSent = order.lastReminderSentAt ? new Date(order.lastReminderSentAt).getTime() : 0;
+            const timeSinceLastSent = now.getTime() - lastSent;
+
+            // 5-minute Warning (Urgent)
             if (timeLeft <= 5 && timeLeft > 0) {
-                // Check if we already sent a reminder recently (within last 4 mins) to avoid double sending
-                // @ts-ignore
-                const lastSent = order.lastReminderSentAt ? new Date(order.lastReminderSentAt).getTime() : 0;
-                if (now.getTime() - lastSent > 4 * 60000) {
+                // Send if we haven't sent a warning in the last 4 minutes
+                if (timeSinceLastSent > 4 * 60000) {
                     shouldSend = true;
                     type = "warning";
                 }
             }
-            // 10-minute Recurring
-            else if (elapsedMinutes > 0 && elapsedMinutes % 10 === 0) {
-                // Check if we already sent this specific 10-min reminder
-                // @ts-ignore
-                const lastSent = order.lastReminderSentAt ? new Date(order.lastReminderSentAt).getTime() : 0;
-                if (now.getTime() - lastSent > 9 * 60000) {
+            // 10-minute Recurring (Regular)
+            // Send if it's been at least 10 minutes since the last email (or start time if no email sent yet)
+            else if (timeLeft > 5 && elapsedMinutes > 0) {
+                const timeReference = lastSent > 0 ? lastSent : startTime;
+                if (now.getTime() - timeReference >= 10 * 60000) {
                     shouldSend = true;
                     type = "regular";
                 }
@@ -102,20 +103,21 @@ export async function GET(req: NextRequest) {
             let shouldSend = false;
             let type = "regular";
 
+            // @ts-ignore
+            const lastSent = order.lastReminderSentAt ? new Date(order.lastReminderSentAt).getTime() : 0;
+            const timeSinceLastSent = now.getTime() - lastSent;
+
             // 5-minute Warning
             if (timeLeft <= 5 && timeLeft > 0) {
-                // @ts-ignore
-                const lastSent = order.lastReminderSentAt ? new Date(order.lastReminderSentAt).getTime() : 0;
-                if (now.getTime() - lastSent > 4 * 60000) {
+                if (timeSinceLastSent > 4 * 60000) {
                     shouldSend = true;
                     type = "warning";
                 }
             }
             // 10-minute Recurring
-            else if (elapsedMinutes > 0 && elapsedMinutes % 10 === 0) {
-                // @ts-ignore
-                const lastSent = order.lastReminderSentAt ? new Date(order.lastReminderSentAt).getTime() : 0;
-                if (now.getTime() - lastSent > 9 * 60000) {
+            else if (timeLeft > 5 && elapsedMinutes > 0) {
+                const timeReference = lastSent > 0 ? lastSent : startTime;
+                if (now.getTime() - timeReference >= 10 * 60000) {
                     shouldSend = true;
                     type = "regular";
                 }

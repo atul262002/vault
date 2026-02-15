@@ -6,6 +6,7 @@ import { MessageCircle } from "lucide-react";
 
 export default function DraggableChatWidget() {
     const [isLoaded, setIsLoaded] = useState(false);
+    const nodeRef = React.useRef(null);
 
     useEffect(() => {
         // Function to check and hide default widget
@@ -64,8 +65,9 @@ export default function DraggableChatWidget() {
             {/* We use a fixed container, but Draggable will transform it. 
           Use 'fixed' position for the starting point. */}
             {isLoaded && (
-                <Draggable>
+                <Draggable nodeRef={nodeRef}>
                     <div
+                        ref={nodeRef}
                         className="fixed bottom-6 right-6 z-[9999] cursor-move shadow-xl rounded-full transition-transform hover:scale-105 active:scale-95"
                         style={{ touchAction: 'none' }} // Prevent scrolling while dragging on touch devices
                     >

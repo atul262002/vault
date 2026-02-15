@@ -22,24 +22,41 @@ export async function GET() {
             }
         });
 
-        const orders = await prisma.user.findUnique({
+        const orders = await prisma.order.findMany({
             where: {
-                email: userEmail
-            },
-            include: {
-                orders: {
-                    include: {
+                OR: [
+                    { buyerId: existingUser.id },
+                    {
                         orderItems: {
-                            include: {
-                                product: true
+                            some: {
+                                product: {
+                                    sellerId: existingUser.id
+                                }
                             }
                         }
                     }
+                ]
+            },
+            include: {
+                orderItems: {
+                    include: {
+                        product: true
+                    }
+                },
+                buyer: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true
+                    }
                 }
             },
-        })
+            orderBy: {
+                createdAt: 'desc'
+            }
+        });
 
-        return NextResponse.json({ result: { orders: orders?.orders, existingUser } }, { status: 200 })
+        return NextResponse.json({ result: { orders, existingUser } }, { status: 200 })
     } catch (error) {
         return NextResponse.json({ message: "Internal server error" }, { status: 500 })
     }

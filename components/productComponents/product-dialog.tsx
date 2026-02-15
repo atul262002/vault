@@ -745,30 +745,41 @@ const ProductSearchByName = () => {
                   <Button
                     variant="ghost"
                     disabled
-                    className="flex-1 w-full bg-red-100 text-red-600 font-bold border border-red-200"
+                    className="flex-1 bg-red-100 text-red-600 font-bold border border-red-200"
                   >
                     Sold Out
                   </Button>
                 ) : (
-                  <Button
-                    onClick={() => handlePurchase(selectedProduct)}
-                    disabled={isRazorpayLoading || !isRazorpayReady}
-                    className="flex-1 w-full"
-                  >
-                    {isRazorpayLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Opening Payment...
-                      </>
-                    ) : !isRazorpayReady ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Loading Payment...
-                      </>
-                    ) : (
-                      "Purchase Now"
-                    )}
-                  </Button>
+                  selectedProduct.isSold ? (
+                    <Button
+                      variant="ghost"
+                      disabled
+                      className="flex-1 bg-red-100 text-red-600 font-bold border border-red-200"
+                    >
+                      Sold Out
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="default"
+                      onClick={() => handlePurchase(selectedProduct)}
+                      disabled={isRazorpayLoading || !isRazorpayReady}
+                      className="flex-1"
+                    >
+                      {isRazorpayLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Opening Payment...
+                        </>
+                      ) : !isRazorpayReady ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Loading Payment...
+                        </>
+                      ) : (
+                        "Purchase Now"
+                      )}
+                    </Button>
+                  )
                 )}
                 <Button
                   variant="outline"
