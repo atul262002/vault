@@ -41,10 +41,11 @@ export async function POST(
         }
 
         const now = new Date().getTime();
+        const ADMIN_EMAIL = "admin@vault.com";
 
         // SCENARIO 1: Seller Transfer Timeout (60 mins)
         // Buyer claims refund because Seller didn't transfer in time.
-        if (order.status === "TRANSFER_INITIATED" && order.transferStartedAt) {
+        if ((order.status === "TRANSFER_INITIATED" || order.status === "WAITING_FOR_TRANSFER") && order.transferStartedAt) {
             const transferDeadline = new Date(order.transferStartedAt).getTime() + 60 * 60000;
 
             if (now > transferDeadline) {
@@ -52,24 +53,24 @@ export async function POST(
                     return NextResponse.json({ message: "Only Buyer can claim refund for transfer timeout" }, { status: 403 });
                 }
 
-                // Update Status
+                // Update Status to DISPUTED (Consistent with Cron)
                 const updatedOrder = await prisma.order.update({
                     where: { id: orderId },
-                    data: { status: "CANCELLED" } // Using CANCELLED as CANCELLED_BY_TIMEOUT is not in Enum, assuming standard CANCELLED
+                    data: { status: "DISPUTED" }
                 });
-
-                // TODO: Trigger Refund Logic Here (Razorpay Refund)
 
                 // Notify
                 await import("@/lib/mail").then(({ sendMail }) => {
-                    const subject = `Order #${order.id} Cancelled: Transfer Timeout`;
-                    const html = `
-                        <h1>Order Cancelled</h1>
-                        <p>The order has been cancelled because the transfer was not completed within the 60-minute window.</p>
-                        <p><strong>Refund Status:</strong> Initiated (Mock)</p>
+                    const subject = `Order #${order.id} DISPUTED: Seller Timeout (Manual Claim)`;
+                    const htmlBase = `
+                        <h1>Order Marked as Disputed</h1>
+                        <p>The buyer claimed a timeout resolution. The seller failed to complete the transfer within the 60-minute window.</p>
+                        <p><strong>Order ID:</strong> ${order.id}</p>
                     `;
-                    if (order.buyer.email) sendMail({ to: order.buyer.email, subject, html });
-                    if (seller?.email) sendMail({ to: seller.email, subject, html });
+
+                    if (order.buyer.email) sendMail({ to: order.buyer.email, subject, html: `${htmlBase}<p>We have marked this order as disputed. Support will review it shortly.</p>` });
+                    if (seller?.email) sendMail({ to: seller.email, subject, html: `${htmlBase}<p>You failed to upload evidence in time.</p>` });
+                    sendMail({ to: ADMIN_EMAIL, subject: `[ADMIN] Conflict Alert: Order #${order.id}`, html: `${htmlBase}<p>Manual claim by Buyer.</p>` });
                 });
 
                 return NextResponse.json(updatedOrder);
@@ -89,9 +90,6 @@ export async function POST(
                 }
 
                 // Update Status to COMPLETED
-                // Recalculate fees/payout
-                const platformFeeSeller = order.platformFeeSeller || 99;
-
                 const updatedOrder = await prisma.order.update({
                     where: { id: orderId },
                     data: {
@@ -100,18 +98,17 @@ export async function POST(
                     }
                 });
 
-                // TODO: Trigger Payout Logic Here
-
                 // Notify
                 await import("@/lib/mail").then(({ sendMail }) => {
-                    const subject = `Order #${order.id} Completed: Auto-Confirmation`;
-                    const html = `
+                    const subject = `Order #${order.id} Completed: Auto-Confirmation (Manual Claim)`;
+                    const htmlBase = `
                         <h1>Order Completed</h1>
-                        <p>The order has been auto-completed because the buyer did not confirm within the 30-minute window.</p>
-                        <p><strong>Funds Status:</strong> Released to Seller</p>
+                        <p>The seller claimed completion. The buyer did not confirm within the 30-minute window.</p>
+                        <p><strong>Order ID:</strong> ${order.id}</p>
                     `;
-                    if (order.buyer.email) sendMail({ to: order.buyer.email, subject, html });
-                    if (seller?.email) sendMail({ to: seller.email, subject, html });
+                    if (order.buyer.email) sendMail({ to: order.buyer.email, subject, html: `${htmlBase}<p>Funds released to seller.</p>` });
+                    if (seller?.email) sendMail({ to: seller.email, subject, html: `${htmlBase}<p>Funds released to you.</p>` });
+                    sendMail({ to: ADMIN_EMAIL, subject: `[ADMIN] Order Completed: Order #${order.id}`, html: `${htmlBase}<p>Manual claim by Seller.</p>` });
                 });
 
                 return NextResponse.json(updatedOrder);
