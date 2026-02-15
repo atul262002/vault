@@ -452,15 +452,24 @@ export function AddProduct() {
                                                 onChange={(e) => field.onChange(Number(e.target.value))}
                                             />
                                         </FormControl>
-                                        {field.value > 0 && (
-                                            <p className="text-xs text-muted-foreground mt-1">
-                                                Platform Fee (2.5%): ₹{(field.value * 0.025).toFixed(2)}
-                                                <br />
-                                                <span className="font-medium text-green-600">
-                                                    You receive: ₹{(field.value - (field.value * 0.025)).toFixed(2)}
-                                                </span>
-                                            </p>
-                                        )}
+                                        <div className="mt-2 p-2 bg-slate-50 rounded-md border text-sm">
+                                            <div className="flex justify-between text-muted-foreground">
+                                                <span>Platform Fee:</span>
+                                                <span>2.5%</span>
+                                            </div>
+                                            {field.value > 0 && (
+                                                <>
+                                                    <div className="flex justify-between text-muted-foreground mt-1 border-t pt-1">
+                                                        <span>Fee Amount:</span>
+                                                        <span>₹{(field.value * 0.025).toFixed(2)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between font-medium text-green-600 mt-1 border-t border-dashed pt-1">
+                                                        <span>You receive:</span>
+                                                        <span>₹{(field.value - (field.value * 0.025)).toFixed(2)}</span>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
                                         <FormMessage />
                                     </FormItem>
                                 )}
