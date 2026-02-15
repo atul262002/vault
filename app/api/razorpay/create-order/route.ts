@@ -1,71 +1,3 @@
-// import { prisma } from "@/lib/db";
-// import { currentUser } from "@clerk/nextjs/server";
-// import { NextRequest, NextResponse } from "next/server";
-// import Razorpay from "razorpay";
-
-// export async function POST(req: NextRequest) {
-//   try {
-//     const user = await currentUser();
-//     if (!user?.emailAddresses[0]?.emailAddress) {
-//       return NextResponse.json({ message: "Unauthorized user" }, { status: 401 });
-//     }
-
-//     const userEmail = user.emailAddresses[0].emailAddress;
-//     let existingUser = await prisma.user.findUnique({
-//       where: { email: userEmail }
-//     });
-
-//     if(!existingUser){
-//       return NextResponse.json({message:"Unauthourized user"}, {status:401})
-//     }
-
-//     const { amount, currency, product } = await req.json();
-
-//     if (!amount || !currency || !product) {
-//       return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
-//     }
-
-
-
-//     const razorpay = new Razorpay({
-//       key_id: process.env.RAZORPAYX_KEY_ID!,
-//       key_secret: process.env.RAZORPAYX_KEY_SECRET!,
-//     });
-
-
-//     const order = await razorpay.orders.create({
-//       amount: amount * 100,  
-//       currency: currency || "INR",
-//       receipt: `receipt_${Date.now()}`,
-
-//     });
-
-//     const newOrder = await prisma.order.create({
-//       data: {
-//         razorpayId: order.id,
-//         buyerId: existingUser.id,
-//         totalAmount:amount,
-//         status:"PENDING",
-//         orderItems:{
-//           create:product.map((item:any)=>({
-//             productId: item.id,
-//             price:item.price
-//           }))
-//         }
-//       }
-//     })
-
-
-
-//     return NextResponse.json({ orderId: newOrder.id }, { status: 200 });
-//   } catch (error: any) {
-//     console.error("Order creation error:", error);
-//     return NextResponse.json({ error: error.message }, { status: 500 });
-//   }
-// }
-
-
-
 import { prisma } from "@/lib/db";
 import { currentUser } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
@@ -95,10 +27,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
     }
 
-    // Revenue Model: Take Rs.99 from buyer
-    const platformFeeBuyer = 99;
-    const platformFeeSeller = 99;
+    // Revenue Model: Platform Fee Calculation (Percentage Based)
+    const platformFeeBuyer = Math.round(amount * 0.05); // 5%
+    const platformFeeSeller = Math.round(amount * 0.025); // 2.5%
+
+    // Total amount includes buyer fee
     const totalAmountToPay = amount + platformFeeBuyer;
+    // Amount is already in rupees, convert to paise for razorpay
+    const amountInPaise = Math.round(totalAmountToPay * 100);
 
     const razorpay = new Razorpay({
       key_id: process.env.RAZORPAYX_KEY_ID!,
@@ -106,7 +42,7 @@ export async function POST(req: NextRequest) {
     });
 
     const order = await razorpay.orders.create({
-      amount: totalAmountToPay * 100, // Razorpay expects amount in paise
+      amount: amountInPaise,
       currency: currency || "INR",
       receipt: `receipt_${Date.now()}`,
     });
@@ -120,10 +56,7 @@ export async function POST(req: NextRequest) {
         platformFeeSeller: platformFeeSeller,
         ticketPartner: ticketPartner,
         transferDetails: transferDetails,
-        status: "WAITING_FOR_TRANSFER", // Initial status after payment should be waiting for transfer handling, but usually we wait for payment success webhook/verification.
-        // However, standard flow is PENDING -> (Payment Success) -> WAITING_FOR_TRANSFER. 
-        // For now, I'll keep it PENDING, and the payment success mechanism (which I need to find) should update it.
-        // Actually, looking at the code, it sets PENDING.
+        status: "PENDING",
         orderItems: {
           create: product.map((item: any) => ({
             productId: item.id,

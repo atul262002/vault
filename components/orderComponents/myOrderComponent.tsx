@@ -17,6 +17,7 @@ interface Order {
   transferStartedAt?: string;
   evidenceUploadedAt?: string;
   buyerId: string;
+  createdAt: string;
   orderItems: {
     id: string;
     productId: string;
@@ -47,7 +48,9 @@ const MyOrders = () => {
     try {
       const response = await axios.get("/api/orders/get-orders");
       if (response.status === 200) {
-        setOrders(response.data.result.orders || []);
+        const fetchedOrders: Order[] = response.data.result.orders || [];
+        fetchedOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setOrders(fetchedOrders);
         setUser(response.data.result.existingUser || null);
       }
     } catch (error) {

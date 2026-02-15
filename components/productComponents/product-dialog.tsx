@@ -234,7 +234,7 @@
 //         };
 
 //         const razorpay = new (window as any).Razorpay(options);
-        
+
 //         // Wait longer for Razorpay modal to be fully interactive
 //         setTimeout(() => {
 //           setIsRazorpayLoading(false);
@@ -279,7 +279,7 @@
 //         setIsChatLoading(false);
 //         return;
 //       }
-      
+
 //       const userData = await userRes.json();
 //       const currentUserId = userData.id;
 
@@ -299,10 +299,10 @@
 //       }
 
 //       const conversation = await conversationRes.json();
-      
+
 //       // Navigate to the conversation
 //       router.push(`/conversations/${conversation.id}/${sellerId}`);
-      
+
 //     } catch (error) {
 //       console.error("Error starting chat:", error);
 //       alert("Failed to start chat. Please try again.");
@@ -553,7 +553,7 @@ const ProductSearchByName = () => {
             color: "#3399cc",
           },
           modal: {
-            ondismiss: function() {
+            ondismiss: function () {
               setIsRazorpayLoading(false);
             },
             confirm_close: true,
@@ -582,14 +582,14 @@ const ProductSearchByName = () => {
         };
 
         const razorpay = new (window as any).Razorpay(options);
-        
+
         razorpay.on('payment.failed', function (response: any) {
           setIsRazorpayLoading(false);
           alert(`Payment failed: ${response.error.description}`);
         });
 
         razorpay.open();
-        
+
         setTimeout(() => {
           setIsRazorpayLoading(false);
         }, 800);
@@ -626,15 +626,15 @@ const ProductSearchByName = () => {
         setIsChatLoading(false);
         return;
       }
-      
+
       const userData = await userRes.json();
       const currentUserId = userData.id;
 
       const conversationRes = await fetch('/api/conversations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          participantIds: [currentUserId, sellerId] 
+        body: JSON.stringify({
+          participantIds: [currentUserId, sellerId]
         }),
       });
 
@@ -646,7 +646,7 @@ const ProductSearchByName = () => {
 
       const conversation = await conversationRes.json();
       window.location.href = `/conversations/${conversation.id}/${sellerId}`;
-      
+
     } catch (error) {
       console.error("Error starting chat:", error);
       alert("Failed to start chat. Please try again.");
@@ -728,29 +728,39 @@ const ProductSearchByName = () => {
                 </p>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center gap-4">
-                <Button 
-                  onClick={() => handlePurchase(selectedProduct)}
-                  disabled={isRazorpayLoading || !isRazorpayReady}
+              <div className="flex items-center gap-4">
+                {selectedProduct.isSold ? (
+                  <Button
+                    variant="ghost"
+                    disabled
+                    className="flex-1 w-full bg-red-100 text-red-600 font-bold border border-red-200"
+                  >
+                    Sold Out
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => handlePurchase(selectedProduct)}
+                    disabled={isRazorpayLoading || !isRazorpayReady}
+                    className="flex-1 w-full"
+                  >
+                    {isRazorpayLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Opening Payment...
+                      </>
+                    ) : !isRazorpayReady ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Loading Payment...
+                      </>
+                    ) : (
+                      "Purchase Now"
+                    )}
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
                   className="flex-1 w-full"
-                >
-                  {isRazorpayLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Opening Payment...
-                    </>
-                  ) : !isRazorpayReady ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Loading Payment...
-                    </>
-                  ) : (
-                    "Purchase Now"
-                  )}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="flex-1 w-full" 
                   onClick={() => handleChat(selectedProduct.sellerId)}
                   disabled={isChatLoading}
                 >

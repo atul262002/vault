@@ -13,6 +13,7 @@ import {
   PieChart,
   Settings2,
   SquareTerminal,
+  ShoppingBag,
 } from "lucide-react"
 import { NavMain } from "@/components/dashboardComponents/nav-main"
 import { NavProjects } from "@/components/dashboardComponents/nav-projects"
@@ -55,26 +56,31 @@ const data = {
       url: "/dashboard",
       icon: SquareTerminal,
       isActive: true,
-     
+
     },
     {
       title: "Analytics",
       url: "/analytics",
       icon: Bot,
-      
+
     },
     {
       title: "My Products",
       url: "/myProducts",
       icon: BookOpen,
-      
+
     },
-{
+    {
+      title: "My Orders",
+      url: "/orders/history",
+      icon: ShoppingBag,
+    },
+    {
       title: "Start Chat",
       url: "/search",
       icon: MessageCircle,
-      
-    },    
+
+    },
   ],
   projects: [
     {

@@ -40,8 +40,33 @@ export async function POST(
                 status: "EVIDENCE_UPLOADED",
                 evidenceUrl: evidenceUrl,
                 evidenceUploadedAt: new Date()
-            }
+            },
+            include: { buyer: true }
         });
+
+        // Send email to Buyer
+        if (updatedOrder.buyer.email) {
+            // Calculate 45 mins from now
+            const confirmationDeadline = new Date(updatedOrder.evidenceUploadedAt!.getTime() + 45 * 60000);
+
+            await import("@/lib/mail").then(({ sendMail }) =>
+                sendMail({
+                    to: updatedOrder.buyer.email!,
+                    subject: `Evidence Uploaded: Action Required for Order #${updatedOrder.id}`,
+                    html: `
+                        <h1>Seller has uploaded transfer evidence!</h1>
+                        <p>The seller for your order <strong>#${updatedOrder.id}</strong> has uploaded proof of ticket transfer.</p>
+                        <p><a href="${updatedOrder.evidenceUrl}">Click here to view the evidence</a></p>
+                        <br/>
+                        <h2>IMMEDIATE ACTION REQUIRED:</h2>
+                        <p>Please review the evidence and confirm receipt of the tickets within <strong>45 minutes</strong> (by ${confirmationDeadline.toLocaleString()}).</p>
+                        <p>If you do not take action, the funds may be automatically released to the seller.</p>
+                        <br/>
+                        <p><strong>Note:</strong> A flat fee of ₹99 has been applied to this transaction.</p>
+                    `
+                })
+            );
+        }
 
         return NextResponse.json(updatedOrder);
 

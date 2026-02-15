@@ -17,20 +17,26 @@ export async function POST(request: NextRequest) {
         if (!existingUser || !existingUser.id) {
             return NextResponse.json({ message: "Unauthorized user" }, { status: 401 })
         }
-       
+
 
         const { name, imageUrl, price, refundPeriod, description, category, estimatedTime, image } = await request.json();
 
-        if (!name  || !price || !refundPeriod || !description || !category ) {
+        console.log("Create Product Request Body:", { name, imageUrl, price, refundPeriod, description, category, estimatedTime, image });
+
+        if (!name || !price || !refundPeriod || !description || !category) {
+            console.log("Missing required fields");
             return NextResponse.json({ message: "Missing required fields" }, { status: 400 });
         }
 
-        const cat = await prisma.category.findUnique({
+        let cat = await prisma.category.findUnique({
             where: { name: category }
         });
 
         if (!cat) {
-            return NextResponse.json({ message: "Category not found" }, { status: 400 });
+            console.log(`Category not found for name: ${category}, creating it...`);
+            cat = await prisma.category.create({
+                data: { name: category }
+            });
         }
 
         const product = await prisma.products.create({
@@ -43,7 +49,7 @@ export async function POST(request: NextRequest) {
                 sellerId: existingUser.id,
                 categoryId: cat.id,
                 image,
-                estimatedTime:estimatedTime
+                estimatedTime: estimatedTime
                 // sellerPhoneNo: user.phoneNumbers[0].phoneNumber
             }
         });

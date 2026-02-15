@@ -38,6 +38,7 @@ model Products {
   categoryId    String
   category      Category    @relation(fields: [categoryId], references: [id])
   orders        OrderItem[]
+  isSold        Boolean     @default(false)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
@@ -70,6 +71,7 @@ model Order {
   transferStartedAt DateTime?
   evidenceUploadedAt DateTime?
   buyerConfirmedAt  DateTime?
+  lastReminderSentAt DateTime?
   platformFeeBuyer  Float       @default(0.0)
   platformFeeSeller Float       @default(0.0)
 
