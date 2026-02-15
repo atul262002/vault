@@ -3,8 +3,8 @@ module.exports = {
     {
       name: "vault",
       cwd: "/root/atul/vault-main/vault",
-      script: "npm",
-      args: "start",
+      script: "/root/.nvm/versions/node/v22.21.1/bin/npm",
+      args: "run start",
       env: {
         NODE_ENV: "production",
         PORT: 3000
