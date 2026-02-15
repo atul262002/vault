@@ -740,7 +740,8 @@ const ProductSearchByName = () => {
       }
 
       const conversation = await conversationRes.json();
-      window.location.href = `/conversations/${conversation.id}/${sellerId}`;
+      // Corrected route based on app structure: app/(dashboard)/chats/[conversationId]
+      window.location.href = `/chats/${conversation.id}`;
 
     } catch (error) {
       console.error("Error starting chat:", error);
