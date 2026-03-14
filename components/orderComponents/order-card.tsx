@@ -2,11 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import axios from "axios";
 import { Loader } from "lucide-react";
@@ -45,62 +42,44 @@ export default function OrderCard({ order, currentUser, refreshOrders }: OrderCa
 
     // Timer Logic
     useEffect(() => {
-        const interval = setInterval(() => {
+        const calculateTimeLeft = () => {
             const now = new Date().getTime();
-            let targetTime = 0;
-            let showTimer = false;
+            let targetTime: number | null = null;
+            let nextTimeLeft: string | null = null;
 
-            if (order.status === "TRANSFER_INITIATED" && order.transferStartedAt) {
-                // T-15 mins for Seller
-                // T-15 mins for Buyer but with 5 min lag display logic
-                const startTime = new Date(order.transferStartedAt).getTime();
-                const deadline = startTime + 15 * 60 * 1000;
-
-                if (isSeller) {
-                    targetTime = deadline;
-                    showTimer = true;
-                } else if (isBuyer) {
-                    // Buyer Lag: Show countdown only after 5 mins passed
-                    if (now > startTime + 5 * 60 * 1000) {
-                        targetTime = deadline;
-                        showTimer = true;
-                    } else {
-                        setTimeLeft("Waiting for transfer details...");
-                        return;
-                    }
-                }
+            if ((order.status === "WAITING_FOR_TRANSFER" || order.status === "TRANSFER_INITIATED") && order.transferStartedAt) {
+                targetTime = new Date(order.transferStartedAt).getTime() + 60 * 60 * 1000;
             } else if (order.status === "EVIDENCE_UPLOADED" && order.evidenceUploadedAt) {
-                // T-10 mins for Buyer to confirm
-                const startTime = new Date(order.evidenceUploadedAt).getTime();
-                const deadline = startTime + 10 * 60 * 1000;
-                targetTime = deadline;
-                if (isBuyer) showTimer = true;
-                // Seller just waits
+                targetTime = new Date(order.evidenceUploadedAt).getTime() + 30 * 60 * 1000;
             }
 
-            if (showTimer) {
+            if (targetTime) {
                 const distance = targetTime - now;
                 if (distance < 0) {
-                    setTimeLeft("Time Expired");
-                    // Could trigger auto-action here
+                    nextTimeLeft = "Time Expired";
                 } else {
-                    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                    const minutes = Math.floor(distance / (1000 * 60));
                     const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-                    setTimeLeft(`${minutes}m ${seconds}s`);
+                    nextTimeLeft = `${minutes}m ${seconds}s`;
                 }
-            } else {
-                if (!timeLeft) setTimeLeft(null);
             }
+
+            setTimeLeft(nextTimeLeft);
+        };
+
+        calculateTimeLeft();
+        const interval = setInterval(() => {
+            calculateTimeLeft();
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [order, isSeller, isBuyer]);
+    }, [order]);
 
     const handleInitiateTransfer = async () => {
         try {
             setLoading(true);
             await axios.post(`/api/orders/${order.id}/initiate-transfer`);
-            toast.success("Transfer initiated! You have 15 minutes.");
+            toast.success("Transfer initiated! You have 60 minutes to complete the transfer and upload evidence.");
             refreshOrders();
         } catch (error) {
             toast.error("Failed to initiate transfer");
@@ -196,9 +175,12 @@ export default function OrderCard({ order, currentUser, refreshOrders }: OrderCa
                                     <ul className="list-disc ml-4 mt-2 space-y-1">
                                         <li>Please take a screen recording of transferring the ticket to avoid disputes.</li>
                                         <li>Buyer has made payment. Transfer to: <strong>{order.transferDetails || "N/A"}</strong></li>
-                                        <li>You must complete transfer within 15 minutes of clicking Initiate.</li>
+                                        <li>The 60-minute timer started when the buyer payment was verified.</li>
                                     </ul>
                                 </div>
+                                {timeLeft && (
+                                    <p className="text-sm font-semibold text-red-600 mb-3">Time remaining: {timeLeft}</p>
+                                )}
                                 <Button onClick={handleInitiateTransfer} disabled={loading} className="w-full">
                                     {loading ? <Loader className="animate-spin mr-2" /> : null} INITIATE TRANSFER
                                 </Button>
@@ -253,6 +235,7 @@ export default function OrderCard({ order, currentUser, refreshOrders }: OrderCa
                         {order.status === "WAITING_FOR_TRANSFER" && (
                             <div className="bg-blue-50 p-3 text-sm text-blue-800 rounded">
                                 Money secured with Vault. Waiting for seller to initiate transfer.
+                                {timeLeft && <p className="mt-2 font-semibold">Seller time remaining: {timeLeft}</p>}
                             </div>
                         )}
 
@@ -271,7 +254,7 @@ export default function OrderCard({ order, currentUser, refreshOrders }: OrderCa
                             <div>
                                 <p className="font-bold mb-2">Seller has completed transfer. Please confirm delivery.</p>
                                 <p className="text-red-500 font-bold mb-4">Auto-confirm in: {timeLeft}</p>
-                                <p className="text-xs text-gray-500 mb-4">If no reply within 10 mins funds will be released to seller.</p>
+                                <p className="text-xs text-gray-500 mb-4">If no reply within 30 minutes, funds will be released to seller automatically.</p>
                                 <div className="flex gap-4">
                                     <Button onClick={() => handleConfirm(true)} className="flex-1 bg-green-600 hover:bg-green-700" disabled={loading}>
                                         YES, I Received it

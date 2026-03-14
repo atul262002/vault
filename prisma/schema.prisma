@@ -72,6 +72,8 @@ model Order {
   evidenceUploadedAt DateTime?
   buyerConfirmedAt  DateTime?
   lastReminderSentAt DateTime?
+  lastSellerReminderSentAt DateTime?
+  lastBuyerReminderSentAt DateTime?
   platformFeeBuyer  Float       @default(0.0)
   platformFeeSeller Float       @default(0.0)
 

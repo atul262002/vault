@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import axios from "axios";
 import { format } from "date-fns";
 import { Loader2, AlertTriangle, CheckCircle, Upload, Clock, TimerOff } from "lucide-react";
@@ -57,7 +57,6 @@ interface Order {
 export default function OrderDetailsPage() {
     const { user, isLoaded } = useUser();
     const params = useParams();
-    const router = useRouter();
     const [order, setOrder] = useState<Order | null>(null);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
@@ -105,7 +104,7 @@ export default function OrderDetailsPage() {
             if (targetTime) {
                 const difference = targetTime - now;
                 if (difference > 0) {
-                    const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+                    const minutes = Math.floor(difference / (1000 * 60));
                     const seconds = Math.floor((difference % (1000 * 60)) / 1000);
                     setTimeLeft(`${minutes}m ${seconds}s`);
                 } else {

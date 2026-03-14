@@ -48,7 +48,9 @@ export async function POST(req: NextRequest) {
                     where: { id: order.id },
                     data: {
                         status: "WAITING_FOR_TRANSFER",
-                        transferStartedAt: new Date()
+                        transferStartedAt: new Date(),
+                        lastSellerReminderSentAt: null,
+                        lastBuyerReminderSentAt: null
                     }
                 });
 
@@ -78,7 +80,7 @@ export async function POST(req: NextRequest) {
                                     <li>Login to your dashboard and go to the Order page.</li>
                                     <li>Click on "Initiate Transfer".</li>
                                     <li>Complete the transfer via the ticket partner app (${order.ticketPartner || 'User specified'}).</li>
-                                    <li>Upload the screen recording of the transfer as evidence within 90 minutes.</li>
+                                    <li>Upload the screen recording of the transfer as evidence within 60 minutes.</li>
                                 </ol>
                                 <p><strong>Important:</strong> Failure to transfer within the time limit may result in order cancellation.</p>
                             `

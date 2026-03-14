@@ -39,7 +39,8 @@ export async function POST(
             data: {
                 status: "EVIDENCE_UPLOADED",
                 evidenceUrl: evidenceUrl,
-                evidenceUploadedAt: new Date()
+                evidenceUploadedAt: new Date(),
+                lastBuyerReminderSentAt: null
             },
             include: { buyer: true }
         });

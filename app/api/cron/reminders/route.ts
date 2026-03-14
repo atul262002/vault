@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { sendNotification } from "@/lib/notifications";
 import { NextRequest, NextResponse } from "next/server";
 
 // CRON JOB: Hit this endpoint every 1 minute
@@ -10,13 +11,25 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
         }
 
+        const searchParams = req.nextUrl.searchParams;
+        const dryRun = searchParams.get("dryRun") === "true";
+        const orderId = searchParams.get("orderId");
         const now = new Date();
         const results = {
             sellerReminders: 0,
             sellerTimeouts: 0,
             buyerReminders: 0,
             buyerTimeouts: 0,
-            errors: 0
+            errors: 0,
+            dryRun,
+            inspectedOrders: [] as Array<{
+                orderId: string;
+                stage: "seller" | "buyer";
+                status: string;
+                elapsedMinutes: number;
+                timeLeft: number;
+                action: "none" | "reminder" | "warning" | "timeout";
+            }>
         };
 
         const ADMIN_EMAIL = "writeatul2002@gmail.com"; // Hardcoded Admin Email
@@ -29,7 +42,8 @@ export async function GET(req: NextRequest) {
         const sellerOrders = await prisma.order.findMany({
             where: {
                 status: { in: ["WAITING_FOR_TRANSFER", "TRANSFER_INITIATED"] },
-                transferStartedAt: { not: null }
+                transferStartedAt: { not: null },
+                ...(orderId ? { id: orderId } : {})
             },
             include: { orderItems: { include: { product: { include: { seller: true } } } }, buyer: true }
         });
@@ -45,6 +59,20 @@ export async function GET(req: NextRequest) {
 
             // Scenario A: TIMEOUT EXPIRED (Seller failed)
             if (timeLeft <= 0) {
+                results.inspectedOrders.push({
+                    orderId: order.id,
+                    stage: "seller",
+                    status: order.status,
+                    elapsedMinutes,
+                    timeLeft,
+                    action: "timeout",
+                });
+
+                if (dryRun) {
+                    results.sellerTimeouts++;
+                    continue;
+                }
+
                 // Update Status to DISPUTED (User requested "Conflict")
                 await prisma.order.update({
                     where: { id: order.id },
@@ -52,40 +80,35 @@ export async function GET(req: NextRequest) {
                 });
 
                 // Notify ALL (Seller, Buyer, Admin)
-                await import("@/lib/mail").then(({ sendMail }) => {
-                    const subject = `Order #${order.id} DISPUTED: Seller Timeout`;
-                    const htmlBase = `
-                        <h1>Order Marked as Disputed</h1>
-                        <p>The seller failed to complete the transfer/evidence upload within the 60-minute window.</p>
-                        <p><strong>Order ID:</strong> ${order.id}</p>
-                    `;
+                const subject = `Order #${order.id} DISPUTED: Seller Timeout`;
+                const htmlBase = `
+                    <h1>Order Marked as Disputed</h1>
+                    <p>The seller failed to complete the transfer/evidence upload within the 60-minute window.</p>
+                    <p><strong>Order ID:</strong> ${order.id}</p>
+                `;
+                const seller = order.orderItems[0].product.seller;
 
-                    // To Seller
-                    const seller = order.orderItems[0].product.seller;
-                    if (seller.email) {
-                        sendMail({
-                            to: seller.email,
-                            subject,
-                            html: `${htmlBase}<p>You failed to upload evidence in time. The order is now disputed.</p>`
-                        });
-                    }
-
-                    // To Buyer
-                    if (order.buyer.email) {
-                        sendMail({
-                            to: order.buyer.email,
-                            subject,
-                            html: `${htmlBase}<p>We have marked this order as disputed. Support will review it shortly for a potential refund.</p>`
-                        });
-                    }
-
-                    // To Admin
-                    sendMail({
-                        to: ADMIN_EMAIL,
+                await Promise.allSettled([
+                    sendNotification({
+                        email: seller.email,
+                        phone: seller.phone,
+                        subject,
+                        html: `${htmlBase}<p>You failed to upload evidence in time. The order is now disputed.</p>`,
+                        smsText: `Vault: Order ${order.id} is disputed because the 60-minute seller window expired.`,
+                    }),
+                    sendNotification({
+                        email: order.buyer.email,
+                        phone: order.buyer.phone,
+                        subject,
+                        html: `${htmlBase}<p>We have marked this order as disputed. Support will review it shortly for a potential refund.</p>`,
+                        smsText: `Vault: Order ${order.id} moved to dispute because the seller missed the 60-minute deadline.`,
+                    }),
+                    sendNotification({
+                        email: ADMIN_EMAIL,
                         subject: `[ADMIN] Conflict Alert: Order #${order.id}`,
-                        html: `${htmlBase}<p>Seller failed to perform action. Please review for refund/resolution.</p>`
-                    });
-                });
+                        html: `${htmlBase}<p>Seller failed to perform action. Please review for refund/resolution.</p>`,
+                    }),
+                ]);
 
                 results.sellerTimeouts++;
                 continue; // Skip reminder logic for this order
@@ -95,8 +118,7 @@ export async function GET(req: NextRequest) {
             let shouldSend = false;
             let type = "regular";
 
-            // @ts-ignore
-            const lastSent = order.lastReminderSentAt ? new Date(order.lastReminderSentAt).getTime() : 0;
+            const lastSent = order.lastSellerReminderSentAt ? new Date(order.lastSellerReminderSentAt).getTime() : 0;
             const timeSinceLastSent = now.getTime() - lastSent;
 
             // 1. Critical Warning (Last 5 mins)
@@ -122,18 +144,45 @@ export async function GET(req: NextRequest) {
             }
 
             if (shouldSend) {
-                const seller = order.orderItems[0].product.seller;
-                if (seller.email) {
-                    await sendReminderEmail(seller.email, "Seller", type, timeLeft, order.id);
-                    await prisma.order.update({
-                        where: { id: order.id },
-                        data: {
-                            // @ts-ignore
-                            lastReminderSentAt: now
-                        }
-                    });
+                results.inspectedOrders.push({
+                    orderId: order.id,
+                    stage: "seller",
+                    status: order.status,
+                    elapsedMinutes,
+                    timeLeft,
+                    action: type === "warning" ? "warning" : "reminder",
+                });
+
+                if (dryRun) {
                     results.sellerReminders++;
+                    continue;
                 }
+
+                const seller = order.orderItems[0].product.seller;
+                await sendReminderNotification({
+                    email: seller.email,
+                    phone: seller.phone,
+                    role: "Seller",
+                    type,
+                    timeLeft,
+                    orderId: order.id,
+                });
+                await prisma.order.update({
+                    where: { id: order.id },
+                    data: {
+                        lastSellerReminderSentAt: now
+                    }
+                });
+                results.sellerReminders++;
+            } else {
+                results.inspectedOrders.push({
+                    orderId: order.id,
+                    stage: "seller",
+                    status: order.status,
+                    elapsedMinutes,
+                    timeLeft,
+                    action: "none",
+                });
             }
         }
 
@@ -145,7 +194,8 @@ export async function GET(req: NextRequest) {
         const buyerOrders = await prisma.order.findMany({
             where: {
                 status: "EVIDENCE_UPLOADED",
-                evidenceUploadedAt: { not: null }
+                evidenceUploadedAt: { not: null },
+                ...(orderId ? { id: orderId } : {})
             },
             include: { buyer: true, orderItems: { include: { product: { include: { seller: true } } } } }
         });
@@ -161,8 +211,22 @@ export async function GET(req: NextRequest) {
 
             // Scenario A: TIMEOUT EXPIRED (Buyer Silent -> Auto Complete)
             if (timeLeft <= 0) {
+                results.inspectedOrders.push({
+                    orderId: order.id,
+                    stage: "buyer",
+                    status: order.status,
+                    elapsedMinutes,
+                    timeLeft,
+                    action: "timeout",
+                });
+
+                if (dryRun) {
+                    results.buyerTimeouts++;
+                    continue;
+                }
+
                 // Update Status to COMPLETED
-                const updatedOrder = await prisma.order.update({
+                await prisma.order.update({
                     where: { id: order.id },
                     data: {
                         status: "COMPLETED",
@@ -171,40 +235,35 @@ export async function GET(req: NextRequest) {
                 });
 
                 // Notify ALL
-                await import("@/lib/mail").then(({ sendMail }) => {
-                    const subject = `Order #${order.id} COMPLETED: Auto-Confirmation`;
-                    const htmlBase = `
-                        <h1>Order Completed</h1>
-                        <p>The buyer did not confirm within the 30-minute window. The order has been auto-completed.</p>
-                        <p><strong>Order ID:</strong> ${order.id}</p>
-                    `;
+                const subject = `Order #${order.id} COMPLETED: Auto-Confirmation`;
+                const htmlBase = `
+                    <h1>Order Completed</h1>
+                    <p>The buyer did not confirm within the 30-minute window. The order has been auto-completed.</p>
+                    <p><strong>Order ID:</strong> ${order.id}</p>
+                `;
+                const seller = order.orderItems[0].product.seller;
 
-                    // To Buyer
-                    if (order.buyer.email) {
-                        sendMail({
-                            to: order.buyer.email,
-                            subject,
-                            html: `${htmlBase}<p>Funds have been released to the seller.</p>`
-                        });
-                    }
-
-                    // To Seller
-                    const seller = order.orderItems[0].product.seller;
-                    if (seller.email) {
-                        sendMail({
-                            to: seller.email,
-                            subject,
-                            html: `${htmlBase}<p>Funds will be released to your account shortly.</p>`
-                        });
-                    }
-
-                    // To Admin
-                    sendMail({
-                        to: ADMIN_EMAIL,
+                await Promise.allSettled([
+                    sendNotification({
+                        email: order.buyer.email,
+                        phone: order.buyer.phone,
+                        subject,
+                        html: `${htmlBase}<p>Funds have been released to the seller.</p>`,
+                        smsText: `Vault: Order ${order.id} was auto-completed after the 30-minute buyer window expired.`,
+                    }),
+                    sendNotification({
+                        email: seller.email,
+                        phone: seller.phone,
+                        subject,
+                        html: `${htmlBase}<p>Funds will be released to your account shortly.</p>`,
+                        smsText: `Vault: Order ${order.id} was auto-completed and your payout is being processed.`,
+                    }),
+                    sendNotification({
+                        email: ADMIN_EMAIL,
                         subject: `[ADMIN] Order Completed: Order #${order.id}`,
-                        html: `${htmlBase}<p>Auto-completed due to buyer silence.</p>`
-                    });
-                });
+                        html: `${htmlBase}<p>Auto-completed due to buyer silence.</p>`,
+                    }),
+                ]);
 
                 results.buyerTimeouts++;
                 continue;
@@ -214,8 +273,7 @@ export async function GET(req: NextRequest) {
             let shouldSend = false;
             let type = "regular";
 
-            // @ts-ignore
-            const lastSent = order.lastReminderSentAt ? new Date(order.lastReminderSentAt).getTime() : 0;
+            const lastSent = order.lastBuyerReminderSentAt ? new Date(order.lastBuyerReminderSentAt).getTime() : 0;
             const timeSinceLastSent = now.getTime() - lastSent;
 
             // 1. Critical Warning (Last 5 mins)
@@ -235,17 +293,44 @@ export async function GET(req: NextRequest) {
             }
 
             if (shouldSend) {
-                if (order.buyer.email) {
-                    await sendReminderEmail(order.buyer.email, "Buyer", type, timeLeft, order.id);
-                    await prisma.order.update({
-                        where: { id: order.id },
-                        data: {
-                            // @ts-ignore
-                            lastReminderSentAt: now
-                        }
-                    });
+                results.inspectedOrders.push({
+                    orderId: order.id,
+                    stage: "buyer",
+                    status: order.status,
+                    elapsedMinutes,
+                    timeLeft,
+                    action: type === "warning" ? "warning" : "reminder",
+                });
+
+                if (dryRun) {
                     results.buyerReminders++;
+                    continue;
                 }
+
+                await sendReminderNotification({
+                    email: order.buyer.email,
+                    phone: order.buyer.phone,
+                    role: "Buyer",
+                    type,
+                    timeLeft,
+                    orderId: order.id,
+                });
+                await prisma.order.update({
+                    where: { id: order.id },
+                    data: {
+                        lastBuyerReminderSentAt: now
+                    }
+                });
+                results.buyerReminders++;
+            } else {
+                results.inspectedOrders.push({
+                    orderId: order.id,
+                    stage: "buyer",
+                    status: order.status,
+                    elapsedMinutes,
+                    timeLeft,
+                    action: "none",
+                });
             }
         }
 
@@ -257,7 +342,21 @@ export async function GET(req: NextRequest) {
     }
 }
 
-async function sendReminderEmail(to: string, role: string, type: string, timeLeft: number, orderId: string) {
+async function sendReminderNotification({
+    email,
+    phone,
+    role,
+    type,
+    timeLeft,
+    orderId,
+}: {
+    email?: string | null;
+    phone?: string | null;
+    role: string;
+    type: string;
+    timeLeft: number;
+    orderId: string;
+}) {
     const subject = type === "warning"
         ? `URGENT: ${timeLeft} Minutes Left to Complete Order #${orderId}`
         : `Action Reminder: Order #${orderId}`;
@@ -284,5 +383,9 @@ async function sendReminderEmail(to: string, role: string, type: string, timeLef
         </div>
     `;
 
-    await import("@/lib/mail").then(({ sendMail }) => sendMail({ to, subject, html }));
+    const smsText = type === "warning"
+        ? `Vault urgent: ${timeLeft} minutes left for Order ${orderId}. ${actionText}`
+        : `Vault reminder: Order ${orderId}. ${actionText} ${timeLeft} minutes remaining.`;
+
+    await sendNotification({ email, phone, subject, html, smsText });
 }
