@@ -517,7 +517,7 @@
 
 
 "use client";
-import React, { ChangeEventHandler, useEffect, useState } from "react";
+import React, { ChangeEventHandler, useEffect, useRef, useState } from "react";
 import { Input } from "../ui/input";
 import { Search, Loader2 } from "lucide-react";
 import axios from "axios";
@@ -528,15 +528,39 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useUser } from "@clerk/nextjs";
 
+type RazorpayPaymentResponse = {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+};
+
+type RazorpayFailureResponse = {
+  error: {
+    description: string;
+  };
+};
+
+type RazorpayInstance = {
+  open: () => void;
+  close?: () => void;
+  on: (
+    event: "payment.failed",
+    handler: (response: RazorpayFailureResponse) => void
+  ) => void;
+};
+
 const ProductSearchByName = () => {
   const [searchValue, setSearchValue] = useState("");
   const debouncedSearch = useDebounce<string>(searchValue, 500);
   const [products, setProducts] = useState<Products[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Products | null>(null);
   const [isRazorpayLoading, setIsRazorpayLoading] = useState(false);
+  const [paymentStatusMessage, setPaymentStatusMessage] = useState("");
   const [isRazorpayReady, setIsRazorpayReady] = useState(false);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const { user } = useUser();
+  const razorpayInstanceRef = useRef<RazorpayInstance | null>(null);
+  const razorpayLoaderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [ticketPartner, setTicketPartner] = useState("");
   const [transferDetails, setTransferDetails] = useState("");
 
@@ -568,7 +592,7 @@ const ProductSearchByName = () => {
   }, [debouncedSearch]);
 
   useEffect(() => {
-    if ((window as any).Razorpay) {
+    if ((window as Window & { Razorpay?: new (options: unknown) => RazorpayInstance }).Razorpay) {
       setIsRazorpayReady(true);
       return;
     }
@@ -591,6 +615,36 @@ const ProductSearchByName = () => {
     };
   }, []);
 
+  const clearRazorpayLoaderTimeout = () => {
+    if (razorpayLoaderTimeoutRef.current) {
+      clearTimeout(razorpayLoaderTimeoutRef.current);
+      razorpayLoaderTimeoutRef.current = null;
+    }
+  };
+
+  const closeRazorpayModal = () => {
+    try {
+      razorpayInstanceRef.current?.close?.();
+    } catch (error) {
+      console.error("Error closing Razorpay modal:", error);
+    } finally {
+      razorpayInstanceRef.current = null;
+    }
+  };
+
+  const resetPaymentUi = () => {
+    clearRazorpayLoaderTimeout();
+    setIsRazorpayLoading(false);
+    setPaymentStatusMessage("");
+  };
+
+  useEffect(() => {
+    return () => {
+      clearRazorpayLoaderTimeout();
+      closeRazorpayModal();
+    };
+  }, []);
+
   async function handlePurchase(product: Products) {
     if (!isRazorpayReady) {
       alert("Payment system is loading. Please wait a moment and try again.");
@@ -602,6 +656,7 @@ const ProductSearchByName = () => {
       return;
     }
 
+    setPaymentStatusMessage("Opening payment page...");
     setIsRazorpayLoading(true);
 
     // CRITICAL FIX: Close the dialog before opening Razorpay
@@ -629,10 +684,18 @@ const ProductSearchByName = () => {
           name: "VAULT",
           description: product.name,
           order_id: id,
-          handler: function (res: any) {
-            setIsRazorpayLoading(false);
-            alert(`Payment successful! Payment ID: ${res.razorpay_payment_id}`);
-            verifyPayment(res);
+          handler: async function (res: RazorpayPaymentResponse) {
+            setPaymentStatusMessage("Verifying payment...");
+            closeRazorpayModal();
+
+            const isVerified = await verifyPayment(res);
+            resetPaymentUi();
+
+            if (isVerified) {
+              alert(`Payment successful! Payment ID: ${res.razorpay_payment_id}`);
+            } else {
+              alert("Payment was completed, but verification failed. Please contact support if the order does not update.");
+            }
           },
           prefill: {
             name: user?.firstName || user?.fullName || "",
@@ -648,7 +711,8 @@ const ProductSearchByName = () => {
           },
           modal: {
             ondismiss: function () {
-              setIsRazorpayLoading(false);
+              closeRazorpayModal();
+              resetPaymentUi();
             },
             confirm_close: true,
             animation: true,
@@ -676,27 +740,40 @@ const ProductSearchByName = () => {
           },
         };
 
-        const razorpay = new (window as any).Razorpay(options);
+        const RazorpayConstructor = (window as Window & {
+          Razorpay?: new (options: typeof options) => RazorpayInstance;
+        }).Razorpay;
 
-        razorpay.on('payment.failed', function (response: any) {
-          setIsRazorpayLoading(false);
+        if (!RazorpayConstructor) {
+          resetPaymentUi();
+          alert("Payment system is unavailable right now. Please refresh and try again.");
+          return;
+        }
+
+        const razorpay = new RazorpayConstructor(options);
+        razorpayInstanceRef.current = razorpay;
+
+        razorpay.on('payment.failed', function (response: RazorpayFailureResponse) {
+          closeRazorpayModal();
+          resetPaymentUi();
           alert(`Payment failed: ${response.error.description}`);
         });
 
         razorpay.open();
-
-        setTimeout(() => {
+        razorpayLoaderTimeoutRef.current = setTimeout(() => {
           setIsRazorpayLoading(false);
-        }, 800);
+          setPaymentStatusMessage("");
+          razorpayLoaderTimeoutRef.current = null;
+        }, 1200);
       }
     } catch (error) {
       console.error("Error creating payment:", error);
-      setIsRazorpayLoading(false);
+      resetPaymentUi();
       alert("Failed to initiate payment. Please try again.");
     }
   }
 
-  const verifyPayment = async (paymentData: any) => {
+  const verifyPayment = async (paymentData: RazorpayPaymentResponse) => {
     try {
       const response = await axios.post("/api/razorpay/verify-payment", {
         razorpay_order_id: paymentData.razorpay_order_id,
@@ -706,10 +783,13 @@ const ProductSearchByName = () => {
 
       if (response.status === 200) {
         console.log("Payment verified successfully");
+        return true;
       }
     } catch (error) {
       console.error("Payment verification failed:", error);
     }
+
+    return false;
   };
 
   const handleChat = async (sellerId: string) => {
@@ -752,6 +832,18 @@ const ProductSearchByName = () => {
 
   return (
     <div className="p-4 max-w-7xl mx-auto">
+      {isRazorpayLoading && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-2xl">
+            <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-sky-600" />
+            <h3 className="text-lg font-semibold text-gray-900">Showing payment page</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              {paymentStatusMessage || "Please wait while Razorpay opens."}
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="relative mb-8 max-w-md mx-auto">
         <Search className="absolute h-4 w-4 left-4 text-muted-foreground top-3.5" />
         <Input
