@@ -561,6 +561,8 @@ const ProductSearchByName = () => {
   const { user } = useUser();
   const razorpayInstanceRef = useRef<RazorpayInstance | null>(null);
   const razorpayLoaderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const razorpayStatusPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastCompletedPaymentIdRef = useRef<string | null>(null);
   const [ticketPartner, setTicketPartner] = useState("");
   const [transferDetails, setTransferDetails] = useState("");
 
@@ -622,6 +624,13 @@ const ProductSearchByName = () => {
     }
   };
 
+  const clearRazorpayStatusPoll = () => {
+    if (razorpayStatusPollRef.current) {
+      clearInterval(razorpayStatusPollRef.current);
+      razorpayStatusPollRef.current = null;
+    }
+  };
+
   const closeRazorpayModal = () => {
     try {
       razorpayInstanceRef.current?.close?.();
@@ -634,6 +643,7 @@ const ProductSearchByName = () => {
 
   const resetPaymentUi = () => {
     clearRazorpayLoaderTimeout();
+    clearRazorpayStatusPoll();
     setIsRazorpayLoading(false);
     setPaymentStatusMessage("");
   };
@@ -641,9 +651,66 @@ const ProductSearchByName = () => {
   useEffect(() => {
     return () => {
       clearRazorpayLoaderTimeout();
+      clearRazorpayStatusPoll();
       closeRazorpayModal();
     };
   }, []);
+
+  const handleCompletedPayment = async (
+    paymentId: string,
+    verifyPaymentAction?: () => Promise<boolean>
+  ) => {
+    if (lastCompletedPaymentIdRef.current === paymentId) {
+      return;
+    }
+
+    lastCompletedPaymentIdRef.current = paymentId;
+    setPaymentStatusMessage("Verifying payment...");
+    closeRazorpayModal();
+
+    const isVerified = verifyPaymentAction ? await verifyPaymentAction() : true;
+
+    resetPaymentUi();
+
+    if (isVerified) {
+      alert(`Payment successful! Payment ID: ${paymentId}`);
+      return;
+    }
+
+    alert("Payment was completed, but verification failed. Please contact support if the order does not update.");
+  };
+
+  const startRazorpayStatusPolling = (razorpayOrderId: string) => {
+    clearRazorpayStatusPoll();
+    let attempts = 0;
+
+    razorpayStatusPollRef.current = setInterval(async () => {
+      attempts += 1;
+
+      if (lastCompletedPaymentIdRef.current) {
+        clearRazorpayStatusPoll();
+        return;
+      }
+
+      try {
+        const response = await axios.post("/api/razorpay/order-status", {
+          razorpay_order_id: razorpayOrderId,
+        });
+
+        if (response.status === 200 && response.data.status === "paid") {
+          clearRazorpayStatusPoll();
+          await handleCompletedPayment(response.data.razorpay_payment_id);
+          return;
+        }
+      } catch (error) {
+        console.error("Error checking Razorpay order status:", error);
+      }
+
+      if (attempts >= 48) {
+        clearRazorpayStatusPoll();
+      }
+    }, 2500);
+  };
 
   async function handlePurchase(product: Products) {
     if (!isRazorpayReady) {
@@ -658,6 +725,7 @@ const ProductSearchByName = () => {
 
     setPaymentStatusMessage("Opening payment page...");
     setIsRazorpayLoading(true);
+    lastCompletedPaymentIdRef.current = null;
 
     // CRITICAL FIX: Close the dialog before opening Razorpay
     setSelectedProduct(null);
@@ -685,17 +753,11 @@ const ProductSearchByName = () => {
           description: product.name,
           order_id: id,
           handler: async function (res: RazorpayPaymentResponse) {
-            setPaymentStatusMessage("Verifying payment...");
-            closeRazorpayModal();
-
-            const isVerified = await verifyPayment(res);
-            resetPaymentUi();
-
-            if (isVerified) {
-              alert(`Payment successful! Payment ID: ${res.razorpay_payment_id}`);
-            } else {
-              alert("Payment was completed, but verification failed. Please contact support if the order does not update.");
-            }
+            clearRazorpayStatusPoll();
+            await handleCompletedPayment(
+              res.razorpay_payment_id,
+              () => verifyPayment(res)
+            );
           },
           prefill: {
             name: user?.firstName || user?.fullName || "",
@@ -760,6 +822,7 @@ const ProductSearchByName = () => {
         });
 
         razorpay.open();
+        startRazorpayStatusPolling(id);
         razorpayLoaderTimeoutRef.current = setTimeout(() => {
           setIsRazorpayLoading(false);
           setPaymentStatusMessage("");
