@@ -1119,6 +1119,16 @@ const ProductSearchByName = () => {
     } catch (error) {
       console.error("Error closing Razorpay modal:", error);
     } finally {
+      if (typeof document !== "undefined") {
+        const razorpayNodes = document.querySelectorAll(
+          ".razorpay-container, .razorpay-backdrop, iframe[name^='razorpay'], iframe[src*='razorpay']"
+        );
+
+        razorpayNodes.forEach((node) => node.remove());
+        document.body.classList.remove("overflow-hidden");
+        document.body.style.overflow = "";
+      }
+
       razorpayInstanceRef.current = null;
     }
   };

@@ -8,14 +8,20 @@ type NotificationPayload = {
   smsText?: string;
 };
 
+type NotificationResult = {
+  delivered: boolean;
+  emailSent: boolean;
+  smsSent: boolean;
+};
+
 export async function sendNotification({
   email,
   phone,
   subject,
   html,
   smsText,
-}: NotificationPayload) {
-  const tasks: Promise<unknown>[] = [];
+}: NotificationPayload): Promise<NotificationResult> {
+  const tasks: Array<Promise<unknown>> = [];
 
   if (email) {
     tasks.push(sendMail({ to: email, subject, html }));
@@ -25,7 +31,23 @@ export async function sendNotification({
     tasks.push(sendSms(phone, smsText));
   }
 
-  await Promise.allSettled(tasks);
+  const settled = await Promise.allSettled(tasks);
+
+  const emailResult = email ? settled.shift() : undefined;
+  const smsResult = phone && smsText ? settled.shift() : undefined;
+
+  const emailSent =
+    !email ||
+    (emailResult?.status === "fulfilled" && emailResult.value !== null);
+  const smsSent =
+    !(phone && smsText) ||
+    smsResult?.status === "fulfilled";
+
+  return {
+    delivered: emailSent || smsSent,
+    emailSent: Boolean(email && emailSent),
+    smsSent: Boolean(phone && smsText && smsSent),
+  };
 }
 
 async function sendSms(phone: string, body: string) {

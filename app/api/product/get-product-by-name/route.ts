@@ -8,6 +8,7 @@ export async function POST(req: Request, res: NextResponse) {
   try {
     const products = await prisma.products.findMany({
       where: {
+        isSold: false,
         name: {
           contains: name,
           mode: "insensitive",
@@ -26,6 +27,8 @@ export async function POST(req: Request, res: NextResponse) {
         estimatedTime: true,
         description: true,
         sellerId: true,
+        categoryId: true,
+        isSold: true,
       }
     });
 

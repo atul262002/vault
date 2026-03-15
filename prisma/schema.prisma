@@ -15,32 +15,32 @@ model User {
   role            Role[]
   isVerified      Boolean
   fundAccountId   String?
-  products        Products[]     @relation("SellerProducts")
-  orders          Order[]        @relation("BuyerOrders")
-  messageSent     Message[]      @relation("Sender")
-  messageReceived Message[]      @relation("Receiver")
-  conversations   Conversation[] @relation("ConversationParticipants")
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
+  messageReceived Message[]      @relation("Receiver")
+  messageSent     Message[]      @relation("Sender")
+  orders          Order[]        @relation("BuyerOrders")
+  products        Products[]     @relation("SellerProducts")
+  conversations   Conversation[] @relation("ConversationParticipants")
 }
 
 model Products {
   id            String      @id @default(uuid())
-  name          String      @db.Text
+  name          String
   imageUrl      String?
-  image         String?
   price         Float
   refundPeriod  String
   estimatedTime String
   description   String
   sellerId      String
-  seller        User        @relation("SellerProducts", fields: [sellerId], references: [id])
   categoryId    String
-  category      Category    @relation(fields: [categoryId], references: [id])
-  orders        OrderItem[]
-  isSold        Boolean     @default(false)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
+  image         String?
+  isSold        Boolean     @default(false)
+  orders        OrderItem[]
+  category      Category    @relation(fields: [categoryId], references: [id])
+  seller        User        @relation("SellerProducts", fields: [sellerId], references: [id])
 
   @@index([name, id])
 }
@@ -48,34 +48,33 @@ model Products {
 model Category {
   id        String     @id @default(uuid())
   name      String     @unique
-  products  Products[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
+  products  Products[]
 }
 
 model Order {
-  id          String      @id @default(uuid())
-  razorpayId  String      @unique
-  buyerId     String
-  buyer       User        @relation("BuyerOrders", fields: [buyerId], references: [id])
-  totalAmount Float
-  status      OrderStatus @default(PENDING)
-  orderItems  OrderItem[]
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  payment     Payment?
-
-  ticketPartner     String?     // e.g. District, BMS, Insider
-  transferDetails   String?     // User input for transfer details
-  evidenceUrl       String?
-  transferStartedAt DateTime?
-  evidenceUploadedAt DateTime?
-  buyerConfirmedAt  DateTime?
-  lastReminderSentAt DateTime?
+  id                       String      @id @default(uuid())
+  razorpayId               String      @unique
+  buyerId                  String
+  totalAmount              Float
+  status                   OrderStatus @default(PENDING)
+  createdAt                DateTime    @default(now())
+  updatedAt                DateTime    @updatedAt
+  buyerConfirmedAt         DateTime?
+  evidenceUploadedAt       DateTime?
+  evidenceUrl              String?
+  platformFeeBuyer         Float       @default(0.0)
+  platformFeeSeller        Float       @default(0.0)
+  ticketPartner            String?
+  transferDetails          String?
+  transferStartedAt        DateTime?
+  lastReminderSentAt       DateTime?
   lastSellerReminderSentAt DateTime?
-  lastBuyerReminderSentAt DateTime?
-  platformFeeBuyer  Float       @default(0.0)
-  platformFeeSeller Float       @default(0.0)
+  lastBuyerReminderSentAt  DateTime?
+  buyer                    User        @relation("BuyerOrders", fields: [buyerId], references: [id])
+  orderItems               OrderItem[]
+  payment                  Payment?
 
   @@unique([id, razorpayId])
 }
@@ -83,53 +82,52 @@ model Order {
 model OrderItem {
   id        String   @id @default(uuid())
   orderId   String
-  order     Order    @relation(fields: [orderId], references: [id])
   productId String
-  product   Products @relation(fields: [productId], references: [id])
   price     Float
   createdAt DateTime @default(now())
+  order     Order    @relation(fields: [orderId], references: [id])
+  product   Products @relation(fields: [productId], references: [id])
 }
 
 model Payment {
   id        String        @id @default(uuid())
   orderId   String        @unique
-  order     Order         @relation(fields: [orderId], references: [id])
   paymentId String        @unique
   status    PaymentStatus
   amount    Float
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
+  order     Order         @relation(fields: [orderId], references: [id])
 }
 
 model Message {
-  id             String   @id @default(uuid())
+  id             String        @id @default(uuid())
   content        String
   senderId       String
   receiverId     String
+  createdAt      DateTime      @default(now())
   conversationId String?
-  isRead         Boolean @default(false)
-  createdAt      DateTime @default(now())
-
-  sender       User          @relation("Sender", fields: [senderId], references: [id])
-  receiver     User          @relation("Receiver", fields: [receiverId], references: [id])
-  conversation Conversation? @relation(fields: [conversationId], references: [id])
+  isRead         Boolean       @default(false)
+  conversation   Conversation? @relation(fields: [conversationId], references: [id])
+  receiver       User          @relation("Receiver", fields: [receiverId], references: [id])
+  sender         User          @relation("Sender", fields: [senderId], references: [id])
 }
 
 model Conversation {
   id           String    @id @default(uuid())
-  participants User[]    @relation("ConversationParticipants")
-  messages     Message[]
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+  messages     Message[]
+  participants User[]    @relation("ConversationParticipants")
 }
 
 enum OrderStatus {
   PENDING
   FAILED
+  COMPLETED
   WAITING_FOR_TRANSFER
   TRANSFER_INITIATED
   EVIDENCE_UPLOADED
-  COMPLETED
   DISPUTED
   CANCELLED
 }

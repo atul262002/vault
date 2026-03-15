@@ -159,7 +159,7 @@ export async function GET(req: NextRequest) {
                 }
 
                 const seller = order.orderItems[0].product.seller;
-                await sendReminderNotification({
+                const notificationResult = await sendReminderNotification({
                     email: seller.email,
                     phone: seller.phone,
                     role: "Seller",
@@ -167,13 +167,19 @@ export async function GET(req: NextRequest) {
                     timeLeft,
                     orderId: order.id,
                 });
-                await prisma.order.update({
-                    where: { id: order.id },
-                    data: {
-                        lastSellerReminderSentAt: now
-                    }
-                });
-                results.sellerReminders++;
+
+                if (notificationResult.delivered) {
+                    await prisma.order.update({
+                        where: { id: order.id },
+                        data: {
+                            lastSellerReminderSentAt: now
+                        }
+                    });
+                    results.sellerReminders++;
+                } else {
+                    results.errors++;
+                    console.error(`Seller reminder could not be delivered for order ${order.id}`);
+                }
             } else {
                 results.inspectedOrders.push({
                     orderId: order.id,
@@ -307,7 +313,7 @@ export async function GET(req: NextRequest) {
                     continue;
                 }
 
-                await sendReminderNotification({
+                const notificationResult = await sendReminderNotification({
                     email: order.buyer.email,
                     phone: order.buyer.phone,
                     role: "Buyer",
@@ -315,13 +321,19 @@ export async function GET(req: NextRequest) {
                     timeLeft,
                     orderId: order.id,
                 });
-                await prisma.order.update({
-                    where: { id: order.id },
-                    data: {
-                        lastBuyerReminderSentAt: now
-                    }
-                });
-                results.buyerReminders++;
+
+                if (notificationResult.delivered) {
+                    await prisma.order.update({
+                        where: { id: order.id },
+                        data: {
+                            lastBuyerReminderSentAt: now
+                        }
+                    });
+                    results.buyerReminders++;
+                } else {
+                    results.errors++;
+                    console.error(`Buyer reminder could not be delivered for order ${order.id}`);
+                }
             } else {
                 results.inspectedOrders.push({
                     orderId: order.id,
@@ -379,7 +391,7 @@ async function sendReminderNotification({
             </div>
             <p>Failure to complete this action will result in automatic resolution (Dispute or Auto-Completion).</p>
             <br/>
-            <a href="${process.env.NEXT_PUBLIC_APP_URL}/orders" style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Go to My Orders</a>
+            <a href="${process.env.NEXT_PUBLIC_APP_URL}/orders/history" style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Go to My Orders</a>
         </div>
     `;
 
@@ -387,5 +399,5 @@ async function sendReminderNotification({
         ? `Vault urgent: ${timeLeft} minutes left for Order ${orderId}. ${actionText}`
         : `Vault reminder: Order ${orderId}. ${actionText} ${timeLeft} minutes remaining.`;
 
-    await sendNotification({ email, phone, subject, html, smsText });
+    return sendNotification({ email, phone, subject, html, smsText });
 }

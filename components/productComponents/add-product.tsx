@@ -303,6 +303,7 @@ export function AddProduct() {
     const [loading, setLoading] = useState<boolean>(false);
     const [uploadProgress, setUploadProgress] = useState<number>(0);
     const [isUploading, setIsUploading] = useState<boolean>(false);
+    const [isOpen, setIsOpen] = useState<boolean>(false);
 
     const form = useForm<z.infer<typeof addProductSchema>>({
         resolver: zodResolver(addProductSchema),
@@ -335,6 +336,10 @@ export function AddProduct() {
                         }
                     }
                 });
+                form.reset();
+                setUploadProgress(0);
+                setIsUploading(false);
+                setIsOpen(false);
             } else {
                 toast.error("Product created, but ID not found in response.");
                 console.error("Unexpected response data:", response.data);
@@ -354,7 +359,7 @@ export function AddProduct() {
     };
 
     return (
-        <Dialog>
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
                 <Button variant="default" className="mr-5 p-2 font-normal w-full md:w-auto" size={"icon"}>
                     <Plus className="mr-2 md:mr-0" />

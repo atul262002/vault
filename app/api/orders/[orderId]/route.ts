@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { currentUser } from "@clerk/nextjs/server";
+import { getCurrentDbUser } from "@/lib/current-db-user";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
@@ -7,7 +7,7 @@ export async function GET(
     { params }: { params: Promise<{ orderId: string }> }
 ) {
     try {
-        const user = await currentUser();
+        const user = await getCurrentDbUser();
         if (!user) {
             return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
         }

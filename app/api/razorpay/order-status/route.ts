@@ -9,6 +9,23 @@ type RazorpayOrderPayment = {
   status: string;
 };
 
+const getRazorpayErrorMessage = (error: unknown) => {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "error" in error &&
+    typeof (error as { error?: { description?: unknown } }).error?.description === "string"
+  ) {
+    return (error as { error: { description: string } }).error.description;
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return "Unable to fetch Razorpay order status";
+};
+
 export async function POST(req: NextRequest) {
   try {
     const user = await currentUser();
@@ -22,12 +39,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "Missing order id" }, { status: 400 });
     }
 
+    if (!process.env.RAZORPAYX_KEY_ID || !process.env.RAZORPAYX_KEY_SECRET) {
+      return NextResponse.json(
+        { message: "Razorpay credentials are not configured on the server" },
+        { status: 500 }
+      );
+    }
+
     const razorpay = new Razorpay({
-      key_id: process.env.RAZORPAYX_KEY_ID!,
-      key_secret: process.env.RAZORPAYX_KEY_SECRET!,
+      key_id: process.env.RAZORPAYX_KEY_ID,
+      key_secret: process.env.RAZORPAYX_KEY_SECRET,
     });
 
-    const payments = await razorpay.orders.fetchPayments(razorpay_order_id);
+    let payments: Awaited<ReturnType<typeof razorpay.orders.fetchPayments>>;
+
+    try {
+      payments = await razorpay.orders.fetchPayments(razorpay_order_id);
+    } catch (error) {
+      const message = getRazorpayErrorMessage(error);
+      console.error("Razorpay order status lookup failed:", error);
+      return NextResponse.json({ message }, { status: 502 });
+    }
+
     const successfulPayment = payments.items.find((payment: RazorpayOrderPayment) =>
       ["authorized", "captured"].includes(payment.status)
     );

@@ -67,8 +67,7 @@ export async function completeOrderPayment({
       data: {
         status: "WAITING_FOR_TRANSFER",
         transferStartedAt: order.transferStartedAt ?? new Date(),
-        lastSellerReminderSentAt: null,
-        lastBuyerReminderSentAt: null,
+        lastReminderSentAt: null,
       },
     });
   }
