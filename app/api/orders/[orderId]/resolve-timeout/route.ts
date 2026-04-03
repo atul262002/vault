@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { BUYER_AUTO_CONFIRM_MINUTES, EVIDENCE_TIMEOUT_MINUTES, SELLER_TIMEOUT_MINUTES, normalizeOrderStatus, recordOrderStatus } from "@/lib/order-flow";
 import { currentUser } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -43,33 +44,44 @@ export async function POST(
         const now = new Date().getTime();
         const ADMIN_EMAIL = "writeatul2002@gmail.com";
 
-        // SCENARIO 1: Seller Transfer Timeout (60 mins)
-        // Buyer claims refund because Seller didn't transfer in time.
-        if ((order.status === "TRANSFER_INITIATED" || order.status === "WAITING_FOR_TRANSFER") && order.transferStartedAt) {
-            const transferDeadline = new Date(order.transferStartedAt).getTime() + 60 * 60000;
+        const normalizedStatus = normalizeOrderStatus(order.status);
+
+        // SCENARIO 1: Seller did not initiate transfer within 30 minutes after funds were held.
+        if (normalizedStatus === "FUNDS_HELD" && order.transferPendingAt) {
+            const transferDeadline = new Date(order.transferPendingAt).getTime() + SELLER_TIMEOUT_MINUTES * 60000;
 
             if (now > transferDeadline) {
                 if (!isBuyer) {
                     return NextResponse.json({ message: "Only Buyer can claim refund for transfer timeout" }, { status: 403 });
                 }
 
-                // Update Status to DISPUTED (Consistent with Cron)
-                const updatedOrder = await prisma.order.update({
-                    where: { id: orderId },
-                    data: { status: "DISPUTED" }
+                const updatedOrder = await prisma.$transaction(async (tx) => {
+                    const nextOrder = await tx.order.update({
+                        where: { id: orderId },
+                        data: { status: "SELLER_TIMEOUT" }
+                    });
+
+                    await recordOrderStatus(tx, {
+                        orderId,
+                        fromStatus: normalizedStatus,
+                        toStatus: "SELLER_TIMEOUT",
+                        note: "Buyer claimed seller initiation timeout",
+                    });
+
+                    return nextOrder;
                 });
 
                 // Notify
                 await import("@/lib/mail").then(({ sendMail }) => {
-                    const subject = `Order #${order.id} DISPUTED: Seller Timeout (Manual Claim)`;
+                    const subject = `Order #${order.id} cancelled: Seller Timeout`;
                     const htmlBase = `
-                        <h1>Order Marked as Disputed</h1>
-                        <p>The buyer claimed a timeout resolution. The seller failed to complete the transfer within the 60-minute window.</p>
+                        <h1>Order Cancelled</h1>
+                        <p>The buyer claimed a timeout resolution. The seller failed to initiate the transfer within the 30-minute window.</p>
                         <p><strong>Order ID:</strong> ${order.id}</p>
                     `;
 
-                    if (order.buyer.email) sendMail({ to: order.buyer.email, subject, html: `${htmlBase}<p>We have marked this order as disputed. Support will review it shortly.</p>` });
-                    if (seller?.email) sendMail({ to: seller.email, subject, html: `${htmlBase}<p>You failed to upload evidence in time.</p>` });
+                    if (order.buyer.email) sendMail({ to: order.buyer.email, subject, html: `${htmlBase}<p>Your payment should be refunded according to the seller-timeout flow.</p>` });
+                    if (seller?.email) sendMail({ to: seller.email, subject, html: `${htmlBase}<p>You did not initiate the transfer in time.</p>` });
                     sendMail({ to: ADMIN_EMAIL, subject: `[ADMIN] Conflict Alert: Order #${order.id}`, html: `${htmlBase}<p>Manual claim by Buyer.</p>` });
                 });
 
@@ -79,28 +91,68 @@ export async function POST(
             }
         }
 
-        // SCENARIO 2: Buyer Confirmation Timeout (30 mins)
-        // Seller claims earnings because Buyer didn't confirm in time.
-        if (order.status === "EVIDENCE_UPLOADED" && order.evidenceUploadedAt) {
-            const confirmationDeadline = new Date(order.evidenceUploadedAt).getTime() + 30 * 60000;
+        // SCENARIO 2: Seller started transfer but never uploaded evidence within 15 minutes.
+        if (normalizedStatus === "TRANSFER_IN_PROGRESS" && order.transferStartedAt) {
+            const evidenceDeadline = new Date(order.transferStartedAt).getTime() + EVIDENCE_TIMEOUT_MINUTES * 60000;
+
+            if (now > evidenceDeadline) {
+                if (!isBuyer && !isSeller) {
+                    return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
+                }
+
+                const updatedOrder = await prisma.$transaction(async (tx) => {
+                    const nextOrder = await tx.order.update({
+                        where: { id: orderId },
+                        data: { status: "EVIDENCE_TIMEOUT" }
+                    });
+
+                    await recordOrderStatus(tx, {
+                        orderId,
+                        fromStatus: normalizedStatus,
+                        toStatus: "EVIDENCE_TIMEOUT",
+                        note: "Evidence upload timeout",
+                    });
+
+                    return nextOrder;
+                });
+
+                return NextResponse.json(updatedOrder);
+            }
+
+            return NextResponse.json({ message: "Evidence upload time has not expired yet" }, { status: 400 });
+        }
+
+        // SCENARIO 3: Buyer confirmation timeout (10 mins)
+        if (normalizedStatus === "AWAITING_CONFIRMATION" && order.evidenceUploadedAt) {
+            const confirmationDeadline = new Date(order.evidenceUploadedAt).getTime() + BUYER_AUTO_CONFIRM_MINUTES * 60000;
 
             if (now > confirmationDeadline) {
                 if (!isSeller) {
                     return NextResponse.json({ message: "Only Seller can claim earnings for confirmation timeout" }, { status: 403 });
                 }
 
-                // Update Status to COMPLETED
-                const updatedOrder = await prisma.order.update({
-                    where: { id: orderId },
-                    data: {
-                        status: "COMPLETED",
-                        buyerConfirmedAt: new Date() // Auto-confirmed
-                    }
+                const updatedOrder = await prisma.$transaction(async (tx) => {
+                    const nextOrder = await tx.order.update({
+                        where: { id: orderId },
+                        data: {
+                            status: "COMPLETE",
+                            buyerConfirmedAt: new Date()
+                        }
+                    });
+
+                    await recordOrderStatus(tx, {
+                        orderId,
+                        fromStatus: normalizedStatus,
+                        toStatus: "COMPLETE",
+                        note: "Seller claimed buyer auto-confirm timeout",
+                    });
+
+                    return nextOrder;
                 });
 
                 // Notify
                 await import("@/lib/mail").then(({ sendMail }) => {
-                    const subject = `Order #${order.id} Completed: Auto-Confirmation (Manual Claim)`;
+                    const subject = `Order #${order.id} completed: Auto-confirmation`;
                     const htmlBase = `
                         <h1>Order Completed</h1>
                         <p>The seller claimed completion. The buyer did not confirm within the 30-minute window.</p>
@@ -119,8 +171,8 @@ export async function POST(
 
         return NextResponse.json({ message: "No timeout resolution available for current status" }, { status: 400 });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Resolve timeout error:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: error instanceof Error ? error.message : "Internal server error" }, { status: 500 });
     }
 }

@@ -26,7 +26,7 @@ export async function GET() {
     const sellerRevenue = await prisma.order.groupBy({
       by: ["createdAt"],
       where: {
-        status: "COMPLETED",
+        status: "COMPLETE",
         orderItems: {
           some: {
             product: { sellerId: userId },
@@ -40,7 +40,7 @@ export async function GET() {
     const buyerSpent = await prisma.order.groupBy({
       by: ["createdAt"],
       where: {
-        status: "COMPLETED",
+        status: "COMPLETE",
         buyerId: userId,
       },
       _sum: { totalAmount: true },
@@ -93,10 +93,10 @@ export async function GET() {
     data.sort((a, b) => a.month.localeCompare(b.month));
 
     return NextResponse.json(data);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Internal server error:", error);
     return NextResponse.json(
-      { message: error.message || "Internal server error" },
+      { message: error instanceof Error ? error.message : "Internal server error" },
       { status: 500 }
     );
   }

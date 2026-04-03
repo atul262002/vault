@@ -1133,11 +1133,20 @@ type RazorpayInstance = {
   ) => void;
 };
 
+type ListingProduct = Products & {
+  listingId: string;
+  ticketQuantity: number;
+  ticketPartner: string;
+  category?: {
+    name: string;
+  };
+};
+
 const ProductSearchByName = () => {
   const [searchValue, setSearchValue] = useState("");
   const debouncedSearch = useDebounce<string>(searchValue, 500);
-  const [products, setProducts] = useState<Products[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState<Products | null>(null);
+  const [products, setProducts] = useState<ListingProduct[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<ListingProduct | null>(null);
   const [isRazorpayLoading, setIsRazorpayLoading] = useState(false);
   const [paymentStatusMessage, setPaymentStatusMessage] = useState("");
   const [isRazorpayReady, setIsRazorpayReady] = useState(false);
@@ -1147,8 +1156,9 @@ const ProductSearchByName = () => {
   const razorpayLoaderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const razorpayStatusPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastCompletedPaymentIdRef = useRef<string | null>(null);
-  const [ticketPartner, setTicketPartner] = useState("");
-  const [transferDetails, setTransferDetails] = useState("");
+  const [receiverName, setReceiverName] = useState("");
+  const [receiverPhone, setReceiverPhone] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
   // NEW: payment success state
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [successPaymentId, setSuccessPaymentId] = useState("");
@@ -1316,14 +1326,19 @@ const ProductSearchByName = () => {
     }, 2500);
   };
 
-  async function handlePurchase(product: Products) {
+  async function handlePurchase(product: ListingProduct) {
     if (!isRazorpayReady) {
       alert("Payment system is loading. Please wait a moment and try again.");
       return;
     }
 
-    if (!ticketPartner || !transferDetails) {
-      alert("Please enter Ticket Partner and Transfer Details.");
+    if (!receiverName.trim() || !receiverPhone.trim()) {
+      alert("Please enter the receiver name and phone number.");
+      return;
+    }
+
+    if (!termsAccepted) {
+      alert("Please accept the terms and conditions to continue.");
       return;
     }
 
@@ -1344,8 +1359,9 @@ const ProductSearchByName = () => {
         amount: product.price,
         currency: "INR",
         product: [{ ...product }],
-        ticketPartner,
-        transferDetails
+        receiverName,
+        receiverPhone,
+        termsAccepted,
       });
 
       if (response.status === 200) {
@@ -1372,7 +1388,7 @@ const ProductSearchByName = () => {
           prefill: {
             name: user?.firstName || user?.fullName || "",
             email: user?.emailAddresses[0].emailAddress || "",
-            contact: user?.phoneNumbers?.[0]?.phoneNumber || "9999999999",
+            contact: receiverPhone || user?.phoneNumbers?.[0]?.phoneNumber || "9999999999",
           },
           notes: {
             product_id: product.id,
@@ -1531,7 +1547,7 @@ const ProductSearchByName = () => {
           <div className="w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-2xl">
             <CheckCircle2 className="mx-auto mb-4 h-14 w-14 text-green-500" />
             <h3 className="text-2xl font-bold text-gray-900">Payment Successful!</h3>
-            <p className="mt-2 text-sm text-gray-500">Your order has been confirmed.</p>
+            <p className="mt-2 text-sm text-gray-500">Your payment is secured with Vault. The seller has been notified to initiate transfer.</p>
             {successPaymentId && (
               <p className="mt-3 rounded-lg bg-gray-100 px-3 py-2 text-xs font-mono text-gray-600 break-all">
                 Payment ID: {successPaymentId}
@@ -1542,11 +1558,13 @@ const ProductSearchByName = () => {
               onClick={() => {
                 setPaymentSuccess(false);
                 setSuccessPaymentId("");
-                setTicketPartner("");
-                setTransferDetails("");
+                setReceiverName("");
+                setReceiverPhone("");
+                setTermsAccepted(false);
+                window.location.href = "/orders/history";
               }}
             >
-              Done
+              View Order
             </Button>
           </div>
         </div>
@@ -1555,7 +1573,7 @@ const ProductSearchByName = () => {
       <div className="relative mb-8 max-w-md mx-auto">
         <Search className="absolute h-4 w-4 left-4 text-muted-foreground top-3.5" />
         <Input
-          placeholder="Search products by name"
+          placeholder="Search by event name or listing ID"
           className="pl-10 bg-primary/10 h-12"
           onChange={onChange}
           value={searchValue}
@@ -1602,7 +1620,7 @@ const ProductSearchByName = () => {
       {selectedProduct && (
         <Dialog open={!!selectedProduct} onOpenChange={() => setSelectedProduct(null)}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogTitle className="text-2xl font-bold">Product Details</DialogTitle>
+            <DialogTitle className="text-2xl font-bold">Event Details</DialogTitle>
             <div className="space-y-6 mt-4">
               <div className="w-full flex justify-center bg-gray-50 rounded-lg p-4">
                 <div className="relative w-full max-w-md h-64">
@@ -1619,9 +1637,10 @@ const ProductSearchByName = () => {
                 <h2 className="text-2xl font-bold text-gray-800 mb-2">
                   {selectedProduct.name}
                 </h2>
+                <p className="text-sm text-gray-500">Listing ID: {selectedProduct.listingId}</p>
                 <div className="bg-gray-50 p-3 rounded-md mb-4 space-y-1">
                   <div className="flex justify-between text-sm text-gray-600">
-                    <span>Product Price:</span>
+                    <span>Ticket Price:</span>
                     <span>₹{selectedProduct.price.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm text-gray-600">
@@ -1635,22 +1654,42 @@ const ProductSearchByName = () => {
                 </div>
               </div>
 
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                <p className="font-semibold">Please read all event details carefully before initiating payment.</p>
+                <p className="mt-2">Vault is only a mediator ensuring tickets are safely traded. We are not affiliated with the event organisers or ticketing partners.</p>
+              </div>
+
               <div className="space-y-3 mb-4">
                 <div>
-                  <label className="text-sm font-medium">Ticket Partner (District/BMS/Insider)</label>
+                  <label className="text-sm font-medium">Receiver&apos;s Name</label>
                   <Input
-                    placeholder="e.g. BookMyShow"
-                    value={ticketPartner}
-                    onChange={(e) => setTicketPartner(e.target.value)}
+                    placeholder="Enter the name the seller should transfer to"
+                    value={receiverName}
+                    onChange={(e) => setReceiverName(e.target.value)}
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Transfer Details (Email / Phone)</label>
+                  <label className="text-sm font-medium">Receiver&apos;s Phone Number</label>
                   <Input
-                    placeholder="Details for transfer..."
-                    value={transferDetails}
-                    onChange={(e) => setTransferDetails(e.target.value)}
+                    placeholder="Enter the transfer phone number"
+                    value={receiverPhone}
+                    onChange={(e) => setReceiverPhone(e.target.value)}
                   />
+                </div>
+                <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                  Please ensure the details entered here are correct. Disputes arising from incorrectly entered details will not be considered.
+                </div>
+                <div className="flex items-start gap-3 rounded-xl border p-4">
+                  <input
+                    id="termsAccepted"
+                    type="checkbox"
+                    className="mt-1"
+                    checked={termsAccepted}
+                    onChange={(e) => setTermsAccepted(e.target.checked)}
+                  />
+                  <label htmlFor="termsAccepted" className="text-sm text-gray-700">
+                    I have reviewed all event details and understand that if I do not respond within 10 minutes after seller evidence is submitted, the order will auto-complete.
+                  </label>
                 </div>
               </div>
 
@@ -1666,7 +1705,7 @@ const ProductSearchByName = () => {
                 ) : (
                   <Button
                     onClick={() => handlePurchase(selectedProduct)}
-                    disabled={isRazorpayLoading || !isRazorpayReady}
+                    disabled={isRazorpayLoading || !isRazorpayReady || !termsAccepted}
                     className="flex-1 w-full"
                   >
                     {isRazorpayLoading ? (
@@ -1680,7 +1719,7 @@ const ProductSearchByName = () => {
                         Loading Payment...
                       </>
                     ) : (
-                      "Purchase Now"
+                        "Proceed to Payment"
                     )}
                   </Button>
                 )}
@@ -1709,15 +1748,27 @@ const ProductSearchByName = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-blue-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-1">Refund Period</p>
+                  <p className="text-sm text-gray-600 mb-1">Event Time</p>
                   <p className="font-semibold text-gray-800">
                     {selectedProduct.refundPeriod}
                   </p>
                 </div>
                 <div className="bg-purple-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-1">Category</p>
+                  <p className="text-sm text-gray-600 mb-1">Event Date</p>
                   <p className="font-semibold text-gray-800">
-                    {selectedProduct.categoryId}
+                    {selectedProduct.estimatedTime}
+                  </p>
+                </div>
+                <div className="bg-emerald-50 rounded-lg p-4">
+                  <p className="text-sm text-gray-600 mb-1">Event Location</p>
+                  <p className="font-semibold text-gray-800">
+                    {selectedProduct.category?.name || "Not specified"}
+                  </p>
+                </div>
+                <div className="bg-orange-50 rounded-lg p-4">
+                  <p className="text-sm text-gray-600 mb-1">Number of Tickets</p>
+                  <p className="font-semibold text-gray-800">
+                    {selectedProduct.ticketQuantity}
                   </p>
                 </div>
               </div>

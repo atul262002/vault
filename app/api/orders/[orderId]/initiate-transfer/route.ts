@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getCurrentDbUser } from "@/lib/current-db-user";
+import { createNotificationRecord, getTransferDelayUntil, normalizeOrderStatus, recordOrderStatus } from "@/lib/order-flow";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(
@@ -16,7 +17,18 @@ export async function POST(
 
         const order = await prisma.order.findUnique({
             where: { id: orderId },
-            include: { orderItems: { include: { product: true } } }
+            include: {
+                orderItems: {
+                    include: {
+                        product: {
+                            include: {
+                                seller: true,
+                            }
+                        }
+                    }
+                },
+                buyer: true,
+            }
         });
 
         if (!order) {
@@ -30,35 +42,51 @@ export async function POST(
             return NextResponse.json({ message: "Unauthorized: not the seller" }, { status: 403 });
         }
 
-        const updatedOrder = await prisma.order.update({
-            where: { id: orderId },
-            data: {
-                status: "TRANSFER_INITIATED"
-            },
-            include: { buyer: true }
+        const currentStatus = normalizeOrderStatus(order.status);
+        if (!["FUNDS_HELD", "TRANSFER_PENDING"].includes(currentStatus)) {
+            return NextResponse.json({ message: "Transfer cannot be initiated in the current state" }, { status: 400 });
+        }
+
+        const now = new Date();
+        const transferDelayUntil = getTransferDelayUntil(now);
+
+        const updatedOrder = await prisma.$transaction(async (tx) => {
+            const nextOrder = await tx.order.update({
+                where: { id: orderId },
+                data: {
+                    status: "TRANSFER_IN_PROGRESS",
+                    transferStartedAt: now,
+                    transferDelayUntil,
+                },
+                include: { buyer: true }
+            });
+
+            await recordOrderStatus(tx, {
+                orderId,
+                fromStatus: currentStatus,
+                toStatus: "TRANSFER_IN_PROGRESS",
+                note: "Seller initiated ticket transfer",
+            });
+
+            await createNotificationRecord(tx, {
+                userId: order.buyerId,
+                orderId,
+                title: "Seller initiated transfer",
+                message: "Seller has initiated the ticket transfer. This update will become visible in your buyer flow after 5 minutes.",
+            });
+
+            return nextOrder;
         });
 
-        // Send email to Buyer
         if (updatedOrder.buyer.email) {
-            // Calculate 60 mins from now
-            const deadline = new Date(updatedOrder.transferStartedAt!.getTime() + 60 * 60000);
-
             await import("@/lib/mail").then(({ sendMail }) =>
                 sendMail({
                     to: updatedOrder.buyer.email!,
                     subject: `Transfer Initiated: Order #${updatedOrder.id}`,
                     html: `
-                        <h1>Seller has initiated the transfer!</h1>
-                        <p>The seller for your order <strong>#${updatedOrder.id}</strong> has started the ticket transfer process.</p>
-                        <p><strong>Transfer Deadline:</strong> ${deadline.toLocaleString()}</p>
-                        <br/>
-                        <h2>What to do next:</h2>
-                        <ol>
-                            <li>Wait for the seller to complete the transfer on the ticket platform (${updatedOrder.ticketPartner || 'User specified'}).</li>
-                            <li>The seller will upload evidence of the transfer within 60 minutes.</li>
-                            <li>Once evidence is uploaded, you will need to confirm receipt to release the funds.</li>
-                        </ol>
-                        <p><strong>Note:</strong> A platform fee of ₹${order.platformFeeSeller} (2.5%) has been applied to this transaction.</p>
+                        <h1>Seller has initiated the ticket transfer</h1>
+                        <p>The seller for your order <strong>#${updatedOrder.id}</strong> has started the transfer process.</p>
+                        <p>This status will appear in your buyer flow after a 5-minute delay, then you will be able to track the remaining transfer window.</p>
                     `
                 })
             );
@@ -66,8 +94,8 @@ export async function POST(
 
         return NextResponse.json(updatedOrder);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Initiate transfer error:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: error instanceof Error ? error.message : "Internal server error" }, { status: 500 });
     }
 }

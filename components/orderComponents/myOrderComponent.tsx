@@ -12,8 +12,10 @@ interface Order {
   totalAmount: number;
   razorpayId?: string;
   payoutId?: string;
-  ticketPartner?: string;
-  transferDetails?: string;
+  receiverName?: string;
+  receiverPhone?: string;
+  transferDelayUntil?: string;
+  transferPendingAt?: string;
   transferStartedAt?: string;
   evidenceUploadedAt?: string;
   buyerId: string;
@@ -27,7 +29,10 @@ interface Order {
       imageUrl: string;
       description: string;
       refundPeriod: string;
+      estimatedTime: string;
       sellerId: string;
+      listingId?: string;
+      ticketPartner?: string;
     };
   }[];
 }

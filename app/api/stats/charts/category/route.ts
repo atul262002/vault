@@ -21,54 +21,32 @@ export async function GET() {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
-    // 1️⃣ Purchases (user is buyer → "Bought")
-    const purchases = await prisma.orderItem.groupBy({
-      by: ["productId"],
-      where: {
-        order: { buyerId: dbUser.id },
-      },
-      _sum: { price: true },
-    });
-
-    // 2️⃣ Sales (user is seller → "Sold")
-    const sales = await prisma.orderItem.groupBy({
-      by: ["productId"],
-      where: {
-        product: { sellerId: dbUser.id },
-      },
-      _sum: { price: true },
-    });
-
-    // 3️⃣ Fetch product categories to map productId → category
     const products = await prisma.products.findMany({
-      select: { id: true, category: { select: { name: true } } },
+      where: { sellerId: dbUser.id },
+      select: {
+        isSold: true,
+        category: { select: { name: true } },
+      },
     });
 
-    const productCategoryMap: Record<string, string> = {};
-    products.forEach((p) => {
-      productCategoryMap[p.id] = p.category.name;
+    const result: Record<string, { listings: number; sold: number }> = {};
+
+    products.forEach((product) => {
+      const city = product.category.name || "Other";
+      if (!result[city]) {
+        result[city] = { listings: 0, sold: 0 };
+      }
+
+      result[city].listings += 1;
+      if (product.isSold) {
+        result[city].sold += 1;
+      }
     });
 
-    // 4️⃣ Aggregate results per category
-    const result: Record<string, { bought: number; sold: number }> = {};
-
-    purchases.forEach((p) => {
-      const category = productCategoryMap[p.productId] || "Others";
-      if (!result[category]) result[category] = { bought: 0, sold: 0 };
-      result[category].bought += p._sum.price || 0;
-    });
-
-    sales.forEach((s) => {
-      const category = productCategoryMap[s.productId] || "Others";
-      if (!result[category]) result[category] = { bought: 0, sold: 0 };
-      result[category].sold += s._sum.price || 0;
-    });
-
-    // 5️⃣ Convert into chart format
-    const chartData = Object.entries(result).map(([category, values]) => ({
-      month: category,
-      desktop: values.bought, // "Bought"
-      mobile: values.sold,    // "Sold"
+    const chartData = Object.entries(result).map(([city, values]) => ({
+      city,
+      listings: values.listings,
+      sold: values.sold,
     }));
 
     return NextResponse.json(chartData);

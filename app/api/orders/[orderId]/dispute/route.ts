@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getCurrentDbUser } from "@/lib/current-db-user";
+import { createNotificationRecord, normalizeOrderStatus, recordOrderStatus } from "@/lib/order-flow";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(
@@ -13,6 +14,7 @@ export async function POST(
         }
 
         const { orderId } = await params;
+        const { disputeReason, buyerCounterEvidenceUrl } = await req.json().catch(() => ({}));
 
         const order = await prisma.order.findUnique({
             where: { id: orderId }
@@ -27,17 +29,45 @@ export async function POST(
             return NextResponse.json({ message: "Unauthorized: not the buyer" }, { status: 403 });
         }
 
-        const updatedOrder = await prisma.order.update({
-            where: { id: orderId },
-            data: {
-                status: "DISPUTED"
-            },
-            include: {
-                orderItems: {
-                    include: { product: true }
+        const currentStatus = normalizeOrderStatus(order.status);
+        if (currentStatus !== "AWAITING_CONFIRMATION") {
+            return NextResponse.json({ message: "Order cannot be disputed in the current state" }, { status: 400 });
+        }
+
+        const updatedOrder = await prisma.$transaction(async (tx) => {
+            const nextOrder = await tx.order.update({
+                where: { id: orderId },
+                data: {
+                    status: "DISPUTED",
+                    disputeReason: disputeReason || "Buyer reported that the transfer was not received.",
+                    buyerCounterEvidenceUrl,
                 },
-                buyer: true
+                include: {
+                    orderItems: {
+                        include: { product: true }
+                    },
+                    buyer: true
+                }
+            });
+
+            await recordOrderStatus(tx, {
+                orderId,
+                fromStatus: currentStatus,
+                toStatus: "DISPUTED",
+                note: disputeReason || "Buyer raised a dispute",
+            });
+
+            const sellerId = nextOrder.orderItems[0]?.product.sellerId;
+            if (sellerId) {
+                await createNotificationRecord(tx, {
+                    userId: sellerId,
+                    orderId,
+                    title: "Dispute raised",
+                    message: "Buyer reported that the ticket transfer was not completed. Vault will review the evidence.",
+                });
             }
+
+            return nextOrder;
         });
 
         // Notify Admin/Support
@@ -53,6 +83,8 @@ export async function POST(
                     <p><strong>Product:</strong> ${updatedOrder.orderItems[0].product.name}</p>
                     <p><strong>Order Amount:</strong> ₹${updatedOrder.totalAmount}</p>
                     <p><strong>Evidence URL:</strong> ${updatedOrder.evidenceUrl || 'Not uploaded'}</p>
+                    <p><strong>Buyer reason:</strong> ${updatedOrder.disputeReason || 'Not provided'}</p>
+                    <p><strong>Buyer counter evidence:</strong> ${updatedOrder.buyerCounterEvidenceUrl || 'Not provided'}</p>
                     <br/>
                     <p>Please review the evidence and contact both parties.</p>
                 `
@@ -61,8 +93,8 @@ export async function POST(
 
         return NextResponse.json(updatedOrder);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Dispute order error:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: error instanceof Error ? error.message : "Internal server error" }, { status: 500 });
     }
 }

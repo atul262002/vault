@@ -9,19 +9,34 @@ export async function POST(request:NextRequest){
             return NextResponse.json({message:"Unauthenticated user"}, {status:404})
         }
 
-        const {productId} = await request.json()
+        const { productId } = await request.json()
         if(!productId || productId === ""){
             return NextResponse.json({message:"Invalid productId"})
         }
         
-        const product = await prisma.products.findUnique({
+        const normalizedProductId = String(productId).trim();
+
+        const product = await prisma.products.findFirst({
             where:{
-                id:productId
+                OR: [
+                    { id: normalizedProductId },
+                    { listingId: normalizedProductId.toUpperCase() }
+                ]
+            },
+            include: {
+                category: true,
+                seller: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                    }
+                }
             }
         })
 
         return NextResponse.json({result:product}, {status:200})
-    } catch (error) {
+    } catch {
         return NextResponse.json({message:"Internal server error"}, {status:500})
     }
 }

@@ -1,35 +1,35 @@
 import { prisma } from "@/lib/db";
 import { NextResponse } from "next/server";
 
-export async function POST(req: Request, res: NextResponse) {
-
+export async function POST(req: Request) {
   const { name } = await req.json();
+  const search = typeof name === "string" ? name.trim() : "";
 
   try {
     const products = await prisma.products.findMany({
       where: {
         isSold: false,
-        name: {
-          contains: name,
-          mode: "insensitive",
+        OR: [
+          {
+            name: {
+              contains: search,
+              mode: "insensitive",
+            },
+          },
+          {
+            listingId: {
+              contains: search.toUpperCase(),
+            },
+          },
+        ],
+      },
+      include: {
+        category: {
+          select: {
+            name: true,
+          },
         },
       },
-      select: {
-        seller: true,
-        name: true,
-        id: true,
-        createdAt: true,
-        updatedAt: true,
-        imageUrl: true,
-        image: true,
-        price: true,
-        refundPeriod: true,
-        estimatedTime: true,
-        description: true,
-        sellerId: true,
-        categoryId: true,
-        isSold: true,
-      }
     });
 
     return NextResponse.json({ result: products }, { status: 200 })

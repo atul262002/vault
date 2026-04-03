@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { recordOrderStatus } from "@/lib/order-flow";
 import { currentUser } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import Razorpay from "razorpay";
@@ -39,12 +40,33 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    const { amount, currency, product, ticketPartner, transferDetails } = await req.json();
+    const { amount, currency, product, receiverName, receiverPhone, termsAccepted } = await req.json();
     const parsedAmount = Number(amount);
     const products = Array.isArray(product) ? product : [];
 
-    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0 || !currency || products.length === 0) {
+    if (
+      !Number.isFinite(parsedAmount) ||
+      parsedAmount <= 0 ||
+      !currency ||
+      products.length === 0 ||
+      !receiverName ||
+      !receiverPhone ||
+      !termsAccepted
+    ) {
       return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
+    }
+
+    const selectedProduct = await prisma.products.findUnique({
+      where: { id: products[0].id },
+      include: { seller: true },
+    });
+
+    if (!selectedProduct || selectedProduct.isSold) {
+      return NextResponse.json({ error: "This listing is no longer available" }, { status: 409 });
+    }
+
+    if (selectedProduct.sellerId === existingUser.id) {
+      return NextResponse.json({ error: "You cannot purchase your own listing" }, { status: 400 });
     }
 
     // Revenue Model: Platform Fee Calculation (Percentage Based)
@@ -97,9 +119,10 @@ export async function POST(req: NextRequest) {
         totalAmount: totalAmountToPay,
         platformFeeBuyer: platformFeeBuyer,
         platformFeeSeller: platformFeeSeller,
-        ticketPartner: ticketPartner,
-        transferDetails: transferDetails,
-        status: "PENDING",
+        receiverName,
+        receiverPhone,
+        termsAccepted: Boolean(termsAccepted),
+        status: "PAYMENT_PENDING",
         orderItems: {
           create: products.map((item: { id: string; price: number }) => ({
             productId: item.id,
@@ -107,6 +130,13 @@ export async function POST(req: NextRequest) {
           }))
         }
       }
+    });
+
+    await recordOrderStatus(prisma, {
+      orderId: newOrder.id,
+      fromStatus: null,
+      toStatus: "PAYMENT_PENDING",
+      note: "Buyer opened Razorpay checkout",
     });
 
     // Return all necessary data for Razorpay checkout

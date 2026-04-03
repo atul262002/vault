@@ -18,7 +18,8 @@ export async function POST(req: NextRequest) {
         if (isAuthentic) {
             const result = await completeOrderPayment({
                 razorpayOrderId: razorpay_order_id,
-                razorpayPaymentId: razorpay_payment_id
+                razorpayPaymentId: razorpay_payment_id,
+                source: "client_verify",
             });
 
             return NextResponse.json({ message: result.message }, { status: result.status });

@@ -315,7 +315,9 @@ export function AddProduct() {
             refundPeriod: "",
             description: "",
             category: "",
-            estimatedTime: ""
+            estimatedTime: "",
+            ticketQuantity: 1,
+            ticketPartner: ""
         },
     });
 
@@ -326,13 +328,13 @@ export function AddProduct() {
             const productId = response.data?.result?.id;
             console.log()
             if (response.status === 200 && productId) {
-                toast("✅ Product has been created.", {
+                toast("Listing created successfully.", {
                     description: productId,
                     action: {
                         label: "Copy",
                         onClick: () => {
                             navigator.clipboard.writeText(productId);
-                            toast.success("✅ Copied Product Id.");
+                            toast.success("Listing ID copied.");
                         }
                     }
                 });
@@ -364,14 +366,14 @@ export function AddProduct() {
                 <Button variant="default" className="mr-5 p-2 font-normal w-full md:w-auto" size={"icon"}>
                     <Plus className="mr-2 md:mr-0" />
                     <span className="sr-only md:not-sr-only md:inline">
-                        Add Product
+                        Add Listing
                     </span>
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px] w-full max-h-[90vh] flex flex-col">
                 <DialogHeader>
-                    <DialogTitle>Add New Product</DialogTitle>
-                    <DialogDescription>Fill in the product details below.</DialogDescription>
+                    <DialogTitle>Add Ticket Listing</DialogTitle>
+                    <DialogDescription>Fill in the event details below.</DialogDescription>
                     <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mt-2 mb-4 text-sm" role="alert">
                         <p className="font-bold">Important:</p>
                         <p>Multiple ticket transfers are prohibited by some apps – please check the availability of your transfer option before uploading.</p>
@@ -386,7 +388,7 @@ export function AddProduct() {
                                 name="imageUrl"
                                 render={({ field }) => (
                                     <FormItem className="col-span-2">
-                                        <FormLabel>Image Upload</FormLabel>
+                                        <FormLabel>Poster / Image Upload</FormLabel>
                                         <FormControl>
                                             <ImageUpload
                                                 value={field.value ?? ""}
@@ -420,7 +422,7 @@ export function AddProduct() {
                                 name="imageUrl"
                                 render={({ field }) => (
                                     <FormItem className="col-span-2">
-                                        <FormLabel>Or Enter Image URL</FormLabel>
+                                        <FormLabel>Or Enter Poster URL</FormLabel>
                                         <FormControl>
                                             <Input placeholder="Image url" {...field} disabled={isUploading} />
                                         </FormControl>
@@ -434,9 +436,9 @@ export function AddProduct() {
                                 name="name"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Product Name</FormLabel>
+                                        <FormLabel>Event Name</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="Enter product name" {...field} />
+                                            <Input placeholder="Enter event name" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -448,11 +450,11 @@ export function AddProduct() {
                                 name="price"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Price</FormLabel>
+                                        <FormLabel>Price Per Ticket</FormLabel>
                                         <FormControl>
                                             <Input
                                                 type="number"
-                                                placeholder="Enter price"
+                                                placeholder="Enter ticket price"
                                                 {...field}
                                                 onChange={(e) => field.onChange(Number(e.target.value))}
                                             />
@@ -469,7 +471,7 @@ export function AddProduct() {
                                                         <span>₹{(field.value * 0.025).toFixed(2)}</span>
                                                     </div>
                                                     <div className="flex justify-between font-medium text-green-600 mt-1 border-t border-dashed pt-1">
-                                                        <span>You receive:</span>
+                                                        <span>You receive per ticket:</span>
                                                         <span>₹{(field.value - (field.value * 0.025)).toFixed(2)}</span>
                                                     </div>
                                                 </>
@@ -485,11 +487,11 @@ export function AddProduct() {
                                 name="refundPeriod"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Refund Period</FormLabel>
+                                        <FormLabel>Event Time</FormLabel>
                                         <FormControl>
                                             <Input
                                                 type="text"
-                                                placeholder="e.g., 30 Days"
+                                                placeholder="e.g., 7:30 PM"
                                                 {...field}
                                             />
                                         </FormControl>
@@ -503,13 +505,57 @@ export function AddProduct() {
                                 name="estimatedTime"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Estimated Delivery Time</FormLabel>
+                                        <FormLabel>Event Date</FormLabel>
                                         <FormControl>
                                             <Input
                                                 type="text"
-                                                placeholder="e.g., 3-5 Business Days"
+                                                placeholder="e.g., 24 April 2026"
                                                 {...field}
                                             />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={form.control}
+                                name="ticketQuantity"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Number of Tickets</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                type="number"
+                                                min={1}
+                                                placeholder="e.g., 2"
+                                                {...field}
+                                                onChange={(e) => field.onChange(Number(e.target.value))}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={form.control}
+                                name="ticketPartner"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Ticket Partner</FormLabel>
+                                        <FormControl>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                <SelectTrigger className="w-full">
+                                                    <SelectValue placeholder="Select ticket partner" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="BookMyShow">BookMyShow</SelectItem>
+                                                    <SelectItem value="District">District</SelectItem>
+                                                    <SelectItem value="Insider">Insider</SelectItem>
+                                                    <SelectItem value="Other">Other</SelectItem>
+                                                </SelectContent>
+                                            </Select>
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -521,9 +567,9 @@ export function AddProduct() {
                                 name="description"
                                 render={({ field }) => (
                                     <FormItem className="col-span-2">
-                                        <FormLabel>Description</FormLabel>
+                                        <FormLabel>Event Details</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="Enter product description" {...field} />
+                                            <Input placeholder="Describe seat, section, transfer notes, or event details" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -535,22 +581,22 @@ export function AddProduct() {
                                 name="category"
                                 render={({ field }) => (
                                     <FormItem className="col-span-2">
-                                        <FormLabel>Category</FormLabel>
+                                        <FormLabel>Event Location</FormLabel>
                                         <FormControl>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <Select onValueChange={field.onChange} value={field.value}>
                                                 <SelectTrigger className="w-full">
-                                                    <SelectValue placeholder="Select category" />
+                                                    <SelectValue placeholder="Select city" />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="Electronics">Electronics</SelectItem>
-                                                    <SelectItem value="Fashion">Apparel & Footwear</SelectItem>
-                                                    <SelectItem value="Kitchen">Home & Essentials</SelectItem>
-                                                    <SelectItem value="Beauty">Beauty & Personal Care</SelectItem>
-                                                    <SelectItem value="Health">Toys & Collectibles</SelectItem>
-                                                    <SelectItem value="Stationary">Luxury Items (more than ₹1,00,000)</SelectItem>
-                                                    <SelectItem value="Automotive">Automotive</SelectItem>
-                                                    <SelectItem value="Sports">Sports</SelectItem>
-                                                    <SelectItem value="PetSupplies">Others</SelectItem>
+                                                    <SelectItem value="Mumbai">Mumbai</SelectItem>
+                                                    <SelectItem value="Delhi">Delhi</SelectItem>
+                                                    <SelectItem value="Bengaluru">Bengaluru</SelectItem>
+                                                    <SelectItem value="Pune">Pune</SelectItem>
+                                                    <SelectItem value="Hyderabad">Hyderabad</SelectItem>
+                                                    <SelectItem value="Chennai">Chennai</SelectItem>
+                                                    <SelectItem value="Kolkata">Kolkata</SelectItem>
+                                                    <SelectItem value="Ahmedabad">Ahmedabad</SelectItem>
+                                                    <SelectItem value="Other">Other</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </FormControl>

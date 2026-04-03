@@ -19,16 +19,16 @@ export async function GET() {
             }
         })
 
-        const sold = userEarnings[0]?.orders.filter((o)=>o.status === "COMPLETED").length
-        const pending = userEarnings[0]?.orders.filter((o)=>o.status === "PENDING").length
+        const sold = userEarnings[0]?.orders.filter((o)=>o.status === "COMPLETE").length
+        const pending = userEarnings[0]?.orders.filter((o)=>["PAYMENT_PENDING", "FUNDS_HELD", "TRANSFER_PENDING", "TRANSFER_IN_PROGRESS", "AWAITING_CONFIRMATION"].includes(o.status)).length
         const failed = userEarnings[0]?.orders.filter((o)=>o.status === "FAILED").length
 
         return NextResponse.json({
             sold,pending,failed
         })
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Internal server error:", error);
-        return NextResponse.json({ message: error.message || "Internal server error" }, { status: 500 });
+        return NextResponse.json({ message: error instanceof Error ? error.message : "Internal server error" }, { status: 500 });
     }
 }

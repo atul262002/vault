@@ -72,6 +72,7 @@ export async function POST(req: NextRequest) {
     const result = await completeOrderPayment({
       razorpayOrderId: razorpay_order_id,
       razorpayPaymentId: successfulPayment.id,
+      source: "order_status_poll",
     });
 
     return NextResponse.json(

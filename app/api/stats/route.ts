@@ -25,7 +25,7 @@ export async function GET() {
           sellerId: sellerId,
         },
         order: {
-          status: "COMPLETED",
+          status: "COMPLETE",
         },
       },
       select: {
@@ -36,14 +36,16 @@ export async function GET() {
     // Sum all prices of completed order items → total earnings
     const totalEarnings = completedOrderItems.reduce((sum, item) => sum + item.price, 0);
 
-    // Similarly, sum pending order item prices
+    // Sum active-but-not-complete order item prices
     const pendingOrderItems = await prisma.orderItem.findMany({
       where: {
         product: {
           sellerId: sellerId,
         },
         order: {
-          status: "PENDING",
+          status: {
+            in: ["PAYMENT_PENDING", "FUNDS_HELD", "TRANSFER_PENDING", "TRANSFER_IN_PROGRESS", "AWAITING_CONFIRMATION"],
+          },
         },
       },
       select: {
@@ -60,15 +62,14 @@ export async function GET() {
           sellerId: sellerId,
         },
         order: {
-          status: "COMPLETED",
+          status: "COMPLETE",
         },
       },
     });
 
     return NextResponse.json({ totalEarnings, pendingAmount, vaultRecovered });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Internal server error:", error);
-    return NextResponse.json({ message: error.message || "Internal server error" }, { status: 500 });
+    return NextResponse.json({ message: error instanceof Error ? error.message : "Internal server error" }, { status: 500 });
   }
 }
-

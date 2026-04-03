@@ -2,6 +2,10 @@ import { prisma } from "@/lib/db";
 import { currentUser } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 
+function createListingId() {
+    return `VLT-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+}
+
 export async function POST(request: NextRequest) {
     try {
         const user = await currentUser();
@@ -10,7 +14,7 @@ export async function POST(request: NextRequest) {
         }
 
         const userEmail = user.emailAddresses[0].emailAddress;
-        let existingUser = await prisma.user.findUnique({
+        const existingUser = await prisma.user.findUnique({
             where: { email: userEmail }
         });
 
@@ -18,12 +22,20 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ message: "Unauthorized user" }, { status: 401 })
         }
 
+        const {
+            name,
+            imageUrl,
+            price,
+            refundPeriod,
+            description,
+            category,
+            estimatedTime,
+            image,
+            ticketQuantity,
+            ticketPartner
+        } = await request.json();
 
-        const { name, imageUrl, price, refundPeriod, description, category, estimatedTime, image } = await request.json();
-
-        console.log("Create Product Request Body:", { name, imageUrl, price, refundPeriod, description, category, estimatedTime, image });
-
-        if (!name || !price || !refundPeriod || !description || !category) {
+        if (!name || !price || !refundPeriod || !description || !category || !estimatedTime || !ticketQuantity || !ticketPartner) {
             console.log("Missing required fields");
             return NextResponse.json({ message: "Missing required fields" }, { status: 400 });
         }
@@ -39,8 +51,14 @@ export async function POST(request: NextRequest) {
             });
         }
 
+        let listingId = createListingId();
+        while (await prisma.products.findUnique({ where: { listingId } })) {
+            listingId = createListingId();
+        }
+
         const product = await prisma.products.create({
             data: {
+                listingId,
                 name,
                 imageUrl,
                 price,
@@ -49,8 +67,9 @@ export async function POST(request: NextRequest) {
                 sellerId: existingUser.id,
                 categoryId: cat.id,
                 image,
-                estimatedTime: estimatedTime
-                // sellerPhoneNo: user.phoneNumbers[0].phoneNumber
+                estimatedTime,
+                ticketQuantity: Number(ticketQuantity),
+                ticketPartner,
             }
         });
 

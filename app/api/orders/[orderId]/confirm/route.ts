@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getCurrentDbUser } from "@/lib/current-db-user";
+import { normalizeOrderStatus, recordOrderStatus } from "@/lib/order-flow";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(
@@ -27,28 +28,43 @@ export async function POST(
             return NextResponse.json({ message: "Unauthorized: not the buyer" }, { status: 403 });
         }
 
-        const updatedOrder = await prisma.order.update({
-            where: { id: orderId },
-            data: {
-                status: "COMPLETED",
-                buyerConfirmedAt: new Date()
-            },
-            include: {
-                payment: true,
-                orderItems: {
-                    include: {
-                        product: {
-                            include: { seller: true }
+        const currentStatus = normalizeOrderStatus(order.status);
+        if (currentStatus !== "AWAITING_CONFIRMATION") {
+            return NextResponse.json({ message: "Order is not awaiting buyer confirmation" }, { status: 400 });
+        }
+
+        const updatedOrder = await prisma.$transaction(async (tx) => {
+            const nextOrder = await tx.order.update({
+                where: { id: orderId },
+                data: {
+                    status: "COMPLETE",
+                    buyerConfirmedAt: new Date()
+                },
+                include: {
+                    payment: true,
+                    orderItems: {
+                        include: {
+                            product: {
+                                include: { seller: true }
+                            }
                         }
                     }
                 }
-            }
+            });
+
+            await recordOrderStatus(tx, {
+                orderId,
+                fromStatus: currentStatus,
+                toStatus: "COMPLETE",
+                note: "Buyer confirmed receipt",
+            });
+
+            return nextOrder;
         });
 
         // Trigger fund release logic
         // TODO: Integrate actual Razorpay Routes transfer here.
         // For now, we calculate the net amount.
-        const totalAmount = updatedOrder.totalAmount;
         const platformFeeSeller = updatedOrder.platformFeeSeller || 0;
         // Platform fee buyer is already included in totalAmount but not paid to seller.
         // The seller gets (Product Price) - (Platform Fee Seller).
@@ -65,7 +81,7 @@ export async function POST(
                     html: `
                         <h1>Buyer confirmed receipt!</h1>
                         <p>The buyer for your order <strong>#${updatedOrder.id}</strong> has confirmed receipt of the tickets.</p>
-                        <p><strong>Status:</strong> COMPLETED</p>
+                        <p><strong>Status:</strong> COMPLETE</p>
                         <br/>
                         <h2>Payment Details:</h2>
                         <p><strong>Item Price:</strong> ₹${updatedOrder.orderItems[0].price}</p>
@@ -80,8 +96,8 @@ export async function POST(
 
         return NextResponse.json(updatedOrder);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Confirm order error:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: error instanceof Error ? error.message : "Internal server error" }, { status: 500 });
     }
 }

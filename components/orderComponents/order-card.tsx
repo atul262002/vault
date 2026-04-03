@@ -9,6 +9,7 @@ import axios from "axios";
 import { Loader } from "lucide-react";
 import { ImageKitProvider, IKUpload } from "imagekitio-next";
 import { Progress } from "@/components/ui/progress";
+import { BUYER_AUTO_CONFIRM_MINUTES, EVIDENCE_TIMEOUT_MINUTES, SELLER_TIMEOUT_MINUTES } from "@/lib/order-flow";
 
 const publicKey = process.env.NEXT_PUBLIC_PUBLIC_KEY!;
 const urlEndpoint = process.env.NEXT_PUBLIC_URL_ENDPOINT!;
@@ -19,14 +20,49 @@ const authenticator = async () => {
         const response = await axios.get("/api/imagekit-auth");
         if (!response.data) throw new Error("Auth failed");
         return response.data;
-    } catch (error: any) {
+    } catch {
         throw new Error("Auth failed");
     }
 };
 
+type OrderCardOrder = {
+    id: string;
+    status: string;
+    totalAmount: number;
+    buyerId: string;
+    receiverName?: string;
+    receiverPhone?: string;
+    transferPendingAt?: string;
+    transferStartedAt?: string;
+    transferDelayUntil?: string;
+    evidenceUploadedAt?: string;
+    orderItems: Array<{
+        id: string;
+        productId: string;
+        price: number;
+        product: {
+            sellerId: string;
+            name: string;
+            imageUrl?: string;
+            listingId?: string;
+            estimatedTime: string;
+            refundPeriod: string;
+            ticketPartner?: string;
+        };
+    }>;
+};
+
+type CurrentUser = {
+    id?: string;
+} | null;
+
+type UploadResponse = {
+    url?: string;
+};
+
 interface OrderCardProps {
-    order: any; // Using any for simplicity now, strictly should allow the Order type
-    currentUser: any;
+    order: OrderCardOrder;
+    currentUser: CurrentUser;
     refreshOrders: () => void;
 }
 
@@ -47,10 +83,12 @@ export default function OrderCard({ order, currentUser, refreshOrders }: OrderCa
             let targetTime: number | null = null;
             let nextTimeLeft: string | null = null;
 
-            if ((order.status === "WAITING_FOR_TRANSFER" || order.status === "TRANSFER_INITIATED") && order.transferStartedAt) {
-                targetTime = new Date(order.transferStartedAt).getTime() + 60 * 60 * 1000;
-            } else if (order.status === "EVIDENCE_UPLOADED" && order.evidenceUploadedAt) {
-                targetTime = new Date(order.evidenceUploadedAt).getTime() + 30 * 60 * 1000;
+            if (order.status === "FUNDS_HELD" && order.transferPendingAt) {
+                targetTime = new Date(order.transferPendingAt).getTime() + SELLER_TIMEOUT_MINUTES * 60 * 1000;
+            } else if (order.status === "TRANSFER_IN_PROGRESS" && order.transferStartedAt) {
+                targetTime = new Date(order.transferStartedAt).getTime() + EVIDENCE_TIMEOUT_MINUTES * 60 * 1000;
+            } else if (order.status === "AWAITING_CONFIRMATION" && order.evidenceUploadedAt) {
+                targetTime = new Date(order.evidenceUploadedAt).getTime() + BUYER_AUTO_CONFIRM_MINUTES * 60 * 1000;
             }
 
             if (targetTime) {
@@ -81,7 +119,7 @@ export default function OrderCard({ order, currentUser, refreshOrders }: OrderCa
             await axios.post(`/api/orders/${order.id}/initiate-transfer`);
             toast.success("Transfer initiated! You have 60 minutes to complete the transfer and upload evidence.");
             refreshOrders();
-        } catch (error) {
+        } catch {
             toast.error("Failed to initiate transfer");
         } finally {
             setLoading(false);
@@ -95,7 +133,7 @@ export default function OrderCard({ order, currentUser, refreshOrders }: OrderCa
             await axios.post(`/api/orders/${order.id}/upload-evidence`, { evidenceUrl });
             toast.success("Evidence uploaded!");
             refreshOrders();
-        } catch (error) {
+        } catch {
             toast.error("Failed to upload evidence");
         } finally {
             setLoading(false);
@@ -109,18 +147,21 @@ export default function OrderCard({ order, currentUser, refreshOrders }: OrderCa
                 await axios.post(`/api/orders/${order.id}/confirm`);
                 toast.success("Order confirmed! Funds released to seller.");
             } else {
-                await axios.post(`/api/orders/${order.id}/dispute`);
+                const disputeReason = window.prompt("Please briefly describe the issue with the transfer.");
+                await axios.post(`/api/orders/${order.id}/dispute`, {
+                    disputeReason: disputeReason || "Buyer reported transfer not received.",
+                });
                 toast.success("Dispute raised. Support will review.");
             }
             refreshOrders();
-        } catch (error) {
+        } catch {
             toast.error("Process failed");
         } finally {
             setLoading(false);
         }
     };
 
-    const onUploadSuccess = (res: any) => {
+    const onUploadSuccess = (res: UploadResponse) => {
         setIsUploading(false);
         setUploadProgress(100);
         if (res?.url) {
@@ -129,7 +170,7 @@ export default function OrderCard({ order, currentUser, refreshOrders }: OrderCa
         }
     };
 
-    const onUploadError = (err: any) => {
+    const onUploadError = (err: unknown) => {
         setIsUploading(false);
         console.error(err);
         toast.error("Upload failed");
@@ -140,8 +181,8 @@ export default function OrderCard({ order, currentUser, refreshOrders }: OrderCa
             <CardHeader className="p-0 pb-4">
                 <CardTitle className="flex justify-between items-center text-lg">
                     <span>Order #{order.id.slice(0, 8)}</span>
-                    <span className={`px-2 py-1 rounded text-xs font-bold ${order.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
-                            order.status === 'DISPUTED' ? 'bg-red-100 text-red-800' :
+                    <span className={`px-2 py-1 rounded text-xs font-bold ${order.status === 'COMPLETE' ? 'bg-green-100 text-green-800' :
+                            ["DISPUTED", "SELLER_TIMEOUT", "EVIDENCE_TIMEOUT"].includes(order.status) ? 'bg-red-100 text-red-800' :
                                 'bg-blue-100 text-blue-800'
                         }`}>
                         {order.status.replace(/_/g, " ")}
@@ -149,7 +190,7 @@ export default function OrderCard({ order, currentUser, refreshOrders }: OrderCa
                 </CardTitle>
             </CardHeader>
             <CardContent className="p-0 space-y-4">
-                {order.orderItems.map((item: any) => (
+                {order.orderItems.map((item) => (
                     <div key={item.id} className="flex gap-4">
                         <div className="w-20 h-20 relative bg-gray-100 rounded">
                             {item.product.imageUrl && <Image src={item.product.imageUrl} alt={item.product.name} fill className="object-cover rounded" />}
@@ -157,8 +198,9 @@ export default function OrderCard({ order, currentUser, refreshOrders }: OrderCa
                         <div>
                             <p className="font-semibold">{item.product.name}</p>
                             <p className="text-sm text-gray-500">₹{item.price}</p>
-                            {order.ticketPartner && <p className="text-sm">Platform: {order.ticketPartner}</p>}
-                            {order.transferDetails && <p className="text-sm">Transfer To: {order.transferDetails}</p>}
+                            <p className="text-sm">Listing: {item.product.listingId || item.productId}</p>
+                            <p className="text-sm">Event date: {item.product.estimatedTime}</p>
+                            <p className="text-sm">Event time: {item.product.refundPeriod}</p>
                         </div>
                     </div>
                 ))}
@@ -168,14 +210,15 @@ export default function OrderCard({ order, currentUser, refreshOrders }: OrderCa
                     <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
                         <h4 className="font-bold mb-2">Seller Action Required</h4>
 
-                        {order.status === "WAITING_FOR_TRANSFER" && (
+                        {order.status === "FUNDS_HELD" && (
                             <div>
                                 <div className="bg-yellow-50 p-3 text-sm text-yellow-800 rounded mb-4">
                                     <p className="font-bold">PLEASE READ CAREFULLY</p>
                                     <ul className="list-disc ml-4 mt-2 space-y-1">
-                                        <li>Please take a screen recording of transferring the ticket to avoid disputes.</li>
-                                        <li>Buyer has made payment. Transfer to: <strong>{order.transferDetails || "N/A"}</strong></li>
-                                        <li>The 60-minute timer started when the buyer payment was verified.</li>
+                                        <li>Buyer has paid ₹{order.totalAmount}. Please transfer the ticket to {order.receiverName || "the buyer"} at {order.receiverPhone || "the provided number"} via {order.orderItems[0]?.product.ticketPartner || "the selected partner"}.</li>
+                                        <li>Take a screen recording of the transfer process. Vault will not entertain disputes without clear evidence.</li>
+                                        <li>You must initiate transfer within 30 minutes.</li>
+                                        <li>Once you click INITIATE TRANSFER, a 15-minute timer starts for evidence upload.</li>
                                     </ul>
                                 </div>
                                 {timeLeft && (
@@ -184,16 +227,15 @@ export default function OrderCard({ order, currentUser, refreshOrders }: OrderCa
                                 <Button onClick={handleInitiateTransfer} disabled={loading} className="w-full">
                                     {loading ? <Loader className="animate-spin mr-2" /> : null} INITIATE TRANSFER
                                 </Button>
-                                <p className="text-xs text-center text-gray-500 mt-1">click here to initiate transfer</p>
                             </div>
                         )}
 
-                        {order.status === "TRANSFER_INITIATED" && (
+                        {order.status === "TRANSFER_IN_PROGRESS" && (
                             <div>
                                 <div className="flex justify-between items-center mb-2">
                                     <span className="font-bold text-red-600">Time Remaining: {timeLeft}</span>
                                 </div>
-                                <p className="text-sm mb-4">Please complete the transfer and upload evidence within the time limit.</p>
+                                <p className="text-sm mb-4">Please complete the transfer and upload your screen recording evidence within 15 minutes.</p>
 
                                 <div className="space-y-4">
                                     <ImageKitProvider urlEndpoint={urlEndpoint} publicKey={publicKey}>
@@ -223,7 +265,7 @@ export default function OrderCard({ order, currentUser, refreshOrders }: OrderCa
                         )}
 
                         {/* Seller Done. Waiting for Buyer */}
-                        {order.status === "EVIDENCE_UPLOADED" && (
+                        {order.status === "AWAITING_CONFIRMATION" && (
                             <p className="text-sm text-gray-600">Proof submitted. Waiting for buyer confirmation.</p>
                         )}
                     </div>
@@ -232,29 +274,31 @@ export default function OrderCard({ order, currentUser, refreshOrders }: OrderCa
                 {/* Buyer Actions */}
                 {isBuyer && (
                     <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
-                        {order.status === "WAITING_FOR_TRANSFER" && (
+                        {order.status === "FUNDS_HELD" && (
                             <div className="bg-blue-50 p-3 text-sm text-blue-800 rounded">
-                                Money secured with Vault. Waiting for seller to initiate transfer.
+                                Your payment is secured with Vault. The seller has been notified to initiate transfer.
                                 {timeLeft && <p className="mt-2 font-semibold">Seller time remaining: {timeLeft}</p>}
                             </div>
                         )}
 
-                        {order.status === "TRANSFER_INITIATED" && (
+                        {order.status === "TRANSFER_IN_PROGRESS" && (
                             <div>
                                 <p className="font-bold text-blue-600 mb-2">Transfer Initiated</p>
-                                {timeLeft ? (
-                                    <p className="text-red-500">Seller has approx {timeLeft} left to transfer.</p>
+                                {order.transferDelayUntil && new Date(order.transferDelayUntil).getTime() > Date.now() ? (
+                                    <p className="text-gray-500">Seller has initiated the transfer. This stage becomes visible after a short 5-minute delay.</p>
+                                ) : timeLeft ? (
+                                    <p className="text-red-500">Seller has approx {timeLeft} left to complete transfer and upload evidence.</p>
                                 ) : (
                                     <p className="text-gray-500">Seller is preparing transfer...</p>
                                 )}
                             </div>
                         )}
 
-                        {order.status === "EVIDENCE_UPLOADED" && (
+                        {order.status === "AWAITING_CONFIRMATION" && (
                             <div>
                                 <p className="font-bold mb-2">Seller has completed transfer. Please confirm delivery.</p>
                                 <p className="text-red-500 font-bold mb-4">Auto-confirm in: {timeLeft}</p>
-                                <p className="text-xs text-gray-500 mb-4">If no reply within 30 minutes, funds will be released to seller automatically.</p>
+                                <p className="text-xs text-gray-500 mb-4">If no reply within 10 minutes, funds will be released to seller automatically.</p>
                                 <div className="flex gap-4">
                                     <Button onClick={() => handleConfirm(true)} className="flex-1 bg-green-600 hover:bg-green-700" disabled={loading}>
                                         YES, I Received it
@@ -266,7 +310,7 @@ export default function OrderCard({ order, currentUser, refreshOrders }: OrderCa
                             </div>
                         )}
 
-                        {order.status === "COMPLETED" && (
+                        {order.status === "COMPLETE" && (
                             <div className="bg-green-50 p-3 text-green-800 rounded">
                                 Order Complete!
                             </div>
@@ -275,6 +319,18 @@ export default function OrderCard({ order, currentUser, refreshOrders }: OrderCa
                         {order.status === "DISPUTED" && (
                             <div className="bg-red-50 p-3 text-red-800 rounded">
                                 Dispute raised. We are reviewing the evidence.
+                            </div>
+                        )}
+
+                        {order.status === "SELLER_TIMEOUT" && (
+                            <div className="bg-red-50 p-3 text-red-800 rounded">
+                                Seller did not initiate the transfer in time. Refund flow should be triggered.
+                            </div>
+                        )}
+
+                        {order.status === "EVIDENCE_TIMEOUT" && (
+                            <div className="bg-amber-50 p-3 text-amber-800 rounded">
+                                Seller missed the evidence upload deadline. Vault will review the transaction manually.
                             </div>
                         )}
                     </div>

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getCurrentDbUser } from "@/lib/current-db-user";
+import { createNotificationRecord, normalizeOrderStatus, recordOrderStatus } from "@/lib/order-flow";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(
@@ -34,22 +35,43 @@ export async function POST(
             return NextResponse.json({ message: "Unauthorized: not the seller" }, { status: 403 });
         }
 
-        const updatedOrder = await prisma.order.update({
-            where: { id: orderId },
-            data: {
-                status: "EVIDENCE_UPLOADED",
-                evidenceUrl: evidenceUrl,
-                evidenceUploadedAt: new Date(),
-                lastBuyerReminderSentAt: null
-            },
-            include: { buyer: true }
+        const currentStatus = normalizeOrderStatus(order.status);
+        if (currentStatus !== "TRANSFER_IN_PROGRESS") {
+            return NextResponse.json({ message: "Evidence can only be uploaded after transfer is initiated" }, { status: 400 });
+        }
+
+        const now = new Date();
+
+        const updatedOrder = await prisma.$transaction(async (tx) => {
+            const nextOrder = await tx.order.update({
+                where: { id: orderId },
+                data: {
+                    status: "AWAITING_CONFIRMATION",
+                    evidenceUrl,
+                    evidenceUploadedAt: now,
+                    lastBuyerReminderSentAt: null
+                },
+                include: { buyer: true }
+            });
+
+            await recordOrderStatus(tx, {
+                orderId,
+                fromStatus: currentStatus,
+                toStatus: "AWAITING_CONFIRMATION",
+                note: "Seller uploaded transfer evidence",
+            });
+
+            await createNotificationRecord(tx, {
+                userId: order.buyerId,
+                orderId,
+                title: "Transfer evidence uploaded",
+                message: "Seller uploaded transfer evidence. Please confirm receipt within 10 minutes or the order will auto-complete.",
+            });
+
+            return nextOrder;
         });
 
-        // Send email to Buyer
         if (updatedOrder.buyer.email) {
-            // Calculate 30 mins from now
-            const confirmationDeadline = new Date(updatedOrder.evidenceUploadedAt!.getTime() + 30 * 60000);
-
             await import("@/lib/mail").then(({ sendMail }) =>
                 sendMail({
                     to: updatedOrder.buyer.email!,
@@ -58,12 +80,7 @@ export async function POST(
                         <h1>Seller has uploaded transfer evidence!</h1>
                         <p>The seller for your order <strong>#${updatedOrder.id}</strong> has uploaded proof of ticket transfer.</p>
                         <p><a href="${updatedOrder.evidenceUrl}">Click here to view the evidence</a></p>
-                        <br/>
-                        <h2>IMMEDIATE ACTION REQUIRED:</h2>
-                        <p>Please review the evidence and confirm receipt of the tickets within <strong>30 minutes</strong> (by ${confirmationDeadline.toLocaleString()}).</p>
-                        <p>If you do not take action, the funds may be automatically released to the seller.</p>
-                        <br/>
-                        <p><strong>Note:</strong> A platform fee of ₹${order.platformFeeSeller} (2.5%) has been applied to this transaction.</p>
+                        <p>Please review it and confirm receipt within <strong>10 minutes</strong>. If you do not respond, the transaction will auto-complete and payout will be triggered.</p>
                     `
                 })
             );
@@ -71,8 +88,8 @@ export async function POST(
 
         return NextResponse.json(updatedOrder);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Upload evidence error:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: error instanceof Error ? error.message : "Internal server error" }, { status: 500 });
     }
 }

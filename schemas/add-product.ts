@@ -3,12 +3,14 @@
 import { z } from "zod"
  
 export const addProductSchema = z.object({
-  name: z.string().min(2, {message:"Product name is required."}).max(50),
-  imageUrl: z.string({message:"Product image is required."}).optional(),
+  name: z.string().min(2, {message:"Event name is required."}).max(80),
+  imageUrl: z.string().optional(),
   image: z.string().optional(),
-  price: z.number().min(1, {message:"Price is required."}),
-  refundPeriod: z.string().min(1, {message:"Refund period is required."}),
-  description: z.string().min(5, {message:"Product description is requried atleast 4 characters."}).max(50),
-  category: z.string().min(1,{message:"Select atleast 1"}),
-  estimatedTime: z.string().min(1,{message:"Estimated time is necessary"})
+  price: z.number().min(1, {message:"Price per ticket is required."}),
+  refundPeriod: z.string().min(1, {message:"Event time is required."}),
+  description: z.string().min(5, {message:"Event details are required."}).max(500),
+  category: z.string().min(1,{message:"Event location is required."}),
+  estimatedTime: z.string().min(1,{message:"Event date is required."}),
+  ticketQuantity: z.number().int().min(1, { message: "Number of tickets is required." }),
+  ticketPartner: z.string().min(1, { message: "Ticket partner is required." }).max(40),
 })

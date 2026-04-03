@@ -21,6 +21,7 @@ export async function GET(
                     include: {
                         product: {
                             include: {
+                                category: true,
                                 seller: {
                                     select: { id: true, name: true, email: true }
                                 }
@@ -31,7 +32,10 @@ export async function GET(
                 buyer: {
                     select: { id: true, name: true, email: true }
                 },
-                payment: true
+                payment: true,
+                statusHistory: {
+                    orderBy: { createdAt: "asc" }
+                }
             }
         });
 
@@ -49,8 +53,8 @@ export async function GET(
 
         return NextResponse.json(order);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Fetch order error:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: error instanceof Error ? error.message : "Internal server error" }, { status: 500 });
     }
 }

@@ -1,12 +1,12 @@
 "use client";
 import { TotalRevenueCard } from "@/components/productComponents/show-revenue";
-import { AreaComponent } from "@/components/dashboardComponents/area-chart";
 import { useEffect, useState } from "react";
 import { Loader } from "lucide-react";
 import ViewProducts from "@/components/productComponents/product-dialog";
 import MyOrders from "@/components/orderComponents/myOrderComponent";
 import ProductSearchByName from "@/components/productComponents/search-productby-name";
 import axios from "axios";
+import { RadarComponent } from "@/components/dashboardComponents/radar-charts";
 
 export default function Page() {
     const [loading, setLoading] = useState(true);
@@ -56,7 +56,7 @@ export default function Page() {
                         <TotalRevenueCard revenue={stats.vaultRecovered} title="Vault Recovered" />
                     </div>
                     <div className="w-full overflow-x-auto">
-                        <AreaComponent />
+                        <RadarComponent />
                     </div>
                     <div className="w-full overflow-x-auto">
                         <MyOrders />

@@ -40,7 +40,11 @@ export async function GET() {
             include: {
                 orderItems: {
                     include: {
-                        product: true
+                        product: {
+                            include: {
+                                category: true,
+                            }
+                        }
                     }
                 },
                 buyer: {
@@ -48,6 +52,11 @@ export async function GET() {
                         id: true,
                         name: true,
                         email: true
+                    }
+                },
+                statusHistory: {
+                    orderBy: {
+                        createdAt: "asc"
                     }
                 }
             },
@@ -57,7 +66,7 @@ export async function GET() {
         });
 
         return NextResponse.json({ result: { orders, existingUser } }, { status: 200 })
-    } catch (error) {
+    } catch {
         return NextResponse.json({ message: "Internal server error" }, { status: 500 })
     }
 }

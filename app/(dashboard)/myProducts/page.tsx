@@ -118,12 +118,12 @@ const MyProducts = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">My Products</h1>
+      <h1 className="text-3xl font-bold mb-6">My Ticket Listings</h1>
 
       {products.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500 text-lg">
-            You haven't added any products yet.
+            You haven't added any ticket listings yet.
           </p>
         </div>
       ) : (
@@ -139,7 +139,7 @@ const MyProducts = () => {
                 className="w-full h-48 object-cover rounded-md mb-4"
               />
 
-              <p className="text-xs text-gray-500 mt-2">ID: {product.id}</p>
+              <p className="text-xs text-gray-500 mt-2">Listing ID: {(product as Products & { listingId?: string }).listingId || product.id}</p>
               <h3 className="text-xl font-semibold mb-2">{product.name}</h3>
 
               <p className="text-gray-600 mb-3 line-clamp-2">
@@ -151,10 +151,10 @@ const MyProducts = () => {
                   ₹{product.price}
                 </p>
                 <p className="text-sm text-gray-500">
-                  Refund Period: {product.refundPeriod} days
+                  Event Time: {product.refundPeriod}
                 </p>
                 <p className="text-sm text-gray-500">
-                  Estimated Time: {product.estimatedTime}
+                  Event Date: {product.estimatedTime}
                 </p>
               </div>
 
@@ -164,7 +164,7 @@ const MyProducts = () => {
                 className="w-full flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white font-medium py-2 px-4 rounded-md transition-colors"
               >
                 <Trash2 size={18} />
-                {deletingId === product.id ? "Deleting..." : "Delete Product"}
+                {deletingId === product.id ? "Deleting..." : "Delete Listing"}
               </button>
             </div>
           ))}

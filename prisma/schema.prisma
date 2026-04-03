@@ -19,30 +19,35 @@ model User {
   updatedAt       DateTime       @updatedAt
   messageReceived Message[]      @relation("Receiver")
   messageSent     Message[]      @relation("Sender")
+  notifications   Notification[]
   orders          Order[]        @relation("BuyerOrders")
   products        Products[]     @relation("SellerProducts")
   conversations   Conversation[] @relation("ConversationParticipants")
 }
 
 model Products {
-  id            String      @id @default(uuid())
-  name          String
-  imageUrl      String?
-  price         Float
-  refundPeriod  String
-  estimatedTime String
-  description   String
-  sellerId      String
-  categoryId    String
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  image         String?
-  isSold        Boolean     @default(false)
-  orders        OrderItem[]
-  category      Category    @relation(fields: [categoryId], references: [id])
-  seller        User        @relation("SellerProducts", fields: [sellerId], references: [id])
+  id             String      @id @default(uuid())
+  listingId      String      @unique
+  name           String
+  imageUrl       String?
+  price          Float
+  refundPeriod   String
+  estimatedTime  String
+  description    String
+  sellerId       String
+  categoryId     String
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  image          String?
+  isSold         Boolean     @default(false)
+  ticketQuantity Int         @default(1)
+  ticketPartner  String
+  orders         OrderItem[]
+  category       Category    @relation(fields: [categoryId], references: [id])
+  seller         User        @relation("SellerProducts", fields: [sellerId], references: [id])
 
   @@index([name, id])
+  @@index([listingId])
 }
 
 model Category {
@@ -58,7 +63,7 @@ model Order {
   razorpayId               String      @unique
   buyerId                  String
   totalAmount              Float
-  status                   OrderStatus @default(PENDING)
+  status                   OrderStatus @default(PAYMENT_PENDING)
   createdAt                DateTime    @default(now())
   updatedAt                DateTime    @updatedAt
   buyerConfirmedAt         DateTime?
@@ -66,15 +71,22 @@ model Order {
   evidenceUrl              String?
   platformFeeBuyer         Float       @default(0.0)
   platformFeeSeller        Float       @default(0.0)
-  ticketPartner            String?
-  transferDetails          String?
+  receiverName             String?
+  receiverPhone            String?
+  termsAccepted            Boolean     @default(false)
+  transferDelayUntil       DateTime?
   transferStartedAt        DateTime?
+  transferPendingAt        DateTime?
   lastReminderSentAt       DateTime?
   lastSellerReminderSentAt DateTime?
   lastBuyerReminderSentAt  DateTime?
+  disputeReason            String?
+  buyerCounterEvidenceUrl  String?
   buyer                    User        @relation("BuyerOrders", fields: [buyerId], references: [id])
+  notifications            Notification[]
   orderItems               OrderItem[]
   payment                  Payment?
+  statusHistory            OrderStatusHistory[]
 
   @@unique([id, razorpayId])
 }
@@ -100,6 +112,30 @@ model Payment {
   order     Order         @relation(fields: [orderId], references: [id])
 }
 
+model Notification {
+  id        String   @id @default(uuid())
+  userId     String
+  orderId    String?
+  title      String
+  message    String
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  order      Order?   @relation(fields: [orderId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
+}
+
+model OrderStatusHistory {
+  id         String      @id @default(uuid())
+  orderId     String
+  fromStatus  OrderStatus?
+  toStatus    OrderStatus
+  note        String?
+  createdAt   DateTime    @default(now())
+  order       Order       @relation(fields: [orderId], references: [id])
+
+  @@index([orderId, createdAt])
+}
+
 model Message {
   id             String        @id @default(uuid())
   content        String
@@ -122,14 +158,19 @@ model Conversation {
 }
 
 enum OrderStatus {
-  PENDING
+  LISTED
+  PAYMENT_PENDING
+  FUNDS_HELD
+  TRANSFER_PENDING
+  TRANSFER_IN_PROGRESS
+  AWAITING_CONFIRMATION
+  COMPLETE
   FAILED
-  COMPLETED
-  WAITING_FOR_TRANSFER
-  TRANSFER_INITIATED
-  EVIDENCE_UPLOADED
   DISPUTED
   CANCELLED
+  REFUNDED
+  SELLER_TIMEOUT
+  EVIDENCE_TIMEOUT
 }
 
 enum PaymentStatus {

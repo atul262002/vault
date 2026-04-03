@@ -18,11 +18,11 @@ import {
 } from "@/components/ui/chart"
 
 const chartConfig = {
-  desktop: {
-    label: "Bought",
+  listings: {
+    label: "Listings",
     color: "hsl(var(--chart-1))",
   },
-  mobile: {
+  sold: {
     label: "Sold",
     color: "hsl(var(--chart-2))",
   },
@@ -30,7 +30,7 @@ const chartConfig = {
 
 export function RadarComponent() {
   const [chartData, setChartData] = React.useState<
-    { month: string; desktop: number; mobile: number }[]
+    { city: string; listings: number; sold: number }[]
   >([])
 
   React.useEffect(() => {
@@ -43,9 +43,9 @@ export function RadarComponent() {
   return (
     <Card>
       <CardHeader className="items-center pb-4">
-        <CardTitle>Category wise analytics</CardTitle>
+        <CardTitle>Event Location Analytics</CardTitle>
         <CardDescription>
-          Showing category wise purchase v/s sold.
+          Showing how your listings are distributed by city.
         </CardDescription>
       </CardHeader>
       <CardContent className="pb-0">
@@ -58,16 +58,16 @@ export function RadarComponent() {
               cursor={false}
               content={<ChartTooltipContent indicator="line" />}
             />
-            <PolarAngleAxis dataKey="month" />
+            <PolarAngleAxis dataKey="city" />
             <PolarGrid />
             <Radar
-              dataKey="desktop"
-              fill="var(--color-desktop)"
+              dataKey="listings"
+              fill="var(--color-listings)"
               fillOpacity={0.6}
             />
             <Radar
-              dataKey="mobile"
-              fill="var(--color-mobile)"
+              dataKey="sold"
+              fill="var(--color-sold)"
               fillOpacity={0.4}
             />
           </RadarChart>
