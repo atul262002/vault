@@ -204,6 +204,22 @@ export default function OrderDetailsPage() {
         }
     };
 
+    const handleCancelOrder = async () => {
+        const confirmed = window.confirm("Cancel this order before seller transfer starts and return the payment to the buyer?");
+        if (!confirmed) return;
+
+        setActionLoading(true);
+        try {
+            const res = await axios.post(`/api/orders/${order?.id}/cancel`);
+            setOrder(res.data);
+            toast.success("Order cancelled and refund flow started.");
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Failed to cancel order");
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
     if (loading || !isLoaded) return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin" /></div>;
     if (!order || !user) return <div className="text-center p-10">Order not found or unauthorized</div>;
 
@@ -352,13 +368,19 @@ export default function OrderDetailsPage() {
                         {isBuyer && (
                             <>
                                 {currentStatus === "FUNDS_HELD" && (
-                                    <Alert>
-                                        <Clock className="h-4 w-4" />
-                                        <AlertTitle>Waiting for Seller</AlertTitle>
-                                        <AlertDescription>
-                                            The seller has been notified to initiate the ticket transfer.
-                                        </AlertDescription>
-                                    </Alert>
+                                    <div className="space-y-4">
+                                        <Alert>
+                                            <Clock className="h-4 w-4" />
+                                            <AlertTitle>Waiting for Seller</AlertTitle>
+                                            <AlertDescription>
+                                                The seller has been notified to initiate the ticket transfer.
+                                            </AlertDescription>
+                                        </Alert>
+                                        <Button onClick={handleCancelOrder} disabled={actionLoading} variant="outline" className="w-full border-red-300 text-red-700 hover:bg-red-50">
+                                            {actionLoading ? <Loader2 className="animate-spin mr-2" /> : <TimerOff className="mr-2 h-4 w-4" />}
+                                            Cancel Order and Refund Buyer
+                                        </Button>
+                                    </div>
                                 )}
 
                                 {currentStatus === "TRANSFER_IN_PROGRESS" && (
@@ -445,6 +467,16 @@ export default function OrderDetailsPage() {
                                 <AlertTitle>{currentStatus.replace(/_/g, " ")}</AlertTitle>
                                 <AlertDescription>
                                     This order has been cancelled due to timeout or mutual agreement. Funds have been refunded to the buyer.
+                                </AlertDescription>
+                            </Alert>
+                        )}
+
+                        {currentStatus === "REFUNDED" && (
+                            <Alert className="bg-green-50 border-green-200">
+                                <CheckCircle className="h-4 w-4 text-green-600" />
+                                <AlertTitle>Refund Initiated</AlertTitle>
+                                <AlertDescription>
+                                    This order was cancelled before transfer started and the refund flow has been initiated for the buyer.
                                 </AlertDescription>
                             </Alert>
                         )}

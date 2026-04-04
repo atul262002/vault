@@ -170,6 +170,18 @@ export async function POST(
                         }
                     });
 
+                    const productIds = order.orderItems.map((item) => item.productId);
+                    if (productIds.length > 0) {
+                        await tx.products.updateMany({
+                            where: {
+                                id: { in: productIds }
+                            },
+                            data: {
+                                isSold: true
+                            }
+                        });
+                    }
+
                     await recordOrderStatus(tx, {
                         orderId,
                         fromStatus: normalizedStatus,

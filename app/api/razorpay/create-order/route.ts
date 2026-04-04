@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { ACTIVE_LISTING_ORDER_STATUSES } from "@/lib/order-availability";
 import { recordOrderStatus } from "@/lib/order-flow";
 import { Prisma } from "@prisma/client";
 import { currentUser } from "@clerk/nextjs/server";
@@ -57,12 +58,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
     }
 
-    const selectedProduct = await prisma.products.findUnique({
-      where: { id: products[0].id },
-      include: { seller: true },
-    });
+    const [selectedProduct] = await prisma.$queryRaw<Array<{
+      id: string;
+      isSold: boolean;
+      sellerId: string;
+      sellerName: string | null;
+      sellerEmail: string | null;
+      hasActiveOrder: boolean;
+    }>>(Prisma.sql`
+      SELECT
+        p."id",
+        p."isSold",
+        p."sellerId",
+        u."name" AS "sellerName",
+        u."email" AS "sellerEmail",
+        EXISTS (
+          SELECT 1
+          FROM "OrderItem" oi
+          JOIN "Order" o ON o."id" = oi."orderId"
+          WHERE oi."productId" = p."id"
+            AND o."status" IN (${Prisma.join(
+              ACTIVE_LISTING_ORDER_STATUSES.map((status) => Prisma.sql`${status}::"OrderStatus"`)
+            )})
+        ) AS "hasActiveOrder"
+      FROM "Products" p
+      JOIN "User" u ON u."id" = p."sellerId"
+      WHERE p."id" = ${products[0].id}
+      LIMIT 1
+    `);
 
-    if (!selectedProduct || selectedProduct.isSold) {
+    if (!selectedProduct || selectedProduct.isSold || selectedProduct.hasActiveOrder) {
       return NextResponse.json({ error: "This listing is no longer available" }, { status: 409 });
     }
 

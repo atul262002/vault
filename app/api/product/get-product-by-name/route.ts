@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { ACTIVE_LISTING_ORDER_STATUSES } from "@/lib/order-availability";
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
@@ -35,6 +36,15 @@ export async function POST(req: Request) {
       FROM "Products" p
       JOIN "Category" c ON c."id" = p."categoryId"
       WHERE p."isSold" = false
+        AND NOT EXISTS (
+          SELECT 1
+          FROM "OrderItem" oi
+          JOIN "Order" o ON o."id" = oi."orderId"
+          WHERE oi."productId" = p."id"
+            AND o."status" IN (${Prisma.join(
+              ACTIVE_LISTING_ORDER_STATUSES.map((status) => Prisma.sql`${status}::"OrderStatus"`)
+            )})
+        )
         AND (
           p."name" ILIKE ${normalizedSearch}
           OR p."listingId" ILIKE ${normalizedListingSearch}

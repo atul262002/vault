@@ -117,7 +117,7 @@ export default function OrderCard({ order, currentUser, refreshOrders }: OrderCa
         try {
             setLoading(true);
             await axios.post(`/api/orders/${order.id}/initiate-transfer`);
-            toast.success("Transfer initiated! You have 60 minutes to complete the transfer and upload evidence.");
+            toast.success("Transfer initiated! You have 30 minutes to complete the transfer and upload evidence.");
             refreshOrders();
         } catch {
             toast.error("Failed to initiate transfer");
@@ -156,6 +156,22 @@ export default function OrderCard({ order, currentUser, refreshOrders }: OrderCa
             refreshOrders();
         } catch {
             toast.error("Process failed");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCancelOrder = async () => {
+        const confirmed = window.confirm("Cancel this order before seller transfer starts and return payment to the buyer?");
+        if (!confirmed) return;
+
+        try {
+            setLoading(true);
+            await axios.post(`/api/orders/${order.id}/cancel`);
+            toast.success("Order cancelled. Refund flow has been started.");
+            refreshOrders();
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Failed to cancel order");
         } finally {
             setLoading(false);
         }
@@ -275,9 +291,14 @@ export default function OrderCard({ order, currentUser, refreshOrders }: OrderCa
                 {isBuyer && (
                     <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
                         {order.status === "FUNDS_HELD" && (
-                            <div className="bg-blue-50 p-3 text-sm text-blue-800 rounded">
-                                Your payment is secured with Vault. The seller has been notified to initiate transfer.
-                                {timeLeft && <p className="mt-2 font-semibold">Seller time remaining: {timeLeft}</p>}
+                            <div className="space-y-3">
+                                <div className="bg-blue-50 p-3 text-sm text-blue-800 rounded">
+                                    Your payment is secured with Vault. The seller has been notified to initiate transfer.
+                                    {timeLeft && <p className="mt-2 font-semibold">Seller time remaining: {timeLeft}</p>}
+                                </div>
+                                <Button onClick={handleCancelOrder} variant="outline" disabled={loading} className="w-full border-red-300 text-red-700 hover:bg-red-50">
+                                    Cancel Order and Refund Buyer
+                                </Button>
                             </div>
                         )}
 
@@ -325,6 +346,12 @@ export default function OrderCard({ order, currentUser, refreshOrders }: OrderCa
                         {order.status === "SELLER_TIMEOUT" && (
                             <div className="bg-red-50 p-3 text-red-800 rounded">
                                 Seller did not initiate the transfer in time. Refund flow should be triggered.
+                            </div>
+                        )}
+
+                        {order.status === "REFUNDED" && (
+                            <div className="bg-green-50 p-3 text-green-800 rounded">
+                                Order cancelled and refund initiated successfully.
                             </div>
                         )}
 

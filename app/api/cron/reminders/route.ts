@@ -232,6 +232,18 @@ export async function GET(req: NextRequest) {
                 },
               });
 
+              const productIds = order.orderItems.map((item) => item.productId);
+              if (productIds.length > 0) {
+                await tx.products.updateMany({
+                  where: {
+                    id: { in: productIds },
+                  },
+                  data: {
+                    isSold: true,
+                  },
+                });
+              }
+
               await recordOrderStatus(tx, {
                 orderId: order.id,
                 fromStatus: status,

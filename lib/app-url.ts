@@ -2,7 +2,7 @@ export function getAppUrl() {
   return (
     process.env.NEXT_PUBLIC_APP_URL ||
     process.env.API_URL ||
-    "http://localhost:3000"
+    "https://vaultpay.co.in"
   ).replace(/\/$/, "");
 }
 
