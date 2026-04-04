@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { currentUser } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
@@ -19,53 +20,40 @@ export async function GET() {
     const sellerId = dbUser.id;
 
     // Get all completed order items where product seller is the logged-in user
-    const completedOrderItems = await prisma.orderItem.findMany({
-      where: {
-        product: {
-          sellerId: sellerId,
-        },
-        order: {
-          status: "COMPLETE",
-        },
-      },
-      select: {
-        price: true,
-      },
-    });
+    const [completedStats] = await prisma.$queryRaw<Array<{
+      totalEarnings: number | null;
+      vaultRecovered: number | bigint;
+    }>>(Prisma.sql`
+      SELECT
+        COALESCE(SUM(oi."price"), 0) AS "totalEarnings",
+        COUNT(*) AS "vaultRecovered"
+      FROM "OrderItem" oi
+      JOIN "Products" p ON p."id" = oi."productId"
+      JOIN "Order" o ON o."id" = oi."orderId"
+      WHERE p."sellerId" = ${sellerId}
+        AND o."status" = ${"COMPLETE"}::"OrderStatus"
+    `);
 
-    // Sum all prices of completed order items → total earnings
-    const totalEarnings = completedOrderItems.reduce((sum, item) => sum + item.price, 0);
+    const [pendingStats] = await prisma.$queryRaw<Array<{
+      pendingAmount: number | null;
+    }>>(Prisma.sql`
+      SELECT COALESCE(SUM(oi."price"), 0) AS "pendingAmount"
+      FROM "OrderItem" oi
+      JOIN "Products" p ON p."id" = oi."productId"
+      JOIN "Order" o ON o."id" = oi."orderId"
+      WHERE p."sellerId" = ${sellerId}
+        AND o."status" IN (
+          ${"PAYMENT_PENDING"}::"OrderStatus",
+          ${"FUNDS_HELD"}::"OrderStatus",
+          ${"TRANSFER_PENDING"}::"OrderStatus",
+          ${"TRANSFER_IN_PROGRESS"}::"OrderStatus",
+          ${"AWAITING_CONFIRMATION"}::"OrderStatus"
+        )
+    `);
 
-    // Sum active-but-not-complete order item prices
-    const pendingOrderItems = await prisma.orderItem.findMany({
-      where: {
-        product: {
-          sellerId: sellerId,
-        },
-        order: {
-          status: {
-            in: ["PAYMENT_PENDING", "FUNDS_HELD", "TRANSFER_PENDING", "TRANSFER_IN_PROGRESS", "AWAITING_CONFIRMATION"],
-          },
-        },
-      },
-      select: {
-        price: true,
-      },
-    });
-
-    const pendingAmount = pendingOrderItems.reduce((sum, item) => sum + item.price, 0);
-
-    // Count of completed orders for this seller
-    const vaultRecovered = await prisma.orderItem.count({
-      where: {
-        product: {
-          sellerId: sellerId,
-        },
-        order: {
-          status: "COMPLETE",
-        },
-      },
-    });
+    const totalEarnings = Number(completedStats?.totalEarnings ?? 0);
+    const pendingAmount = Number(pendingStats?.pendingAmount ?? 0);
+    const vaultRecovered = Number(completedStats?.vaultRecovered ?? 0);
 
     return NextResponse.json({ totalEarnings, pendingAmount, vaultRecovered });
   } catch (error: unknown) {

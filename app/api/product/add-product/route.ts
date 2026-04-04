@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { currentUser } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -52,26 +53,77 @@ export async function POST(request: NextRequest) {
         }
 
         let listingId = createListingId();
-        while (await prisma.products.findUnique({ where: { listingId } })) {
+        while (true) {
+            const existingListing = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+                SELECT "id"
+                FROM "Products"
+                WHERE "listingId" = ${listingId}
+                LIMIT 1
+            `);
+
+            if (existingListing.length === 0) {
+                break;
+            }
+
             listingId = createListingId();
         }
 
-        const product = await prisma.products.create({
-            data: {
-                listingId,
-                name,
-                imageUrl,
-                price,
-                refundPeriod,
-                description,
-                sellerId: existingUser.id,
-                categoryId: cat.id,
-                image,
-                estimatedTime,
-                ticketQuantity: Number(ticketQuantity),
-                ticketPartner,
-            }
-        });
+        const [product] = await prisma.$queryRaw<Array<{
+            id: string;
+            listingId: string;
+            name: string;
+            imageUrl: string | null;
+            price: number;
+            refundPeriod: string;
+            estimatedTime: string;
+            description: string;
+            sellerId: string;
+            categoryId: string;
+            createdAt: Date;
+            updatedAt: Date;
+            image: string | null;
+            isSold: boolean;
+            ticketQuantity: number;
+            ticketPartner: string;
+        }>>(Prisma.sql`
+            INSERT INTO "Products" (
+                "id",
+                "listingId",
+                "name",
+                "imageUrl",
+                "price",
+                "refundPeriod",
+                "estimatedTime",
+                "description",
+                "sellerId",
+                "categoryId",
+                "image",
+                "isSold",
+                "ticketQuantity",
+                "ticketPartner",
+                "createdAt",
+                "updatedAt"
+            )
+            VALUES (
+                ${crypto.randomUUID()},
+                ${listingId},
+                ${name},
+                ${imageUrl ?? null},
+                ${Number(price)},
+                ${refundPeriod},
+                ${estimatedTime},
+                ${description},
+                ${existingUser.id},
+                ${cat.id},
+                ${image ?? null},
+                false,
+                ${Number(ticketQuantity)},
+                ${ticketPartner},
+                NOW(),
+                NOW()
+            )
+            RETURNING *
+        `);
 
         return NextResponse.json({ result: product }, { status: 200 });
 

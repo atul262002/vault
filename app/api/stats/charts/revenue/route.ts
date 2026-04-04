@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { currentUser } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
@@ -23,28 +24,39 @@ export async function GET() {
     const userId = userRecord.id;
 
     // 🔹 Revenue earned (as seller) – group by month
-    const sellerRevenue = await prisma.order.groupBy({
-      by: ["createdAt"],
-      where: {
-        status: "COMPLETE",
-        orderItems: {
-          some: {
-            product: { sellerId: userId },
-          },
-        },
-      },
-      _sum: { totalAmount: true },
-    });
+    const sellerRevenue = await prisma.$queryRaw<Array<{
+      month: string;
+      amount: number | null;
+    }>>(Prisma.sql`
+      SELECT
+        TO_CHAR(DATE_TRUNC('month', o."createdAt"), 'YYYY-MM') AS month,
+        COALESCE(SUM(o."totalAmount"), 0) AS amount
+      FROM "Order" o
+      WHERE o."status" = ${"COMPLETE"}::"OrderStatus"
+        AND EXISTS (
+          SELECT 1
+          FROM "OrderItem" oi
+          JOIN "Products" p ON p."id" = oi."productId"
+          WHERE oi."orderId" = o."id"
+            AND p."sellerId" = ${userId}
+        )
+      GROUP BY 1
+      ORDER BY 1
+    `);
 
-    // 🔹 Money spent (as buyer) – group by month
-    const buyerSpent = await prisma.order.groupBy({
-      by: ["createdAt"],
-      where: {
-        status: "COMPLETE",
-        buyerId: userId,
-      },
-      _sum: { totalAmount: true },
-    });
+    const buyerSpent = await prisma.$queryRaw<Array<{
+      month: string;
+      amount: number | null;
+    }>>(Prisma.sql`
+      SELECT
+        TO_CHAR(DATE_TRUNC('month', o."createdAt"), 'YYYY-MM') AS month,
+        COALESCE(SUM(o."totalAmount"), 0) AS amount
+      FROM "Order" o
+      WHERE o."status" = ${"COMPLETE"}::"OrderStatus"
+        AND o."buyerId" = ${userId}
+      GROUP BY 1
+      ORDER BY 1
+    `);
 
     // 🔹 Normalize into chart-friendly format
     const data: {
@@ -53,38 +65,30 @@ export async function GET() {
       spent: number;
     }[] = [];
 
-    // Helper: format YYYY-MM
-    const formatMonth = (date: Date) =>
-      `${date.getFullYear()}-${(date.getMonth() + 1)
-        .toString()
-        .padStart(2, "0")}`;
-
-    // Insert seller revenue
     sellerRevenue.forEach((row) => {
-      const month = formatMonth(row.createdAt);
+      const month = row.month;
       const existing = data.find((d) => d.month === month);
       if (existing) {
-        existing.revenue += row._sum.totalAmount ?? 0;
+        existing.revenue += Number(row.amount ?? 0);
       } else {
         data.push({
           month,
-          revenue: row._sum.totalAmount ?? 0,
+          revenue: Number(row.amount ?? 0),
           spent: 0,
         });
       }
     });
 
-    // Insert buyer spent
     buyerSpent.forEach((row) => {
-      const month = formatMonth(row.createdAt);
+      const month = row.month;
       const existing = data.find((d) => d.month === month);
       if (existing) {
-        existing.spent += row._sum.totalAmount ?? 0;
+        existing.spent += Number(row.amount ?? 0);
       } else {
         data.push({
           month,
           revenue: 0,
-          spent: row._sum.totalAmount ?? 0,
+          spent: Number(row.amount ?? 0),
         });
       }
     });

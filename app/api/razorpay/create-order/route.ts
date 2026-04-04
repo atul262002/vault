@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { recordOrderStatus } from "@/lib/order-flow";
+import { Prisma } from "@prisma/client";
 import { currentUser } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import Razorpay from "razorpay";
@@ -112,31 +113,64 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const newOrder = await prisma.order.create({
-      data: {
-        razorpayId: order.id,
-        buyerId: existingUser.id,
-        totalAmount: totalAmountToPay,
-        platformFeeBuyer: platformFeeBuyer,
-        platformFeeSeller: platformFeeSeller,
-        receiverName,
-        receiverPhone,
-        termsAccepted: Boolean(termsAccepted),
-        status: "PAYMENT_PENDING",
-        orderItems: {
-          create: products.map((item: { id: string; price: number }) => ({
-            productId: item.id,
-            price: item.price
-          }))
-        }
-      }
-    });
+    const newOrder = await prisma.$transaction(async (tx) => {
+      const orderId = crypto.randomUUID();
 
-    await recordOrderStatus(prisma, {
-      orderId: newOrder.id,
-      fromStatus: null,
-      toStatus: "PAYMENT_PENDING",
-      note: "Buyer opened Razorpay checkout",
+      const [createdOrder] = await tx.$queryRaw<Array<{
+        id: string;
+      }>>(Prisma.sql`
+        INSERT INTO "Order" (
+          "id",
+          "razorpayId",
+          "buyerId",
+          "totalAmount",
+          "status",
+          "platformFeeBuyer",
+          "platformFeeSeller",
+          "receiverName",
+          "receiverPhone",
+          "termsAccepted",
+          "createdAt",
+          "updatedAt"
+        )
+        VALUES (
+          ${orderId},
+          ${order.id},
+          ${existingUser.id},
+          ${totalAmountToPay},
+          ${"PAYMENT_PENDING"}::"OrderStatus",
+          ${platformFeeBuyer},
+          ${platformFeeSeller},
+          ${receiverName},
+          ${receiverPhone},
+          ${Boolean(termsAccepted)},
+          NOW(),
+          NOW()
+        )
+        RETURNING "id"
+      `);
+
+      for (const item of products as Array<{ id: string; price: number }>) {
+        await tx.$executeRaw(Prisma.sql`
+          INSERT INTO "OrderItem" ("id", "orderId", "productId", "price", "createdAt")
+          VALUES (
+            ${crypto.randomUUID()},
+            ${orderId},
+            ${item.id},
+            ${Number(item.price)},
+            NOW()
+          )
+        `);
+      }
+
+      await recordOrderStatus(tx, {
+        orderId,
+        fromStatus: null,
+        toStatus: "PAYMENT_PENDING",
+        note: "Buyer opened Razorpay checkout",
+      });
+
+      return createdOrder;
     });
 
     // Return all necessary data for Razorpay checkout

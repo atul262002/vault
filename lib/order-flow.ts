@@ -45,14 +45,29 @@ export async function createNotificationRecord(
     message: string;
   }
 ) {
-  return db.notification.create({
-    data: {
-      userId,
-      orderId,
-      title,
-      message,
-    },
-  });
+  const [notification] = await db.$queryRaw<Array<{
+    id: string;
+    userId: string;
+    orderId: string | null;
+    title: string;
+    message: string;
+    isRead: boolean;
+    createdAt: Date;
+  }>>(Prisma.sql`
+    INSERT INTO "Notification" ("id", "userId", "orderId", "title", "message", "isRead", "createdAt")
+    VALUES (
+      ${crypto.randomUUID()},
+      ${userId},
+      ${orderId ?? null},
+      ${title},
+      ${message},
+      false,
+      NOW()
+    )
+    RETURNING *
+  `);
+
+  return notification;
 }
 
 export async function recordOrderStatus(
@@ -69,13 +84,25 @@ export async function recordOrderStatus(
     note?: string;
   }
 ) {
-  return db.orderStatusHistory.create({
-    data: {
-      orderId,
-      fromStatus,
-      toStatus,
-      note,
-    },
-  });
-}
+  const [statusHistory] = await db.$queryRaw<Array<{
+    id: string;
+    orderId: string;
+    fromStatus: string | null;
+    toStatus: string;
+    note: string | null;
+    createdAt: Date;
+  }>>(Prisma.sql`
+    INSERT INTO "OrderStatusHistory" ("id", "orderId", "fromStatus", "toStatus", "note", "createdAt")
+    VALUES (
+      ${crypto.randomUUID()},
+      ${orderId},
+      ${fromStatus ?? null}::"OrderStatus",
+      ${toStatus}::"OrderStatus",
+      ${note ?? null},
+      NOW()
+    )
+    RETURNING *
+  `);
 
+  return statusHistory;
+}
