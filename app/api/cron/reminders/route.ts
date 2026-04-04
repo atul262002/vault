@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { getOrderPortalUrl } from "@/lib/app-url";
 import {
   BUYER_AUTO_CONFIRM_MINUTES,
   EVIDENCE_TIMEOUT_MINUTES,
@@ -8,6 +9,7 @@ import {
   recordOrderStatus,
 } from "@/lib/order-flow";
 import { sendNotification } from "@/lib/notifications";
+import { createBuyerRefund, createSellerPayout } from "@/lib/razorpay-money-flow";
 import { NextRequest, NextResponse } from "next/server";
 
 const ADMIN_EMAIL = "writeatul2002@gmail.com";
@@ -33,6 +35,7 @@ export async function GET(req: NextRequest) {
       },
       include: {
         buyer: true,
+        payment: true,
         orderItems: {
           include: {
             product: {
@@ -58,6 +61,7 @@ export async function GET(req: NextRequest) {
       results.inspected += 1;
       const status = normalizeOrderStatus(order.status);
       const seller = order.orderItems[0]?.product.seller;
+      const orderPortalUrl = getOrderPortalUrl(order.id);
 
       if (!seller) {
         continue;
@@ -71,6 +75,16 @@ export async function GET(req: NextRequest) {
           results.sellerTimeouts += 1;
 
           if (!dryRun) {
+            if (!order.payment?.paymentId) {
+              throw new Error(`Captured payment record not found for order ${order.id}`);
+            }
+
+            const refund = await createBuyerRefund({
+              paymentId: order.payment.paymentId,
+              amountInRupees: order.totalAmount,
+              orderId: order.id,
+            });
+
             await prisma.$transaction(async (tx) => {
               await tx.order.update({
                 where: { id: order.id },
@@ -81,7 +95,7 @@ export async function GET(req: NextRequest) {
                 orderId: order.id,
                 fromStatus: status,
                 toStatus: "SELLER_TIMEOUT",
-                note: "Automated seller initiation timeout",
+                note: `Automated seller initiation timeout. Refund ${refund.id} accepted with status ${refund.status}.`,
               });
 
               await createNotificationRecord(tx, {
@@ -104,18 +118,18 @@ export async function GET(req: NextRequest) {
                 email: order.buyer.email,
                 phone: order.buyer.phone,
                 subject: `Seller timeout for order ${order.id}`,
-                html: `<p>Seller did not initiate transfer in time. Vault should process your refund.</p>`,
+                html: `<p>Seller did not initiate transfer in time. Your refund has been initiated.</p><p><strong>Refund ID:</strong> ${refund.id}</p><p><strong>Refund Status:</strong> ${refund.status}</p><p><a href="${orderPortalUrl}">Open order in Vault</a></p>`,
               }),
               sendNotification({
                 email: seller.email,
                 phone: seller.phone,
                 subject: `Transfer window expired for order ${order.id}`,
-                html: `<p>You did not initiate transfer within 30 minutes. The transaction has been cancelled.</p>`,
+                html: `<p>You did not initiate transfer within 30 minutes. The transaction has been cancelled.</p><p><a href="${orderPortalUrl}">Open order in Vault</a></p>`,
               }),
               sendNotification({
                 email: ADMIN_EMAIL,
                 subject: `[ADMIN] Seller timeout ${order.id}`,
-                html: `<p>Seller timeout triggered for order ${order.id}.</p>`,
+                html: `<p>Seller timeout triggered for order ${order.id}.</p><p><a href="${orderPortalUrl}">Open order in Vault</a></p>`,
               }),
             ]);
           }
@@ -129,7 +143,7 @@ export async function GET(req: NextRequest) {
             email: seller.email,
             phone: seller.phone,
             subject: `Reminder: initiate transfer for order ${order.id}`,
-            html: `<p>You have ${minutesLeft} minutes left to initiate transfer for ${order.orderItems[0]?.product.name}.</p>`,
+            html: `<p>You have ${minutesLeft} minutes left to initiate transfer for ${order.orderItems[0]?.product.name}.</p><p><a href="${orderPortalUrl}">Open order in Vault</a></p>`,
           });
         }
 
@@ -182,7 +196,7 @@ export async function GET(req: NextRequest) {
             email: seller.email,
             phone: seller.phone,
             subject: `Reminder: upload evidence for order ${order.id}`,
-            html: `<p>You have ${minutesLeft} minutes left to upload transfer evidence for ${order.orderItems[0]?.product.name}.</p>`,
+            html: `<p>You have ${minutesLeft} minutes left to upload transfer evidence for ${order.orderItems[0]?.product.name}.</p><p><a href="${orderPortalUrl}">Open order in Vault</a></p>`,
           });
         }
 
@@ -197,6 +211,18 @@ export async function GET(req: NextRequest) {
           results.buyerAutoCompletes += 1;
 
           if (!dryRun) {
+            if (!seller.fundAccountId) {
+              throw new Error(`Seller payout account is not configured for order ${order.id}`);
+            }
+
+            const sellerGross = order.orderItems.reduce((sum, item) => sum + item.price, 0);
+            const sellerNetPayout = Math.max(0, sellerGross - (order.platformFeeSeller || 0));
+            const payout = await createSellerPayout({
+              fundAccountId: seller.fundAccountId,
+              amountInRupees: sellerNetPayout,
+              orderId: order.id,
+            });
+
             await prisma.$transaction(async (tx) => {
               await tx.order.update({
                 where: { id: order.id },
@@ -210,14 +236,14 @@ export async function GET(req: NextRequest) {
                 orderId: order.id,
                 fromStatus: status,
                 toStatus: "COMPLETE",
-                note: "Automated buyer no-response completion",
+                note: `Automated buyer no-response completion. Payout ${payout.id} accepted with status ${payout.status}.`,
               });
 
               await createNotificationRecord(tx, {
                 userId: seller.id,
                 orderId: order.id,
                 title: "Buyer confirmation timed out",
-                message: "Buyer did not respond within 10 minutes. The order has been completed.",
+                message: "Buyer did not respond within 10 minutes. The order has been completed and your payout has been initiated.",
               });
             });
           }
@@ -231,7 +257,7 @@ export async function GET(req: NextRequest) {
             email: order.buyer.email,
             phone: order.buyer.phone,
             subject: `Reminder: confirm receipt for order ${order.id}`,
-            html: `<p>You have ${minutesLeft} minutes left to confirm receipt or raise a dispute for ${order.orderItems[0]?.product.name}.</p>`,
+            html: `<p>You have ${minutesLeft} minutes left to confirm receipt or raise a dispute for ${order.orderItems[0]?.product.name}.</p><p><a href="${orderPortalUrl}">Open order in Vault</a></p>`,
           });
         }
       }

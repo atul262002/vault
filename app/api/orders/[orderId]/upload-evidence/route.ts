@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { getOrderPortalUrl } from "@/lib/app-url";
 import { getCurrentDbUser } from "@/lib/current-db-user";
 import { createNotificationRecord, normalizeOrderStatus, recordOrderStatus } from "@/lib/order-flow";
 import { NextRequest, NextResponse } from "next/server";
@@ -72,6 +73,7 @@ export async function POST(
         });
 
         if (updatedOrder.buyer.email) {
+            const orderPortalUrl = getOrderPortalUrl(updatedOrder.id);
             await import("@/lib/mail").then(({ sendMail }) =>
                 sendMail({
                     to: updatedOrder.buyer.email!,
@@ -81,6 +83,7 @@ export async function POST(
                         <p>The seller for your order <strong>#${updatedOrder.id}</strong> has uploaded proof of ticket transfer.</p>
                         <p><a href="${updatedOrder.evidenceUrl}">Click here to view the evidence</a></p>
                         <p>Please review it and confirm receipt within <strong>10 minutes</strong>. If you do not respond, the transaction will auto-complete and payout will be triggered.</p>
+                        <p><a href="${orderPortalUrl}">Open order in Vault</a></p>
                     `
                 })
             );

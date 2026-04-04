@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { BUYER_AUTO_CONFIRM_MINUTES, EVIDENCE_TIMEOUT_MINUTES, SELLER_TIMEOUT_MINUTES, normalizeOrderStatus, recordOrderStatus } from "@/lib/order-flow";
+import { createBuyerRefund, createSellerPayout } from "@/lib/razorpay-money-flow";
 import { currentUser } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -19,6 +20,7 @@ export async function POST(
             where: { id: orderId },
             include: {
                 buyer: true,
+                payment: true,
                 orderItems: {
                     include: {
                         product: {
@@ -55,6 +57,16 @@ export async function POST(
                     return NextResponse.json({ message: "Only Buyer can claim refund for transfer timeout" }, { status: 403 });
                 }
 
+                if (!order.payment?.paymentId) {
+                    return NextResponse.json({ message: "Captured payment record not found for this order" }, { status: 400 });
+                }
+
+                const refund = await createBuyerRefund({
+                    paymentId: order.payment.paymentId,
+                    amountInRupees: order.totalAmount,
+                    orderId,
+                });
+
                 const updatedOrder = await prisma.$transaction(async (tx) => {
                     const nextOrder = await tx.order.update({
                         where: { id: orderId },
@@ -65,7 +77,7 @@ export async function POST(
                         orderId,
                         fromStatus: normalizedStatus,
                         toStatus: "SELLER_TIMEOUT",
-                        note: "Buyer claimed seller initiation timeout",
+                        note: `Buyer claimed seller initiation timeout. Refund ${refund.id} accepted with status ${refund.status}.`,
                     });
 
                     return nextOrder;
@@ -78,6 +90,8 @@ export async function POST(
                         <h1>Order Cancelled</h1>
                         <p>The buyer claimed a timeout resolution. The seller failed to initiate the transfer within the 30-minute window.</p>
                         <p><strong>Order ID:</strong> ${order.id}</p>
+                        <p><strong>Refund ID:</strong> ${refund.id}</p>
+                        <p><strong>Refund Status:</strong> ${refund.status}</p>
                     `;
 
                     if (order.buyer.email) sendMail({ to: order.buyer.email, subject, html: `${htmlBase}<p>Your payment should be refunded according to the seller-timeout flow.</p>` });
@@ -131,6 +145,22 @@ export async function POST(
                     return NextResponse.json({ message: "Only Seller can claim earnings for confirmation timeout" }, { status: 403 });
                 }
 
+                if (!seller?.fundAccountId) {
+                    return NextResponse.json({ message: "Seller payout account is not configured yet" }, { status: 400 });
+                }
+
+                if (!order.payment?.paymentId) {
+                    return NextResponse.json({ message: "Captured payment record not found for this order" }, { status: 400 });
+                }
+
+                const sellerGross = order.orderItems.reduce((sum, item) => sum + item.price, 0);
+                const sellerNetPayout = Math.max(0, sellerGross - (order.platformFeeSeller || 0));
+                const payout = await createSellerPayout({
+                    fundAccountId: seller.fundAccountId,
+                    amountInRupees: sellerNetPayout,
+                    orderId,
+                });
+
                 const updatedOrder = await prisma.$transaction(async (tx) => {
                     const nextOrder = await tx.order.update({
                         where: { id: orderId },
@@ -144,7 +174,7 @@ export async function POST(
                         orderId,
                         fromStatus: normalizedStatus,
                         toStatus: "COMPLETE",
-                        note: "Seller claimed buyer auto-confirm timeout",
+                        note: `Seller claimed buyer auto-confirm timeout. Payout ${payout.id} accepted with status ${payout.status}.`,
                     });
 
                     return nextOrder;
@@ -155,8 +185,10 @@ export async function POST(
                     const subject = `Order #${order.id} completed: Auto-confirmation`;
                     const htmlBase = `
                         <h1>Order Completed</h1>
-                        <p>The seller claimed completion. The buyer did not confirm within the 30-minute window.</p>
+                        <p>The seller claimed completion. The buyer did not confirm within the 10-minute window.</p>
                         <p><strong>Order ID:</strong> ${order.id}</p>
+                        <p><strong>Payout ID:</strong> ${payout.id}</p>
+                        <p><strong>Payout Status:</strong> ${payout.status}</p>
                     `;
                     if (order.buyer.email) sendMail({ to: order.buyer.email, subject, html: `${htmlBase}<p>Funds released to seller.</p>` });
                     if (seller?.email) sendMail({ to: seller.email, subject, html: `${htmlBase}<p>Funds released to you.</p>` });

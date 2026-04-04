@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { getOrderPortalUrl } from "@/lib/app-url";
 import { getCurrentDbUser } from "@/lib/current-db-user";
 import { createNotificationRecord, normalizeOrderStatus, recordOrderStatus } from "@/lib/order-flow";
 import { NextRequest, NextResponse } from "next/server";
@@ -87,6 +88,7 @@ export async function POST(
                     <p><strong>Buyer counter evidence:</strong> ${updatedOrder.buyerCounterEvidenceUrl || 'Not provided'}</p>
                     <br/>
                     <p>Please review the evidence and contact both parties.</p>
+                    <p><a href="${getOrderPortalUrl(updatedOrder.id)}">Open order in Vault</a></p>
                 `
             })
         );

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { getOrderPortalUrl } from "@/lib/app-url";
 import { getCurrentDbUser } from "@/lib/current-db-user";
 import { createNotificationRecord, getTransferDelayUntil, normalizeOrderStatus, recordOrderStatus } from "@/lib/order-flow";
 import { NextRequest, NextResponse } from "next/server";
@@ -79,6 +80,7 @@ export async function POST(
         });
 
         if (updatedOrder.buyer.email) {
+            const orderPortalUrl = getOrderPortalUrl(updatedOrder.id);
             await import("@/lib/mail").then(({ sendMail }) =>
                 sendMail({
                     to: updatedOrder.buyer.email!,
@@ -87,6 +89,7 @@ export async function POST(
                         <h1>Seller has initiated the ticket transfer</h1>
                         <p>The seller for your order <strong>#${updatedOrder.id}</strong> has started the transfer process.</p>
                         <p>This status will appear in your buyer flow after a 5-minute delay, then you will be able to track the remaining transfer window.</p>
+                        <p><a href="${orderPortalUrl}">Open order in Vault</a></p>
                     `
                 })
             );

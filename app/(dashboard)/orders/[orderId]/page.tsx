@@ -13,6 +13,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
+const normalizeStatus = (status: string) => {
+    const legacyStatusMap: Record<string, string> = {
+        WAITING_FOR_TRANSFER: "FUNDS_HELD",
+        TRANSFER_INITIATED: "TRANSFER_IN_PROGRESS",
+        EVIDENCE_UPLOADED: "AWAITING_CONFIRMATION",
+        COMPLETED: "COMPLETE",
+        PENDING: "PAYMENT_PENDING",
+    };
+
+    return legacyStatusMap[status] ?? status;
+};
+
 // Define User Interface matching Prisma User
 interface User {
     id: string;
@@ -92,13 +104,17 @@ export default function OrderDetailsPage() {
         const calculateTimeLeft = () => {
             const now = new Date().getTime();
             let targetTime: number | null = null;
+            const currentStatus = normalizeStatus(order.status);
 
-            if (order.status === "TRANSFER_INITIATED" || order.status === "WAITING_FOR_TRANSFER") {
-                if (order.transferStartedAt) {
-                    targetTime = new Date(order.transferStartedAt).getTime() + 60 * 60000; // 60 mins from payment
-                }
-            } else if (order.status === "EVIDENCE_UPLOADED" && order.evidenceUploadedAt) {
-                targetTime = new Date(order.evidenceUploadedAt).getTime() + 30 * 60000; // 30 mins from evidence
+            if (currentStatus === "FUNDS_HELD" && order.transferStartedAt) {
+                targetTime = new Date(order.transferStartedAt).getTime() + 30 * 60000;
+            } else if (currentStatus === "TRANSFER_IN_PROGRESS" && order.transferStartedAt) {
+                targetTime = new Date(order.transferStartedAt).getTime() + 15 * 60000;
+            } else if (currentStatus === "AWAITING_CONFIRMATION" && order.evidenceUploadedAt) {
+                targetTime = new Date(order.evidenceUploadedAt).getTime() + 10 * 60000;
+            } else {
+                setTimeLeft(null);
+                return;
             }
 
             if (targetTime) {
@@ -110,8 +126,6 @@ export default function OrderDetailsPage() {
                 } else {
                     setTimeLeft("Expired");
                 }
-            } else {
-                setTimeLeft(null);
             }
         };
 
@@ -193,6 +207,7 @@ export default function OrderDetailsPage() {
     if (loading || !isLoaded) return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin" /></div>;
     if (!order || !user) return <div className="text-center p-10">Order not found or unauthorized</div>;
 
+    const currentStatus = normalizeStatus(order.status);
     const isBuyer = user.id === order.buyerId;
     const isSeller = user.id === order.orderItems[0]?.product.sellerId;
 
@@ -205,11 +220,11 @@ export default function OrderDetailsPage() {
                             <CardTitle className="text-2xl font-bold">Order #{order.id.slice(0, 8)}</CardTitle>
                             <CardDescription>Created on {format(new Date(order.createdAt), "PPP")}</CardDescription>
                         </div>
-                        <div className={`px-4 py-2 rounded-full font-semibold text-sm ${order.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
-                            order.status === 'DISPUTED' ? 'bg-red-100 text-red-800' :
+                        <div className={`px-4 py-2 rounded-full font-semibold text-sm ${currentStatus === 'COMPLETE' ? 'bg-green-100 text-green-800' :
+                            currentStatus === 'DISPUTED' ? 'bg-red-100 text-red-800' :
                                 'bg-yellow-100 text-yellow-800'
                             }`}>
-                            {order.status === "CANCELLED" ? "CANCELLED" : order.status.replace(/_/g, " ")}
+                            {currentStatus === "CANCELLED" ? "CANCELLED" : currentStatus.replace(/_/g, " ")}
                         </div>
                     </div>
                 </CardHeader>
@@ -268,7 +283,7 @@ export default function OrderDetailsPage() {
                         {/* SELLER ACTIONS */}
                         {isSeller && (
                             <>
-                                {order.status === "WAITING_FOR_TRANSFER" && (
+                                {currentStatus === "FUNDS_HELD" && (
                                     <div className="space-y-4">
                                         <Alert className="bg-blue-50 border-blue-200">
                                             <AlertTriangle className="h-4 w-4 text-blue-600" />
@@ -284,7 +299,7 @@ export default function OrderDetailsPage() {
                                     </div>
                                 )}
 
-                                {order.status === "TRANSFER_INITIATED" && (
+                                {currentStatus === "TRANSFER_IN_PROGRESS" && (
                                     <div className="space-y-4">
                                         <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg text-center">
                                             <div className="flex justify-center items-center gap-2 text-yellow-800 mb-2">
@@ -311,7 +326,7 @@ export default function OrderDetailsPage() {
                                     </div>
                                 )}
 
-                                {order.status === "EVIDENCE_UPLOADED" && (
+                                {currentStatus === "AWAITING_CONFIRMATION" && (
                                     <Alert className="bg-blue-50 border-blue-200">
                                         <Clock className="h-4 w-4 text-blue-600" />
                                         <AlertTitle>Waiting for Buyer Confirmation</AlertTitle>
@@ -336,7 +351,7 @@ export default function OrderDetailsPage() {
                         {/* BUYER ACTIONS */}
                         {isBuyer && (
                             <>
-                                {order.status === "WAITING_FOR_TRANSFER" && (
+                                {currentStatus === "FUNDS_HELD" && (
                                     <Alert>
                                         <Clock className="h-4 w-4" />
                                         <AlertTitle>Waiting for Seller</AlertTitle>
@@ -346,7 +361,7 @@ export default function OrderDetailsPage() {
                                     </Alert>
                                 )}
 
-                                {order.status === "TRANSFER_INITIATED" && (
+                                {currentStatus === "TRANSFER_IN_PROGRESS" && (
                                     <Alert className="bg-yellow-50 border-yellow-200">
                                         <Clock className="h-4 w-4 text-yellow-600" />
                                         <AlertTitle>Transfer in Progress</AlertTitle>
@@ -366,7 +381,7 @@ export default function OrderDetailsPage() {
                                     </Alert>
                                 )}
 
-                                {order.status === "EVIDENCE_UPLOADED" && (
+                                {currentStatus === "AWAITING_CONFIRMATION" && (
                                     <div className="space-y-4">
                                         <Alert className="bg-green-50 border-green-200">
                                             <CheckCircle className="h-4 w-4 text-green-600" />
@@ -404,7 +419,7 @@ export default function OrderDetailsPage() {
                         )}
 
                         {/* COMMON COMPLETED/DISPUTED STATES */}
-                        {order.status === "COMPLETED" && (
+                        {currentStatus === "COMPLETE" && (
                             <Alert className="bg-green-50 border-green-200">
                                 <CheckCircle className="h-4 w-4 text-green-600" />
                                 <AlertTitle>Order Completed</AlertTitle>
@@ -414,7 +429,7 @@ export default function OrderDetailsPage() {
                             </Alert>
                         )}
 
-                        {order.status === "DISPUTED" && (
+                        {currentStatus === "DISPUTED" && (
                             <Alert className="bg-red-50 border-red-200">
                                 <AlertTriangle className="h-4 w-4 text-red-600" />
                                 <AlertTitle>Order Disputed</AlertTitle>
@@ -424,10 +439,10 @@ export default function OrderDetailsPage() {
                             </Alert>
                         )}
 
-                        {order.status === "CANCELLED" && (
+                        {["CANCELLED", "SELLER_TIMEOUT", "EVIDENCE_TIMEOUT"].includes(currentStatus) && (
                             <Alert className="bg-gray-100 border-gray-300">
                                 <TimerOff className="h-4 w-4 text-gray-600" />
-                                <AlertTitle>Order Cancelled</AlertTitle>
+                                <AlertTitle>{currentStatus.replace(/_/g, " ")}</AlertTitle>
                                 <AlertDescription>
                                     This order has been cancelled due to timeout or mutual agreement. Funds have been refunded to the buyer.
                                 </AlertDescription>
