@@ -68,6 +68,34 @@ export async function POST(
                 });
             }
 
+            await tx.dispute.upsert({
+                where: { transactionId: orderId },
+                update: {
+                    status: "ACTIVE",
+                    buyerReason: disputeReason || "Buyer reported that the transfer was not received.",
+                    buyerEvidenceUrl: buyerCounterEvidenceUrl || null,
+                    sellerEvidenceUrl: nextOrder.evidenceUrl || null,
+                    openedAt: new Date(),
+                    isLocked: false,
+                    decisionType: null,
+                    adminDecisionReason: null,
+                    decidedAt: null,
+                    decidedBy: null,
+                    resolvedAt: null,
+                    messages: [],
+                    notificationsLog: [],
+                },
+                create: {
+                    transactionId: orderId,
+                    status: "ACTIVE",
+                    buyerReason: disputeReason || "Buyer reported that the transfer was not received.",
+                    buyerEvidenceUrl: buyerCounterEvidenceUrl || null,
+                    sellerEvidenceUrl: nextOrder.evidenceUrl || null,
+                    messages: [],
+                    notificationsLog: [],
+                }
+            });
+
             return nextOrder;
         });
 

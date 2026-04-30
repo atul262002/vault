@@ -83,6 +83,7 @@ model Order {
   lastBuyerReminderSentAt  DateTime?
   disputeReason            String?
   buyerCounterEvidenceUrl  String?
+  dispute                  Dispute?
   buyer                    User        @relation("BuyerOrders", fields: [buyerId], references: [id])
   notifications            Notification[]
   orderItems               OrderItem[]
@@ -90,6 +91,29 @@ model Order {
   statusHistory            OrderStatusHistory[]
 
   @@unique([id, razorpayId])
+}
+
+model Dispute {
+  id                  String          @id @default(uuid())
+  transactionId       String          @unique
+  status              DisputeStatus   @default(ACTIVE)
+  buyerReason         String
+  buyerEvidenceUrl    String?
+  sellerEvidenceUrl   String?
+  adminDecisionReason String?
+  decisionType        DisputeDecisionType?
+  decidedAt           DateTime?
+  decidedBy           String?
+  openedAt            DateTime        @default(now())
+  resolvedAt          DateTime?
+  isLocked            Boolean         @default(false)
+  messages            Json?
+  notificationsLog    Json?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  order               Order           @relation(fields: [transactionId], references: [id])
+
+  @@index([status, openedAt])
 }
 
 model OrderItem {
@@ -183,4 +207,15 @@ enum PaymentStatus {
 enum Role {
   BUYER
   SELLER
+}
+
+enum DisputeStatus {
+  ACTIVE
+  UNDER_REVIEW
+  RESOLVED
+}
+
+enum DisputeDecisionType {
+  REFUND
+  CREDIT
 }

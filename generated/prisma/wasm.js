@@ -181,6 +181,26 @@ exports.Prisma.OrderScalarFieldEnum = {
   buyerCounterEvidenceUrl: 'buyerCounterEvidenceUrl'
 };
 
+exports.Prisma.DisputeScalarFieldEnum = {
+  id: 'id',
+  transactionId: 'transactionId',
+  status: 'status',
+  buyerReason: 'buyerReason',
+  buyerEvidenceUrl: 'buyerEvidenceUrl',
+  sellerEvidenceUrl: 'sellerEvidenceUrl',
+  adminDecisionReason: 'adminDecisionReason',
+  decisionType: 'decisionType',
+  decidedAt: 'decidedAt',
+  decidedBy: 'decidedBy',
+  openedAt: 'openedAt',
+  resolvedAt: 'resolvedAt',
+  isLocked: 'isLocked',
+  messages: 'messages',
+  notificationsLog: 'notificationsLog',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.OrderItemScalarFieldEnum = {
   id: 'id',
   orderId: 'orderId',
@@ -239,6 +259,11 @@ exports.Prisma.SortOrder = {
   desc: 'desc'
 };
 
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull
+};
+
 exports.Prisma.QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
@@ -247,6 +272,12 @@ exports.Prisma.QueryMode = {
 exports.Prisma.NullsOrder = {
   first: 'first',
   last: 'last'
+};
+
+exports.Prisma.JsonNullValueFilter = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull,
+  AnyNull: Prisma.AnyNull
 };
 exports.Role = exports.$Enums.Role = {
   BUYER: 'BUYER',
@@ -269,6 +300,17 @@ exports.OrderStatus = exports.$Enums.OrderStatus = {
   EVIDENCE_TIMEOUT: 'EVIDENCE_TIMEOUT'
 };
 
+exports.DisputeStatus = exports.$Enums.DisputeStatus = {
+  ACTIVE: 'ACTIVE',
+  UNDER_REVIEW: 'UNDER_REVIEW',
+  RESOLVED: 'RESOLVED'
+};
+
+exports.DisputeDecisionType = exports.$Enums.DisputeDecisionType = {
+  REFUND: 'REFUND',
+  CREDIT: 'CREDIT'
+};
+
 exports.PaymentStatus = exports.$Enums.PaymentStatus = {
   PENDING: 'PENDING',
   FAILED: 'FAILED',
@@ -280,6 +322,7 @@ exports.Prisma.ModelName = {
   Products: 'Products',
   Category: 'Category',
   Order: 'Order',
+  Dispute: 'Dispute',
   OrderItem: 'OrderItem',
   Payment: 'Payment',
   Notification: 'Notification',
