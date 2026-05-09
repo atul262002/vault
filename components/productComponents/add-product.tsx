@@ -284,9 +284,9 @@ import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { addProductSchema } from "@/schemas/add-product";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Loader, Plus } from "lucide-react";
+import { CheckCircle2, Copy, Loader, Plus, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
     FormField,
@@ -304,6 +304,13 @@ export function AddProduct() {
     const [uploadProgress, setUploadProgress] = useState<number>(0);
     const [isUploading, setIsUploading] = useState<boolean>(false);
     const [isOpen, setIsOpen] = useState<boolean>(false);
+    const [createdListingId, setCreatedListingId] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!createdListingId) return;
+        const timer = setTimeout(() => setCreatedListingId(null), 15000);
+        return () => clearTimeout(timer);
+    }, [createdListingId]);
 
     const form = useForm<z.infer<typeof addProductSchema>>({
         resolver: zodResolver(addProductSchema),
@@ -326,18 +333,21 @@ export function AddProduct() {
             setLoading(true);
             const response = await axios.post("/api/product/add-product", values);
             const productId = response.data?.result?.id;
+            const listingId = response.data?.result?.listingId;
             console.log()
             if (response.status === 200 && productId) {
                 toast("Listing created successfully.", {
-                    description: productId,
+                    description: listingId || productId,
+                    duration: 15000,
                     action: {
                         label: "Copy",
                         onClick: () => {
-                            navigator.clipboard.writeText(productId);
+                            navigator.clipboard.writeText(listingId || productId);
                             toast.success("Listing ID copied.");
                         }
                     }
                 });
+                setCreatedListingId(listingId || productId);
                 form.reset();
                 setUploadProgress(0);
                 setIsUploading(false);
@@ -361,16 +371,52 @@ export function AddProduct() {
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>
-                <Button variant="default" className="mr-5 p-2 font-normal w-full md:w-auto" size={"icon"}>
-                    <Plus className="mr-2 md:mr-0" />
-                    <span className="sr-only md:not-sr-only md:inline">
-                        Add Listing
-                    </span>
-                </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] w-full max-h-[90vh] flex flex-col">
+        <>
+            {createdListingId ? (
+                <div className="fixed top-4 right-4 z-[110] w-[320px] rounded-xl border bg-white p-4 shadow-xl">
+                    <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start gap-2">
+                            <CheckCircle2 className="mt-0.5 h-5 w-5 text-green-600" />
+                            <div>
+                                <p className="text-sm font-semibold">Listing created</p>
+                                <p className="mt-1 break-all rounded-md bg-slate-100 px-2 py-1 font-mono text-xs">{createdListingId}</p>
+                                <p className="mt-1 text-xs text-muted-foreground">Visible for 15 seconds</p>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            className="rounded p-1 text-muted-foreground hover:bg-slate-100"
+                            onClick={() => setCreatedListingId(null)}
+                            aria-label="Close listing id banner"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                    </div>
+                    <div className="mt-3 flex justify-end">
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                                navigator.clipboard.writeText(createdListingId);
+                                toast.success("Listing ID copied.");
+                            }}
+                        >
+                            <Copy className="mr-2 h-3 w-3" />
+                            Copy ID
+                        </Button>
+                    </div>
+                </div>
+            ) : null}
+            <Dialog open={isOpen} onOpenChange={setIsOpen}>
+                <DialogTrigger asChild>
+                    <Button variant="default" className="mr-5 p-2 font-normal w-full md:w-auto" size={"icon"}>
+                        <Plus className="mr-2 md:mr-0" />
+                        <span className="sr-only md:not-sr-only md:inline">
+                            Add Listing
+                        </span>
+                    </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px] w-full max-h-[90vh] flex flex-col">
                 <DialogHeader>
                     <DialogTitle>Add Ticket Listing</DialogTitle>
                     <DialogDescription>Fill in the event details below.</DialogDescription>
@@ -623,7 +669,8 @@ export function AddProduct() {
                         </form>
                     </FormProvider>
                 </div>
-            </DialogContent>
-        </Dialog>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }

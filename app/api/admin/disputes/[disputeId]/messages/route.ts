@@ -21,6 +21,9 @@ export async function POST(
   if (!text) {
     return NextResponse.json({ message: "Message content is required" }, { status: 400 });
   }
+  if (!notificationTitle) {
+    return NextResponse.json({ message: "Subject is required" }, { status: 400 });
+  }
   if (!["BUYER", "SELLER", "BOTH"].includes(target)) {
     return NextResponse.json({ message: "Invalid recipient target" }, { status: 400 });
   }
@@ -84,6 +87,12 @@ export async function POST(
       message: text,
     });
   }
+  if ((target === "SELLER" || target === "BOTH") && !seller) {
+    return NextResponse.json({ message: "Seller not found for this dispute" }, { status: 400 });
+  }
+  if (notificationsToSend.length === 0) {
+    return NextResponse.json({ message: "No recipient available for this message" }, { status: 400 });
+  }
 
   const notificationsLog = Array.isArray(dispute.notificationsLog) ? [...dispute.notificationsLog] : [];
   const timestamp = new Date().toISOString();
@@ -121,7 +130,7 @@ export async function POST(
     return nextDispute;
   });
 
-  await Promise.all(
+  const deliveryResults = await Promise.allSettled(
     notificationsToSend.map((entry) =>
       sendNotification({
         email: entry.email,
@@ -133,5 +142,12 @@ export async function POST(
     )
   );
 
-  return NextResponse.json(updated);
+  const failedDeliveries = deliveryResults.filter((result) => result.status === "rejected").length;
+  return NextResponse.json({
+    ...updated,
+    notificationDelivery: {
+      attempted: notificationsToSend.length,
+      failed: failedDeliveries,
+    },
+  });
 }

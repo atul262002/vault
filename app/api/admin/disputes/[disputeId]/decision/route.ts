@@ -56,6 +56,8 @@ export async function POST(
   const buyerName = order.buyer.name || "Buyer";
   const sellerName = seller.name || "Seller";
   const amount = order.totalAmount;
+  const sellerGross = order.orderItems.reduce((sum, item) => sum + item.price, 0);
+  const sellerNetPayout = Math.max(0, sellerGross - (order.platformFeeSeller || 0));
 
   if (decisionType === "REFUND" && !order.payment?.paymentId) {
     return NextResponse.json({ message: "Payment record not found for refund" }, { status: 400 });
@@ -71,8 +73,6 @@ export async function POST(
       orderId: order.id,
     });
   } else {
-    const sellerGross = order.orderItems.reduce((sum, item) => sum + item.price, 0);
-    const sellerNetPayout = Math.max(0, sellerGross - (order.platformFeeSeller || 0));
     await createSellerPayout({
       fundAccountId: seller.fundAccountId!,
       amountInRupees: sellerNetPayout,
@@ -82,12 +82,12 @@ export async function POST(
 
   const buyerMsg =
     decisionType === "REFUND"
-      ? `Your dispute has been reviewed. A refund of ₹${amount} has been initiated to your original payment method. Please allow 5–7 business days.`
-      : `Upon careful review of evidence submitted by both parties, you have forfeited the dispute. Payment of ₹${amount} will be processed to seller (${sellerName}).`;
+      ? `Your dispute has been reviewed. A refund of ₹${amount.toFixed(2)} has been initiated to your original payment method. Please allow 5–7 business days.`
+      : `Upon careful review of evidence submitted by both parties, you have forfeited the dispute. Payment of ₹${sellerNetPayout.toFixed(2)} will be processed to seller (${sellerName}).`;
   const sellerMsg =
     decisionType === "CREDIT"
-      ? `Your dispute has been reviewed. Payment of ₹${amount} will be credited to your bank account within 24–48 hours.`
-      : `Upon careful review of evidence submitted by both parties, you have forfeited the dispute. Payment of ₹${amount} will be refunded to buyer (${buyerName}).`;
+      ? `Your dispute has been reviewed. Payment of ₹${sellerNetPayout.toFixed(2)} will be credited to your bank account within 24–48 hours.`
+      : `Upon careful review of evidence submitted by both parties, you have forfeited the dispute. Payment of ₹${amount.toFixed(2)} will be refunded to buyer (${buyerName}).`;
 
   const nowIso = new Date().toISOString();
 
@@ -157,7 +157,7 @@ export async function POST(
     return nextDispute;
   });
 
-  await Promise.all([
+  const deliveryResults = await Promise.allSettled([
     sendNotification({
       email: order.buyer.email,
       phone: order.buyer.phone,
@@ -174,5 +174,12 @@ export async function POST(
     }),
   ]);
 
-  return NextResponse.json(updated);
+  const failedDeliveries = deliveryResults.filter((result) => result.status === "rejected").length;
+  return NextResponse.json({
+    ...updated,
+    notificationDelivery: {
+      attempted: deliveryResults.length,
+      failed: failedDeliveries,
+    },
+  });
 }

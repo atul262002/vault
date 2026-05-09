@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { ACTIVE_LISTING_ORDER_STATUSES } from "@/lib/order-availability";
+import { ACTIVE_LISTING_ORDER_STATUSES, PAYMENT_PENDING_LOCK_MINUTES } from "@/lib/order-availability";
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
@@ -44,6 +44,10 @@ export async function POST(req: Request) {
             AND o."status" IN (${Prisma.join(
               ACTIVE_LISTING_ORDER_STATUSES.map((status) => Prisma.sql`${status}::"OrderStatus"`)
             )})
+            AND (
+              o."status" <> ${"PAYMENT_PENDING"}::"OrderStatus"
+              OR o."createdAt" >= NOW() - (${PAYMENT_PENDING_LOCK_MINUTES} * INTERVAL '1 minute')
+            )
         )
         AND (
           p."name" ILIKE ${normalizedSearch}

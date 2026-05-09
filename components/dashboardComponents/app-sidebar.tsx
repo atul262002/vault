@@ -11,7 +11,7 @@ import {
   Map,
   MessageCircle,
   PieChart,
-  Settings2,
+  ShieldCheck,
   SquareTerminal,
   ShoppingBag,
 } from "lucide-react"
@@ -80,6 +80,11 @@ const data = {
       url: "/chats",
       icon: MessageCircle,
 
+    },
+    {
+      title: "Admin",
+      url: "/admin",
+      icon: ShieldCheck,
     },
   ],
   projects: [

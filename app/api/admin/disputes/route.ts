@@ -36,7 +36,7 @@ export async function GET() {
   const activeDisputes = disputes.filter((d) => d.status !== DisputeStatus.RESOLVED).length;
   const resolvedThisWeek = disputes.filter((d) => d.resolvedAt && d.resolvedAt >= weekStart).length;
   const volumeThisWeek = disputes
-    .filter((d) => d.createdAt >= weekStart)
+    .filter((d) => d.openedAt >= weekStart)
     .reduce((sum, d) => sum + d.order.totalAmount, 0);
 
   return NextResponse.json({

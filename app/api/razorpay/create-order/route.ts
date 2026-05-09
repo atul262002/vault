@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { ACTIVE_LISTING_ORDER_STATUSES } from "@/lib/order-availability";
+import { ACTIVE_LISTING_ORDER_STATUSES, PAYMENT_PENDING_LOCK_MINUTES } from "@/lib/order-availability";
 import { recordOrderStatus } from "@/lib/order-flow";
 import { Prisma } from "@prisma/client";
 import { currentUser } from "@clerk/nextjs/server";
@@ -60,6 +60,7 @@ export async function POST(req: NextRequest) {
 
     const [selectedProduct] = await prisma.$queryRaw<Array<{
       id: string;
+      price: number;
       isSold: boolean;
       sellerId: string;
       sellerName: string | null;
@@ -68,6 +69,7 @@ export async function POST(req: NextRequest) {
     }>>(Prisma.sql`
       SELECT
         p."id",
+        p."price",
         p."isSold",
         p."sellerId",
         u."name" AS "sellerName",
@@ -80,6 +82,10 @@ export async function POST(req: NextRequest) {
             AND o."status" IN (${Prisma.join(
               ACTIVE_LISTING_ORDER_STATUSES.map((status) => Prisma.sql`${status}::"OrderStatus"`)
             )})
+            AND (
+              o."status" <> ${"PAYMENT_PENDING"}::"OrderStatus"
+              OR o."createdAt" >= NOW() - (${PAYMENT_PENDING_LOCK_MINUTES} * INTERVAL '1 minute')
+            )
         ) AS "hasActiveOrder"
       FROM "Products" p
       JOIN "User" u ON u."id" = p."sellerId"
@@ -93,6 +99,10 @@ export async function POST(req: NextRequest) {
 
     if (selectedProduct.sellerId === existingUser.id) {
       return NextResponse.json({ error: "You cannot purchase your own listing" }, { status: 400 });
+    }
+
+    if (Math.abs(parsedAmount - selectedProduct.price) > 0.01) {
+      return NextResponse.json({ error: "Listing price changed. Please refresh and try again." }, { status: 409 });
     }
 
     // Revenue Model: Platform Fee Calculation (Percentage Based)
@@ -139,6 +149,40 @@ export async function POST(req: NextRequest) {
     }
 
     const newOrder = await prisma.$transaction(async (tx) => {
+      const [lockedProduct] = await tx.$queryRaw<Array<{
+        id: string;
+        price: number;
+        isSold: boolean;
+        sellerId: string;
+        hasActiveOrder: boolean;
+      }>>(Prisma.sql`
+        SELECT
+          p."id",
+          p."price",
+          p."isSold",
+          p."sellerId",
+          EXISTS (
+            SELECT 1
+            FROM "OrderItem" oi
+            JOIN "Order" o ON o."id" = oi."orderId"
+            WHERE oi."productId" = p."id"
+              AND o."status" IN (${Prisma.join(
+                ACTIVE_LISTING_ORDER_STATUSES.map((status) => Prisma.sql`${status}::"OrderStatus"`)
+              )})
+              AND (
+                o."status" <> ${"PAYMENT_PENDING"}::"OrderStatus"
+                OR o."createdAt" >= NOW() - (${PAYMENT_PENDING_LOCK_MINUTES} * INTERVAL '1 minute')
+              )
+          ) AS "hasActiveOrder"
+        FROM "Products" p
+        WHERE p."id" = ${products[0].id}
+        FOR UPDATE
+      `);
+
+      if (!lockedProduct || lockedProduct.isSold || lockedProduct.hasActiveOrder) {
+        throw new Error("LISTING_NO_LONGER_AVAILABLE");
+      }
+
       const orderId = crypto.randomUUID();
 
       const [createdOrder] = await tx.$queryRaw<Array<{
@@ -175,18 +219,16 @@ export async function POST(req: NextRequest) {
         RETURNING "id"
       `);
 
-      for (const item of products as Array<{ id: string; price: number }>) {
-        await tx.$executeRaw(Prisma.sql`
-          INSERT INTO "OrderItem" ("id", "orderId", "productId", "price", "createdAt")
-          VALUES (
-            ${crypto.randomUUID()},
-            ${orderId},
-            ${item.id},
-            ${Number(item.price)},
-            NOW()
-          )
-        `);
-      }
+      await tx.$executeRaw(Prisma.sql`
+        INSERT INTO "OrderItem" ("id", "orderId", "productId", "price", "createdAt")
+        VALUES (
+          ${crypto.randomUUID()},
+          ${orderId},
+          ${lockedProduct.id},
+          ${Number(lockedProduct.price)},
+          NOW()
+        )
+      `);
 
       await recordOrderStatus(tx, {
         orderId,
@@ -207,6 +249,9 @@ export async function POST(req: NextRequest) {
     }, { status: 200 });
 
   } catch (error) {
+    if (error instanceof Error && error.message === "LISTING_NO_LONGER_AVAILABLE") {
+      return NextResponse.json({ error: "This listing is no longer available" }, { status: 409 });
+    }
     console.error("Order creation error:", error);
     return NextResponse.json({ error: getRazorpayErrorMessage(error) }, { status: 500 });
   }
