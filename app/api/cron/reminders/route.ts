@@ -117,14 +117,18 @@ export async function GET(req: NextRequest) {
               sendNotification({
                 email: order.buyer.email,
                 phone: order.buyer.phone,
+                whatsappNumber: order.buyer.whatsappNumber,
                 subject: `Seller timeout for order ${order.id}`,
                 html: `<p>Seller did not initiate transfer in time. Your refund has been initiated.</p><p><strong>Refund ID:</strong> ${refund.id}</p><p><strong>Refund Status:</strong> ${refund.status}</p><p><a href="${orderPortalUrl}">Open order in Vault</a></p>`,
+                smsText: `Vault: Seller timed out for your order. Refund initiated (ID: ${refund.id}). Allow 5-7 business days.`,
               }),
               sendNotification({
                 email: seller.email,
                 phone: seller.phone,
+                whatsappNumber: seller.whatsappNumber,
                 subject: `Transfer window expired for order ${order.id}`,
                 html: `<p>You did not initiate transfer within 30 minutes. The transaction has been cancelled.</p><p><a href="${orderPortalUrl}">Open order in Vault</a></p>`,
+                smsText: `Vault: Your transfer window for order ${order.id.slice(0, 8)} has expired. The transaction has been cancelled.`,
               }),
               sendNotification({
                 email: ADMIN_EMAIL,
@@ -142,8 +146,10 @@ export async function GET(req: NextRequest) {
           await sendNotification({
             email: seller.email,
             phone: seller.phone,
+            whatsappNumber: seller.whatsappNumber,
             subject: `Reminder: initiate transfer for order ${order.id}`,
             html: `<p>You have ${minutesLeft} minutes left to initiate transfer for ${order.orderItems[0]?.product.name}.</p><p><a href="${orderPortalUrl}">Open order in Vault</a></p>`,
+            smsText: `Vault reminder: ${minutesLeft} min left to initiate transfer for order ${order.id.slice(0, 8)}. Act now to avoid cancellation.`,
           });
         }
 
@@ -195,8 +201,10 @@ export async function GET(req: NextRequest) {
           await sendNotification({
             email: seller.email,
             phone: seller.phone,
+            whatsappNumber: seller.whatsappNumber,
             subject: `Reminder: upload evidence for order ${order.id}`,
             html: `<p>You have ${minutesLeft} minutes left to upload transfer evidence for ${order.orderItems[0]?.product.name}.</p><p><a href="${orderPortalUrl}">Open order in Vault</a></p>`,
+            smsText: `Vault reminder: ${minutesLeft} min left to upload evidence for order ${order.id.slice(0, 8)}. Upload now to avoid dispute.`,
           });
         }
 
@@ -255,7 +263,7 @@ export async function GET(req: NextRequest) {
                 userId: seller.id,
                 orderId: order.id,
                 title: "Buyer confirmation timed out",
-                message: "Buyer did not respond within 10 minutes. The order has been completed and your payout has been initiated.",
+                message: "Buyer did not respond within 15 minutes. The order has been completed and your payout has been initiated.",
               });
             });
           }
@@ -268,8 +276,10 @@ export async function GET(req: NextRequest) {
           await sendNotification({
             email: order.buyer.email,
             phone: order.buyer.phone,
+            whatsappNumber: order.buyer.whatsappNumber,
             subject: `Reminder: confirm receipt for order ${order.id}`,
             html: `<p>You have ${minutesLeft} minutes left to confirm receipt or raise a dispute for ${order.orderItems[0]?.product.name}.</p><p><a href="${orderPortalUrl}">Open order in Vault</a></p>`,
+            smsText: `Vault: ${minutesLeft} min left to confirm your ticket receipt for order ${order.id.slice(0, 8)}. Open Vault to confirm or dispute.`,
           });
         }
       }

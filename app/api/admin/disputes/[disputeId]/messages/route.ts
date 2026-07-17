@@ -14,9 +14,12 @@ export async function POST(
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  const { content, recipient = "BOTH", subject } = await req.json();
+  const { content, recipient = "BOTH", subject, sender = "ADMIN" } = await req.json();
   const text = String(content || "").trim();
   const target = String(recipient).toUpperCase();
+  const senderLabel = (["ADMIN", "BUYER", "SELLER"].includes(String(sender).toUpperCase())
+    ? String(sender).toUpperCase()
+    : "ADMIN") as "ADMIN" | "BUYER" | "SELLER";
   const notificationTitle = String(subject || "Admin clarification requested").trim();
   if (!text) {
     return NextResponse.json({ message: "Message content is required" }, { status: 400 });
@@ -24,7 +27,8 @@ export async function POST(
   if (!notificationTitle) {
     return NextResponse.json({ message: "Subject is required" }, { status: 400 });
   }
-  if (!["BUYER", "SELLER", "BOTH"].includes(target)) {
+  // Only validate recipient target when admin is sending (buyer/seller entries don't notify)
+  if (senderLabel === "ADMIN" && !["BUYER", "SELLER", "BOTH"].includes(target)) {
     return NextResponse.json({ message: "Invalid recipient target" }, { status: 400 });
   }
 
@@ -56,55 +60,65 @@ export async function POST(
   }
 
   const messages = Array.isArray(dispute.messages) ? [...dispute.messages] : [];
+  // For BUYER/SELLER logged replies, no recipient prefix needed — they're just thread entries
+  const contentWithTarget = senderLabel === "ADMIN" ? `[to:${target}] ${text}` : text;
   messages.push({
     id: crypto.randomUUID(),
-    sender: "ADMIN",
-    content: `[to:${target}] ${text}`,
+    sender: senderLabel,
+    content: contentWithTarget,
     createdAt: new Date().toISOString(),
   });
 
+  // Only send notifications outward when admin is sending
   const seller = dispute.order.orderItems[0]?.product.seller;
   const notificationsToSend: Array<{
     userId: string;
     email?: string | null;
     phone?: string | null;
+    whatsappNumber?: string | null;
     message: string;
   }> = [];
 
-  if (target === "BUYER" || target === "BOTH") {
-    notificationsToSend.push({
-      userId: dispute.order.buyerId,
-      email: dispute.order.buyer.email,
-      phone: dispute.order.buyer.phone,
-      message: text,
-    });
-  }
-  if ((target === "SELLER" || target === "BOTH") && seller) {
-    notificationsToSend.push({
-      userId: seller.id,
-      email: seller.email,
-      phone: seller.phone,
-      message: text,
-    });
-  }
-  if ((target === "SELLER" || target === "BOTH") && !seller) {
-    return NextResponse.json({ message: "Seller not found for this dispute" }, { status: 400 });
-  }
-  if (notificationsToSend.length === 0) {
-    return NextResponse.json({ message: "No recipient available for this message" }, { status: 400 });
+  if (senderLabel === "ADMIN") {
+    if (target === "BUYER" || target === "BOTH") {
+      notificationsToSend.push({
+        userId: dispute.order.buyerId,
+        email: dispute.order.buyer.email,
+        phone: dispute.order.buyer.phone,
+        whatsappNumber: dispute.order.buyer.whatsappNumber,
+        message: text,
+      });
+    }
+    if ((target === "SELLER" || target === "BOTH") && seller) {
+      notificationsToSend.push({
+        userId: seller.id,
+        email: seller.email,
+        phone: seller.phone,
+        whatsappNumber: seller.whatsappNumber,
+        message: text,
+      });
+    }
+    if ((target === "SELLER" || target === "BOTH") && !seller) {
+      return NextResponse.json({ message: "Seller not found for this dispute" }, { status: 400 });
+    }
+    if (notificationsToSend.length === 0) {
+      return NextResponse.json({ message: "No recipient available for this message" }, { status: 400 });
+    }
   }
 
   const notificationsLog = Array.isArray(dispute.notificationsLog) ? [...dispute.notificationsLog] : [];
-  const timestamp = new Date().toISOString();
-  notificationsLog.push(
-    ...notificationsToSend.map((entry) => ({
-      id: crypto.randomUUID(),
-      toUserId: entry.userId,
-      title: notificationTitle,
-      message: entry.message,
-      createdAt: timestamp,
-    }))
-  );
+  if (notificationsToSend.length > 0) {
+    const timestamp = new Date().toISOString();
+    notificationsLog.push(
+      ...notificationsToSend.map((entry) => ({
+        id: crypto.randomUUID(),
+        toUserId: entry.userId,
+        title: notificationTitle,
+        message: entry.message,
+        createdAt: timestamp,
+      }))
+    );
+  }
 
   const updated = await prisma.$transaction(async (tx) => {
     const nextDispute = await tx.dispute.update({
@@ -112,20 +126,22 @@ export async function POST(
       data: {
         messages: messages as Prisma.JsonArray,
         notificationsLog: notificationsLog as Prisma.JsonArray,
-        status: dispute.status === "ACTIVE" ? "UNDER_REVIEW" : dispute.status,
+        status: dispute.status === "ACTIVE" && senderLabel === "ADMIN" ? "UNDER_REVIEW" : dispute.status,
       },
     });
 
-    await Promise.all(
-      notificationsToSend.map((entry) =>
-        createNotificationRecord(tx, {
-          userId: entry.userId,
-          orderId: dispute.transactionId,
-          title: notificationTitle,
-          message: entry.message,
-        })
-      )
-    );
+    if (notificationsToSend.length > 0) {
+      await Promise.all(
+        notificationsToSend.map((entry) =>
+          createNotificationRecord(tx, {
+            userId: entry.userId,
+            orderId: dispute.transactionId,
+            title: notificationTitle,
+            message: entry.message,
+          })
+        )
+      );
+    }
 
     return nextDispute;
   });
@@ -135,6 +151,7 @@ export async function POST(
       sendNotification({
         email: entry.email,
         phone: entry.phone,
+        whatsappNumber: entry.whatsappNumber,
         subject: notificationTitle,
         html: `<p>${entry.message}</p>`,
         smsText: `Vault update: ${entry.message}`,

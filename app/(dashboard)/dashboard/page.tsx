@@ -53,7 +53,7 @@ export default function Page() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                         <TotalRevenueCard revenue={stats.earnings} title="Earnings" />
                         <TotalRevenueCard revenue={stats.pendingAmount} title="Pending Amount" />
-                        <TotalRevenueCard revenue={stats.vaultRecovered} title="Vault Recovered" />
+                        <TotalRevenueCard revenue={stats.vaultRecovered} title="Recovered" />
                     </div>
                     <div className="w-full overflow-x-auto">
                         <RadarComponent />

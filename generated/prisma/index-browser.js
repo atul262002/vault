@@ -125,6 +125,12 @@ exports.Prisma.UserScalarFieldEnum = {
   role: 'role',
   isVerified: 'isVerified',
   fundAccountId: 'fundAccountId',
+  whatsappNumber: 'whatsappNumber',
+  upiId: 'upiId',
+  bankAccountNumber: 'bankAccountNumber',
+  ifscCode: 'ifscCode',
+  bankAccountHolder: 'bankAccountHolder',
+  payoutMethod: 'payoutMethod',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -254,6 +260,13 @@ exports.Prisma.ConversationScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.PayoutAuditLogScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  changedAt: 'changedAt',
+  changeDetails: 'changeDetails'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -328,7 +341,8 @@ exports.Prisma.ModelName = {
   Notification: 'Notification',
   OrderStatusHistory: 'OrderStatusHistory',
   Message: 'Message',
-  Conversation: 'Conversation'
+  Conversation: 'Conversation',
+  PayoutAuditLog: 'PayoutAuditLog'
 };
 
 /**

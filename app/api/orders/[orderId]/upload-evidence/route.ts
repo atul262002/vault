@@ -66,7 +66,7 @@ export async function POST(
                 userId: order.buyerId,
                 orderId,
                 title: "Transfer evidence uploaded",
-                message: "Seller uploaded transfer evidence. Please confirm receipt within 10 minutes or the order will auto-complete.",
+                message: "Seller uploaded transfer evidence. Please confirm receipt within 15 minutes or the order will auto-complete.",
             });
 
             return nextOrder;
@@ -82,7 +82,7 @@ export async function POST(
                         <h1>Seller has uploaded transfer evidence!</h1>
                         <p>The seller for your order <strong>#${updatedOrder.id}</strong> has uploaded proof of ticket transfer.</p>
                         <p><a href="${updatedOrder.evidenceUrl}">Click here to view the evidence</a></p>
-                        <p>Please review it and confirm receipt within <strong>10 minutes</strong>. If you do not respond, the transaction will auto-complete and payout will be triggered.</p>
+                        <p>Please review it and confirm receipt within <strong>15 minutes</strong>. If you do not respond, the transaction will auto-complete and payout will be triggered.</p>
                         <p><a href="${orderPortalUrl}">Open order in Vault</a></p>
                     `
                 })

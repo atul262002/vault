@@ -536,8 +536,7 @@ export function AddProduct() {
                                         <FormLabel>Event Time</FormLabel>
                                         <FormControl>
                                             <Input
-                                                type="text"
-                                                placeholder="e.g., 7:30 PM"
+                                                type="time"
                                                 {...field}
                                             />
                                         </FormControl>
@@ -554,8 +553,8 @@ export function AddProduct() {
                                         <FormLabel>Event Date</FormLabel>
                                         <FormControl>
                                             <Input
-                                                type="text"
-                                                placeholder="e.g., 24 April 2026"
+                                                type="date"
+                                                min={new Date().toISOString().split('T')[0]}
                                                 {...field}
                                             />
                                         </FormControl>

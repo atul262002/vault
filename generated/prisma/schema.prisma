@@ -9,21 +9,28 @@ datasource db {
 }
 
 model User {
-  id              String         @id @default(uuid())
-  name            String?
-  email           String?        @unique
-  phone           String?
-  role            Role[]
-  isVerified      Boolean
-  fundAccountId   String?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  messageReceived Message[]      @relation("Receiver")
-  messageSent     Message[]      @relation("Sender")
-  notifications   Notification[]
-  orders          Order[]        @relation("BuyerOrders")
-  products        Products[]     @relation("SellerProducts")
-  conversations   Conversation[] @relation("ConversationParticipants")
+  id                String           @id @default(uuid())
+  name              String?
+  email             String?          @unique
+  phone             String?
+  role              Role[]
+  isVerified        Boolean
+  fundAccountId     String?
+  whatsappNumber    String?
+  upiId             String?
+  bankAccountNumber String?
+  ifscCode          String?
+  bankAccountHolder String?
+  payoutMethod      String? // "UPI" | "BANK"
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  messageReceived   Message[]        @relation("Receiver")
+  messageSent       Message[]        @relation("Sender")
+  notifications     Notification[]
+  orders            Order[]          @relation("BuyerOrders")
+  products          Products[]       @relation("SellerProducts")
+  conversations     Conversation[]   @relation("ConversationParticipants")
+  payoutAuditLogs   PayoutAuditLog[]
 }
 
 model Products {
@@ -180,6 +187,16 @@ model Conversation {
   updatedAt    DateTime  @updatedAt
   messages     Message[]
   participants User[]    @relation("ConversationParticipants")
+}
+
+model PayoutAuditLog {
+  id            String   @id @default(uuid())
+  userId        String
+  changedAt     DateTime @default(now())
+  changeDetails String
+  user          User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, changedAt])
 }
 
 enum OrderStatus {

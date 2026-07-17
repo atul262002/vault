@@ -66,18 +66,28 @@ export async function POST(
     return NextResponse.json({ message: "Seller fund account is missing for payout" }, { status: 400 });
   }
 
-  if (decisionType === "REFUND") {
-    await createBuyerRefund({
-      paymentId: order.payment!.paymentId,
-      amountInRupees: amount,
-      orderId: order.id,
-    });
-  } else {
-    await createSellerPayout({
-      fundAccountId: seller.fundAccountId!,
-      amountInRupees: sellerNetPayout,
-      orderId: order.id,
-    });
+  try {
+    if (decisionType === "REFUND") {
+      await createBuyerRefund({
+        paymentId: order.payment!.paymentId,
+        amountInRupees: amount,
+        orderId: order.id,
+      });
+    } else {
+      await createSellerPayout({
+        fundAccountId: seller.fundAccountId!,
+        amountInRupees: sellerNetPayout,
+        orderId: order.id,
+      });
+    }
+  } catch (moneyErr: unknown) {
+    const description =
+      moneyErr instanceof Error ? moneyErr.message : "Payment provider returned an error";
+    console.error(`[decision/${disputeId}] ${decisionType} failed:`, moneyErr);
+    return NextResponse.json(
+      { message: `${decisionType === "REFUND" ? "Refund" : "Payout"} failed: ${description}` },
+      { status: 502 }
+    );
   }
 
   const buyerMsg =
@@ -161,16 +171,18 @@ export async function POST(
     sendNotification({
       email: order.buyer.email,
       phone: order.buyer.phone,
+      whatsappNumber: order.buyer.whatsappNumber,
       subject: `Dispute outcome for order ${order.id}`,
       html: `<p>${buyerMsg}</p><p><strong>Admin decision note:</strong> ${reason}</p>`,
-      smsText: `Vault dispute update: ${buyerMsg}`,
+      smsText: `Vault dispute result: ${buyerMsg}`,
     }),
     sendNotification({
       email: seller.email,
       phone: seller.phone,
+      whatsappNumber: seller.whatsappNumber,
       subject: `Dispute outcome for order ${order.id}`,
       html: `<p>${sellerMsg}</p><p><strong>Admin decision note:</strong> ${reason}</p>`,
-      smsText: `Vault dispute update: ${sellerMsg}`,
+      smsText: `Vault dispute result: ${sellerMsg}`,
     }),
   ]);
 

@@ -68,6 +68,11 @@ export type Message = $Result.DefaultSelection<Prisma.$MessagePayload>
  * 
  */
 export type Conversation = $Result.DefaultSelection<Prisma.$ConversationPayload>
+/**
+ * Model PayoutAuditLog
+ * 
+ */
+export type PayoutAuditLog = $Result.DefaultSelection<Prisma.$PayoutAuditLogPayload>
 
 /**
  * Enums
@@ -381,6 +386,16 @@ export class PrismaClient<
     * ```
     */
   get conversation(): Prisma.ConversationDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.payoutAuditLog`: Exposes CRUD operations for the **PayoutAuditLog** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PayoutAuditLogs
+    * const payoutAuditLogs = await prisma.payoutAuditLog.findMany()
+    * ```
+    */
+  get payoutAuditLog(): Prisma.PayoutAuditLogDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -831,7 +846,8 @@ export namespace Prisma {
     Notification: 'Notification',
     OrderStatusHistory: 'OrderStatusHistory',
     Message: 'Message',
-    Conversation: 'Conversation'
+    Conversation: 'Conversation',
+    PayoutAuditLog: 'PayoutAuditLog'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -847,7 +863,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "user" | "products" | "category" | "order" | "dispute" | "orderItem" | "payment" | "notification" | "orderStatusHistory" | "message" | "conversation"
+      modelProps: "user" | "products" | "category" | "order" | "dispute" | "orderItem" | "payment" | "notification" | "orderStatusHistory" | "message" | "conversation" | "payoutAuditLog"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1665,6 +1681,80 @@ export namespace Prisma {
           }
         }
       }
+      PayoutAuditLog: {
+        payload: Prisma.$PayoutAuditLogPayload<ExtArgs>
+        fields: Prisma.PayoutAuditLogFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PayoutAuditLogFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PayoutAuditLogPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PayoutAuditLogFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PayoutAuditLogPayload>
+          }
+          findFirst: {
+            args: Prisma.PayoutAuditLogFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PayoutAuditLogPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PayoutAuditLogFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PayoutAuditLogPayload>
+          }
+          findMany: {
+            args: Prisma.PayoutAuditLogFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PayoutAuditLogPayload>[]
+          }
+          create: {
+            args: Prisma.PayoutAuditLogCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PayoutAuditLogPayload>
+          }
+          createMany: {
+            args: Prisma.PayoutAuditLogCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PayoutAuditLogCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PayoutAuditLogPayload>[]
+          }
+          delete: {
+            args: Prisma.PayoutAuditLogDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PayoutAuditLogPayload>
+          }
+          update: {
+            args: Prisma.PayoutAuditLogUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PayoutAuditLogPayload>
+          }
+          deleteMany: {
+            args: Prisma.PayoutAuditLogDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PayoutAuditLogUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.PayoutAuditLogUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PayoutAuditLogPayload>[]
+          }
+          upsert: {
+            args: Prisma.PayoutAuditLogUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PayoutAuditLogPayload>
+          }
+          aggregate: {
+            args: Prisma.PayoutAuditLogAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePayoutAuditLog>
+          }
+          groupBy: {
+            args: Prisma.PayoutAuditLogGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PayoutAuditLogGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PayoutAuditLogCountArgs<ExtArgs>
+            result: $Utils.Optional<PayoutAuditLogCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -1760,6 +1850,7 @@ export namespace Prisma {
     orderStatusHistory?: OrderStatusHistoryOmit
     message?: MessageOmit
     conversation?: ConversationOmit
+    payoutAuditLog?: PayoutAuditLogOmit
   }
 
   /* Types for Logging */
@@ -1860,6 +1951,7 @@ export namespace Prisma {
     orders: number
     products: number
     conversations: number
+    payoutAuditLogs: number
   }
 
   export type UserCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -1869,6 +1961,7 @@ export namespace Prisma {
     orders?: boolean | UserCountOutputTypeCountOrdersArgs
     products?: boolean | UserCountOutputTypeCountProductsArgs
     conversations?: boolean | UserCountOutputTypeCountConversationsArgs
+    payoutAuditLogs?: boolean | UserCountOutputTypeCountPayoutAuditLogsArgs
   }
 
   // Custom InputTypes
@@ -1922,6 +2015,13 @@ export namespace Prisma {
    */
   export type UserCountOutputTypeCountConversationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ConversationWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountPayoutAuditLogsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PayoutAuditLogWhereInput
   }
 
 
@@ -2097,6 +2197,12 @@ export namespace Prisma {
     phone: string | null
     isVerified: boolean | null
     fundAccountId: string | null
+    whatsappNumber: string | null
+    upiId: string | null
+    bankAccountNumber: string | null
+    ifscCode: string | null
+    bankAccountHolder: string | null
+    payoutMethod: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -2108,6 +2214,12 @@ export namespace Prisma {
     phone: string | null
     isVerified: boolean | null
     fundAccountId: string | null
+    whatsappNumber: string | null
+    upiId: string | null
+    bankAccountNumber: string | null
+    ifscCode: string | null
+    bankAccountHolder: string | null
+    payoutMethod: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -2120,6 +2232,12 @@ export namespace Prisma {
     role: number
     isVerified: number
     fundAccountId: number
+    whatsappNumber: number
+    upiId: number
+    bankAccountNumber: number
+    ifscCode: number
+    bankAccountHolder: number
+    payoutMethod: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -2133,6 +2251,12 @@ export namespace Prisma {
     phone?: true
     isVerified?: true
     fundAccountId?: true
+    whatsappNumber?: true
+    upiId?: true
+    bankAccountNumber?: true
+    ifscCode?: true
+    bankAccountHolder?: true
+    payoutMethod?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -2144,6 +2268,12 @@ export namespace Prisma {
     phone?: true
     isVerified?: true
     fundAccountId?: true
+    whatsappNumber?: true
+    upiId?: true
+    bankAccountNumber?: true
+    ifscCode?: true
+    bankAccountHolder?: true
+    payoutMethod?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -2156,6 +2286,12 @@ export namespace Prisma {
     role?: true
     isVerified?: true
     fundAccountId?: true
+    whatsappNumber?: true
+    upiId?: true
+    bankAccountNumber?: true
+    ifscCode?: true
+    bankAccountHolder?: true
+    payoutMethod?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -2241,6 +2377,12 @@ export namespace Prisma {
     role: $Enums.Role[]
     isVerified: boolean
     fundAccountId: string | null
+    whatsappNumber: string | null
+    upiId: string | null
+    bankAccountNumber: string | null
+    ifscCode: string | null
+    bankAccountHolder: string | null
+    payoutMethod: string | null
     createdAt: Date
     updatedAt: Date
     _count: UserCountAggregateOutputType | null
@@ -2270,6 +2412,12 @@ export namespace Prisma {
     role?: boolean
     isVerified?: boolean
     fundAccountId?: boolean
+    whatsappNumber?: boolean
+    upiId?: boolean
+    bankAccountNumber?: boolean
+    ifscCode?: boolean
+    bankAccountHolder?: boolean
+    payoutMethod?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     messageReceived?: boolean | User$messageReceivedArgs<ExtArgs>
@@ -2278,6 +2426,7 @@ export namespace Prisma {
     orders?: boolean | User$ordersArgs<ExtArgs>
     products?: boolean | User$productsArgs<ExtArgs>
     conversations?: boolean | User$conversationsArgs<ExtArgs>
+    payoutAuditLogs?: boolean | User$payoutAuditLogsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
 
@@ -2289,6 +2438,12 @@ export namespace Prisma {
     role?: boolean
     isVerified?: boolean
     fundAccountId?: boolean
+    whatsappNumber?: boolean
+    upiId?: boolean
+    bankAccountNumber?: boolean
+    ifscCode?: boolean
+    bankAccountHolder?: boolean
+    payoutMethod?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["user"]>
@@ -2301,6 +2456,12 @@ export namespace Prisma {
     role?: boolean
     isVerified?: boolean
     fundAccountId?: boolean
+    whatsappNumber?: boolean
+    upiId?: boolean
+    bankAccountNumber?: boolean
+    ifscCode?: boolean
+    bankAccountHolder?: boolean
+    payoutMethod?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["user"]>
@@ -2313,11 +2474,17 @@ export namespace Prisma {
     role?: boolean
     isVerified?: boolean
     fundAccountId?: boolean
+    whatsappNumber?: boolean
+    upiId?: boolean
+    bankAccountNumber?: boolean
+    ifscCode?: boolean
+    bankAccountHolder?: boolean
+    payoutMethod?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "email" | "phone" | "role" | "isVerified" | "fundAccountId" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "email" | "phone" | "role" | "isVerified" | "fundAccountId" | "whatsappNumber" | "upiId" | "bankAccountNumber" | "ifscCode" | "bankAccountHolder" | "payoutMethod" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
   export type UserInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     messageReceived?: boolean | User$messageReceivedArgs<ExtArgs>
     messageSent?: boolean | User$messageSentArgs<ExtArgs>
@@ -2325,6 +2492,7 @@ export namespace Prisma {
     orders?: boolean | User$ordersArgs<ExtArgs>
     products?: boolean | User$productsArgs<ExtArgs>
     conversations?: boolean | User$conversationsArgs<ExtArgs>
+    payoutAuditLogs?: boolean | User$payoutAuditLogsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -2339,6 +2507,7 @@ export namespace Prisma {
       orders: Prisma.$OrderPayload<ExtArgs>[]
       products: Prisma.$ProductsPayload<ExtArgs>[]
       conversations: Prisma.$ConversationPayload<ExtArgs>[]
+      payoutAuditLogs: Prisma.$PayoutAuditLogPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -2348,6 +2517,12 @@ export namespace Prisma {
       role: $Enums.Role[]
       isVerified: boolean
       fundAccountId: string | null
+      whatsappNumber: string | null
+      upiId: string | null
+      bankAccountNumber: string | null
+      ifscCode: string | null
+      bankAccountHolder: string | null
+      payoutMethod: string | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["user"]>
@@ -2750,6 +2925,7 @@ export namespace Prisma {
     orders<T extends User$ordersArgs<ExtArgs> = {}>(args?: Subset<T, User$ordersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrderPayload<ExtArgs>, T, "findMany", ClientOptions> | Null>
     products<T extends User$productsArgs<ExtArgs> = {}>(args?: Subset<T, User$productsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProductsPayload<ExtArgs>, T, "findMany", ClientOptions> | Null>
     conversations<T extends User$conversationsArgs<ExtArgs> = {}>(args?: Subset<T, User$conversationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ConversationPayload<ExtArgs>, T, "findMany", ClientOptions> | Null>
+    payoutAuditLogs<T extends User$payoutAuditLogsArgs<ExtArgs> = {}>(args?: Subset<T, User$payoutAuditLogsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PayoutAuditLogPayload<ExtArgs>, T, "findMany", ClientOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2786,6 +2962,12 @@ export namespace Prisma {
     readonly role: FieldRef<"User", 'Role[]'>
     readonly isVerified: FieldRef<"User", 'Boolean'>
     readonly fundAccountId: FieldRef<"User", 'String'>
+    readonly whatsappNumber: FieldRef<"User", 'String'>
+    readonly upiId: FieldRef<"User", 'String'>
+    readonly bankAccountNumber: FieldRef<"User", 'String'>
+    readonly ifscCode: FieldRef<"User", 'String'>
+    readonly bankAccountHolder: FieldRef<"User", 'String'>
+    readonly payoutMethod: FieldRef<"User", 'String'>
     readonly createdAt: FieldRef<"User", 'DateTime'>
     readonly updatedAt: FieldRef<"User", 'DateTime'>
   }
@@ -3317,6 +3499,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: ConversationScalarFieldEnum | ConversationScalarFieldEnum[]
+  }
+
+  /**
+   * User.payoutAuditLogs
+   */
+  export type User$payoutAuditLogsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PayoutAuditLog
+     */
+    select?: PayoutAuditLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PayoutAuditLog
+     */
+    omit?: PayoutAuditLogOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PayoutAuditLogInclude<ExtArgs> | null
+    where?: PayoutAuditLogWhereInput
+    orderBy?: PayoutAuditLogOrderByWithRelationInput | PayoutAuditLogOrderByWithRelationInput[]
+    cursor?: PayoutAuditLogWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PayoutAuditLogScalarFieldEnum | PayoutAuditLogScalarFieldEnum[]
   }
 
   /**
@@ -14936,6 +15142,1051 @@ export namespace Prisma {
 
 
   /**
+   * Model PayoutAuditLog
+   */
+
+  export type AggregatePayoutAuditLog = {
+    _count: PayoutAuditLogCountAggregateOutputType | null
+    _min: PayoutAuditLogMinAggregateOutputType | null
+    _max: PayoutAuditLogMaxAggregateOutputType | null
+  }
+
+  export type PayoutAuditLogMinAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    changedAt: Date | null
+    changeDetails: string | null
+  }
+
+  export type PayoutAuditLogMaxAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    changedAt: Date | null
+    changeDetails: string | null
+  }
+
+  export type PayoutAuditLogCountAggregateOutputType = {
+    id: number
+    userId: number
+    changedAt: number
+    changeDetails: number
+    _all: number
+  }
+
+
+  export type PayoutAuditLogMinAggregateInputType = {
+    id?: true
+    userId?: true
+    changedAt?: true
+    changeDetails?: true
+  }
+
+  export type PayoutAuditLogMaxAggregateInputType = {
+    id?: true
+    userId?: true
+    changedAt?: true
+    changeDetails?: true
+  }
+
+  export type PayoutAuditLogCountAggregateInputType = {
+    id?: true
+    userId?: true
+    changedAt?: true
+    changeDetails?: true
+    _all?: true
+  }
+
+  export type PayoutAuditLogAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PayoutAuditLog to aggregate.
+     */
+    where?: PayoutAuditLogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PayoutAuditLogs to fetch.
+     */
+    orderBy?: PayoutAuditLogOrderByWithRelationInput | PayoutAuditLogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PayoutAuditLogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PayoutAuditLogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PayoutAuditLogs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PayoutAuditLogs
+    **/
+    _count?: true | PayoutAuditLogCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PayoutAuditLogMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PayoutAuditLogMaxAggregateInputType
+  }
+
+  export type GetPayoutAuditLogAggregateType<T extends PayoutAuditLogAggregateArgs> = {
+        [P in keyof T & keyof AggregatePayoutAuditLog]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePayoutAuditLog[P]>
+      : GetScalarType<T[P], AggregatePayoutAuditLog[P]>
+  }
+
+
+
+
+  export type PayoutAuditLogGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PayoutAuditLogWhereInput
+    orderBy?: PayoutAuditLogOrderByWithAggregationInput | PayoutAuditLogOrderByWithAggregationInput[]
+    by: PayoutAuditLogScalarFieldEnum[] | PayoutAuditLogScalarFieldEnum
+    having?: PayoutAuditLogScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PayoutAuditLogCountAggregateInputType | true
+    _min?: PayoutAuditLogMinAggregateInputType
+    _max?: PayoutAuditLogMaxAggregateInputType
+  }
+
+  export type PayoutAuditLogGroupByOutputType = {
+    id: string
+    userId: string
+    changedAt: Date
+    changeDetails: string
+    _count: PayoutAuditLogCountAggregateOutputType | null
+    _min: PayoutAuditLogMinAggregateOutputType | null
+    _max: PayoutAuditLogMaxAggregateOutputType | null
+  }
+
+  type GetPayoutAuditLogGroupByPayload<T extends PayoutAuditLogGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PayoutAuditLogGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PayoutAuditLogGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PayoutAuditLogGroupByOutputType[P]>
+            : GetScalarType<T[P], PayoutAuditLogGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PayoutAuditLogSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    changedAt?: boolean
+    changeDetails?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["payoutAuditLog"]>
+
+  export type PayoutAuditLogSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    changedAt?: boolean
+    changeDetails?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["payoutAuditLog"]>
+
+  export type PayoutAuditLogSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    changedAt?: boolean
+    changeDetails?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["payoutAuditLog"]>
+
+  export type PayoutAuditLogSelectScalar = {
+    id?: boolean
+    userId?: boolean
+    changedAt?: boolean
+    changeDetails?: boolean
+  }
+
+  export type PayoutAuditLogOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "changedAt" | "changeDetails", ExtArgs["result"]["payoutAuditLog"]>
+  export type PayoutAuditLogInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type PayoutAuditLogIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type PayoutAuditLogIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+
+  export type $PayoutAuditLogPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PayoutAuditLog"
+    objects: {
+      user: Prisma.$UserPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      userId: string
+      changedAt: Date
+      changeDetails: string
+    }, ExtArgs["result"]["payoutAuditLog"]>
+    composites: {}
+  }
+
+  type PayoutAuditLogGetPayload<S extends boolean | null | undefined | PayoutAuditLogDefaultArgs> = $Result.GetResult<Prisma.$PayoutAuditLogPayload, S>
+
+  type PayoutAuditLogCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<PayoutAuditLogFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: PayoutAuditLogCountAggregateInputType | true
+    }
+
+  export interface PayoutAuditLogDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PayoutAuditLog'], meta: { name: 'PayoutAuditLog' } }
+    /**
+     * Find zero or one PayoutAuditLog that matches the filter.
+     * @param {PayoutAuditLogFindUniqueArgs} args - Arguments to find a PayoutAuditLog
+     * @example
+     * // Get one PayoutAuditLog
+     * const payoutAuditLog = await prisma.payoutAuditLog.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PayoutAuditLogFindUniqueArgs>(args: SelectSubset<T, PayoutAuditLogFindUniqueArgs<ExtArgs>>): Prisma__PayoutAuditLogClient<$Result.GetResult<Prisma.$PayoutAuditLogPayload<ExtArgs>, T, "findUnique", ClientOptions> | null, null, ExtArgs, ClientOptions>
+
+    /**
+     * Find one PayoutAuditLog that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {PayoutAuditLogFindUniqueOrThrowArgs} args - Arguments to find a PayoutAuditLog
+     * @example
+     * // Get one PayoutAuditLog
+     * const payoutAuditLog = await prisma.payoutAuditLog.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PayoutAuditLogFindUniqueOrThrowArgs>(args: SelectSubset<T, PayoutAuditLogFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PayoutAuditLogClient<$Result.GetResult<Prisma.$PayoutAuditLogPayload<ExtArgs>, T, "findUniqueOrThrow", ClientOptions>, never, ExtArgs, ClientOptions>
+
+    /**
+     * Find the first PayoutAuditLog that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PayoutAuditLogFindFirstArgs} args - Arguments to find a PayoutAuditLog
+     * @example
+     * // Get one PayoutAuditLog
+     * const payoutAuditLog = await prisma.payoutAuditLog.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PayoutAuditLogFindFirstArgs>(args?: SelectSubset<T, PayoutAuditLogFindFirstArgs<ExtArgs>>): Prisma__PayoutAuditLogClient<$Result.GetResult<Prisma.$PayoutAuditLogPayload<ExtArgs>, T, "findFirst", ClientOptions> | null, null, ExtArgs, ClientOptions>
+
+    /**
+     * Find the first PayoutAuditLog that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PayoutAuditLogFindFirstOrThrowArgs} args - Arguments to find a PayoutAuditLog
+     * @example
+     * // Get one PayoutAuditLog
+     * const payoutAuditLog = await prisma.payoutAuditLog.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PayoutAuditLogFindFirstOrThrowArgs>(args?: SelectSubset<T, PayoutAuditLogFindFirstOrThrowArgs<ExtArgs>>): Prisma__PayoutAuditLogClient<$Result.GetResult<Prisma.$PayoutAuditLogPayload<ExtArgs>, T, "findFirstOrThrow", ClientOptions>, never, ExtArgs, ClientOptions>
+
+    /**
+     * Find zero or more PayoutAuditLogs that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PayoutAuditLogFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PayoutAuditLogs
+     * const payoutAuditLogs = await prisma.payoutAuditLog.findMany()
+     * 
+     * // Get first 10 PayoutAuditLogs
+     * const payoutAuditLogs = await prisma.payoutAuditLog.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const payoutAuditLogWithIdOnly = await prisma.payoutAuditLog.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PayoutAuditLogFindManyArgs>(args?: SelectSubset<T, PayoutAuditLogFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PayoutAuditLogPayload<ExtArgs>, T, "findMany", ClientOptions>>
+
+    /**
+     * Create a PayoutAuditLog.
+     * @param {PayoutAuditLogCreateArgs} args - Arguments to create a PayoutAuditLog.
+     * @example
+     * // Create one PayoutAuditLog
+     * const PayoutAuditLog = await prisma.payoutAuditLog.create({
+     *   data: {
+     *     // ... data to create a PayoutAuditLog
+     *   }
+     * })
+     * 
+     */
+    create<T extends PayoutAuditLogCreateArgs>(args: SelectSubset<T, PayoutAuditLogCreateArgs<ExtArgs>>): Prisma__PayoutAuditLogClient<$Result.GetResult<Prisma.$PayoutAuditLogPayload<ExtArgs>, T, "create", ClientOptions>, never, ExtArgs, ClientOptions>
+
+    /**
+     * Create many PayoutAuditLogs.
+     * @param {PayoutAuditLogCreateManyArgs} args - Arguments to create many PayoutAuditLogs.
+     * @example
+     * // Create many PayoutAuditLogs
+     * const payoutAuditLog = await prisma.payoutAuditLog.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PayoutAuditLogCreateManyArgs>(args?: SelectSubset<T, PayoutAuditLogCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PayoutAuditLogs and returns the data saved in the database.
+     * @param {PayoutAuditLogCreateManyAndReturnArgs} args - Arguments to create many PayoutAuditLogs.
+     * @example
+     * // Create many PayoutAuditLogs
+     * const payoutAuditLog = await prisma.payoutAuditLog.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PayoutAuditLogs and only return the `id`
+     * const payoutAuditLogWithIdOnly = await prisma.payoutAuditLog.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PayoutAuditLogCreateManyAndReturnArgs>(args?: SelectSubset<T, PayoutAuditLogCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PayoutAuditLogPayload<ExtArgs>, T, "createManyAndReturn", ClientOptions>>
+
+    /**
+     * Delete a PayoutAuditLog.
+     * @param {PayoutAuditLogDeleteArgs} args - Arguments to delete one PayoutAuditLog.
+     * @example
+     * // Delete one PayoutAuditLog
+     * const PayoutAuditLog = await prisma.payoutAuditLog.delete({
+     *   where: {
+     *     // ... filter to delete one PayoutAuditLog
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PayoutAuditLogDeleteArgs>(args: SelectSubset<T, PayoutAuditLogDeleteArgs<ExtArgs>>): Prisma__PayoutAuditLogClient<$Result.GetResult<Prisma.$PayoutAuditLogPayload<ExtArgs>, T, "delete", ClientOptions>, never, ExtArgs, ClientOptions>
+
+    /**
+     * Update one PayoutAuditLog.
+     * @param {PayoutAuditLogUpdateArgs} args - Arguments to update one PayoutAuditLog.
+     * @example
+     * // Update one PayoutAuditLog
+     * const payoutAuditLog = await prisma.payoutAuditLog.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PayoutAuditLogUpdateArgs>(args: SelectSubset<T, PayoutAuditLogUpdateArgs<ExtArgs>>): Prisma__PayoutAuditLogClient<$Result.GetResult<Prisma.$PayoutAuditLogPayload<ExtArgs>, T, "update", ClientOptions>, never, ExtArgs, ClientOptions>
+
+    /**
+     * Delete zero or more PayoutAuditLogs.
+     * @param {PayoutAuditLogDeleteManyArgs} args - Arguments to filter PayoutAuditLogs to delete.
+     * @example
+     * // Delete a few PayoutAuditLogs
+     * const { count } = await prisma.payoutAuditLog.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PayoutAuditLogDeleteManyArgs>(args?: SelectSubset<T, PayoutAuditLogDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PayoutAuditLogs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PayoutAuditLogUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PayoutAuditLogs
+     * const payoutAuditLog = await prisma.payoutAuditLog.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PayoutAuditLogUpdateManyArgs>(args: SelectSubset<T, PayoutAuditLogUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PayoutAuditLogs and returns the data updated in the database.
+     * @param {PayoutAuditLogUpdateManyAndReturnArgs} args - Arguments to update many PayoutAuditLogs.
+     * @example
+     * // Update many PayoutAuditLogs
+     * const payoutAuditLog = await prisma.payoutAuditLog.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more PayoutAuditLogs and only return the `id`
+     * const payoutAuditLogWithIdOnly = await prisma.payoutAuditLog.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends PayoutAuditLogUpdateManyAndReturnArgs>(args: SelectSubset<T, PayoutAuditLogUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PayoutAuditLogPayload<ExtArgs>, T, "updateManyAndReturn", ClientOptions>>
+
+    /**
+     * Create or update one PayoutAuditLog.
+     * @param {PayoutAuditLogUpsertArgs} args - Arguments to update or create a PayoutAuditLog.
+     * @example
+     * // Update or create a PayoutAuditLog
+     * const payoutAuditLog = await prisma.payoutAuditLog.upsert({
+     *   create: {
+     *     // ... data to create a PayoutAuditLog
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PayoutAuditLog we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PayoutAuditLogUpsertArgs>(args: SelectSubset<T, PayoutAuditLogUpsertArgs<ExtArgs>>): Prisma__PayoutAuditLogClient<$Result.GetResult<Prisma.$PayoutAuditLogPayload<ExtArgs>, T, "upsert", ClientOptions>, never, ExtArgs, ClientOptions>
+
+
+    /**
+     * Count the number of PayoutAuditLogs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PayoutAuditLogCountArgs} args - Arguments to filter PayoutAuditLogs to count.
+     * @example
+     * // Count the number of PayoutAuditLogs
+     * const count = await prisma.payoutAuditLog.count({
+     *   where: {
+     *     // ... the filter for the PayoutAuditLogs we want to count
+     *   }
+     * })
+    **/
+    count<T extends PayoutAuditLogCountArgs>(
+      args?: Subset<T, PayoutAuditLogCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PayoutAuditLogCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PayoutAuditLog.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PayoutAuditLogAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PayoutAuditLogAggregateArgs>(args: Subset<T, PayoutAuditLogAggregateArgs>): Prisma.PrismaPromise<GetPayoutAuditLogAggregateType<T>>
+
+    /**
+     * Group by PayoutAuditLog.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PayoutAuditLogGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PayoutAuditLogGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PayoutAuditLogGroupByArgs['orderBy'] }
+        : { orderBy?: PayoutAuditLogGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PayoutAuditLogGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPayoutAuditLogGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PayoutAuditLog model
+   */
+  readonly fields: PayoutAuditLogFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PayoutAuditLog.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PayoutAuditLogClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", ClientOptions> | Null, Null, ExtArgs, ClientOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PayoutAuditLog model
+   */ 
+  interface PayoutAuditLogFieldRefs {
+    readonly id: FieldRef<"PayoutAuditLog", 'String'>
+    readonly userId: FieldRef<"PayoutAuditLog", 'String'>
+    readonly changedAt: FieldRef<"PayoutAuditLog", 'DateTime'>
+    readonly changeDetails: FieldRef<"PayoutAuditLog", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PayoutAuditLog findUnique
+   */
+  export type PayoutAuditLogFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PayoutAuditLog
+     */
+    select?: PayoutAuditLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PayoutAuditLog
+     */
+    omit?: PayoutAuditLogOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PayoutAuditLogInclude<ExtArgs> | null
+    /**
+     * Filter, which PayoutAuditLog to fetch.
+     */
+    where: PayoutAuditLogWhereUniqueInput
+  }
+
+  /**
+   * PayoutAuditLog findUniqueOrThrow
+   */
+  export type PayoutAuditLogFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PayoutAuditLog
+     */
+    select?: PayoutAuditLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PayoutAuditLog
+     */
+    omit?: PayoutAuditLogOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PayoutAuditLogInclude<ExtArgs> | null
+    /**
+     * Filter, which PayoutAuditLog to fetch.
+     */
+    where: PayoutAuditLogWhereUniqueInput
+  }
+
+  /**
+   * PayoutAuditLog findFirst
+   */
+  export type PayoutAuditLogFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PayoutAuditLog
+     */
+    select?: PayoutAuditLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PayoutAuditLog
+     */
+    omit?: PayoutAuditLogOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PayoutAuditLogInclude<ExtArgs> | null
+    /**
+     * Filter, which PayoutAuditLog to fetch.
+     */
+    where?: PayoutAuditLogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PayoutAuditLogs to fetch.
+     */
+    orderBy?: PayoutAuditLogOrderByWithRelationInput | PayoutAuditLogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PayoutAuditLogs.
+     */
+    cursor?: PayoutAuditLogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PayoutAuditLogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PayoutAuditLogs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PayoutAuditLogs.
+     */
+    distinct?: PayoutAuditLogScalarFieldEnum | PayoutAuditLogScalarFieldEnum[]
+  }
+
+  /**
+   * PayoutAuditLog findFirstOrThrow
+   */
+  export type PayoutAuditLogFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PayoutAuditLog
+     */
+    select?: PayoutAuditLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PayoutAuditLog
+     */
+    omit?: PayoutAuditLogOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PayoutAuditLogInclude<ExtArgs> | null
+    /**
+     * Filter, which PayoutAuditLog to fetch.
+     */
+    where?: PayoutAuditLogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PayoutAuditLogs to fetch.
+     */
+    orderBy?: PayoutAuditLogOrderByWithRelationInput | PayoutAuditLogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PayoutAuditLogs.
+     */
+    cursor?: PayoutAuditLogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PayoutAuditLogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PayoutAuditLogs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PayoutAuditLogs.
+     */
+    distinct?: PayoutAuditLogScalarFieldEnum | PayoutAuditLogScalarFieldEnum[]
+  }
+
+  /**
+   * PayoutAuditLog findMany
+   */
+  export type PayoutAuditLogFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PayoutAuditLog
+     */
+    select?: PayoutAuditLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PayoutAuditLog
+     */
+    omit?: PayoutAuditLogOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PayoutAuditLogInclude<ExtArgs> | null
+    /**
+     * Filter, which PayoutAuditLogs to fetch.
+     */
+    where?: PayoutAuditLogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PayoutAuditLogs to fetch.
+     */
+    orderBy?: PayoutAuditLogOrderByWithRelationInput | PayoutAuditLogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PayoutAuditLogs.
+     */
+    cursor?: PayoutAuditLogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PayoutAuditLogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PayoutAuditLogs.
+     */
+    skip?: number
+    distinct?: PayoutAuditLogScalarFieldEnum | PayoutAuditLogScalarFieldEnum[]
+  }
+
+  /**
+   * PayoutAuditLog create
+   */
+  export type PayoutAuditLogCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PayoutAuditLog
+     */
+    select?: PayoutAuditLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PayoutAuditLog
+     */
+    omit?: PayoutAuditLogOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PayoutAuditLogInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PayoutAuditLog.
+     */
+    data: XOR<PayoutAuditLogCreateInput, PayoutAuditLogUncheckedCreateInput>
+  }
+
+  /**
+   * PayoutAuditLog createMany
+   */
+  export type PayoutAuditLogCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PayoutAuditLogs.
+     */
+    data: PayoutAuditLogCreateManyInput | PayoutAuditLogCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PayoutAuditLog createManyAndReturn
+   */
+  export type PayoutAuditLogCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PayoutAuditLog
+     */
+    select?: PayoutAuditLogSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PayoutAuditLog
+     */
+    omit?: PayoutAuditLogOmit<ExtArgs> | null
+    /**
+     * The data used to create many PayoutAuditLogs.
+     */
+    data: PayoutAuditLogCreateManyInput | PayoutAuditLogCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PayoutAuditLogIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PayoutAuditLog update
+   */
+  export type PayoutAuditLogUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PayoutAuditLog
+     */
+    select?: PayoutAuditLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PayoutAuditLog
+     */
+    omit?: PayoutAuditLogOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PayoutAuditLogInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PayoutAuditLog.
+     */
+    data: XOR<PayoutAuditLogUpdateInput, PayoutAuditLogUncheckedUpdateInput>
+    /**
+     * Choose, which PayoutAuditLog to update.
+     */
+    where: PayoutAuditLogWhereUniqueInput
+  }
+
+  /**
+   * PayoutAuditLog updateMany
+   */
+  export type PayoutAuditLogUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PayoutAuditLogs.
+     */
+    data: XOR<PayoutAuditLogUpdateManyMutationInput, PayoutAuditLogUncheckedUpdateManyInput>
+    /**
+     * Filter which PayoutAuditLogs to update
+     */
+    where?: PayoutAuditLogWhereInput
+    /**
+     * Limit how many PayoutAuditLogs to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * PayoutAuditLog updateManyAndReturn
+   */
+  export type PayoutAuditLogUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PayoutAuditLog
+     */
+    select?: PayoutAuditLogSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PayoutAuditLog
+     */
+    omit?: PayoutAuditLogOmit<ExtArgs> | null
+    /**
+     * The data used to update PayoutAuditLogs.
+     */
+    data: XOR<PayoutAuditLogUpdateManyMutationInput, PayoutAuditLogUncheckedUpdateManyInput>
+    /**
+     * Filter which PayoutAuditLogs to update
+     */
+    where?: PayoutAuditLogWhereInput
+    /**
+     * Limit how many PayoutAuditLogs to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PayoutAuditLogIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PayoutAuditLog upsert
+   */
+  export type PayoutAuditLogUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PayoutAuditLog
+     */
+    select?: PayoutAuditLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PayoutAuditLog
+     */
+    omit?: PayoutAuditLogOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PayoutAuditLogInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PayoutAuditLog to update in case it exists.
+     */
+    where: PayoutAuditLogWhereUniqueInput
+    /**
+     * In case the PayoutAuditLog found by the `where` argument doesn't exist, create a new PayoutAuditLog with this data.
+     */
+    create: XOR<PayoutAuditLogCreateInput, PayoutAuditLogUncheckedCreateInput>
+    /**
+     * In case the PayoutAuditLog was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PayoutAuditLogUpdateInput, PayoutAuditLogUncheckedUpdateInput>
+  }
+
+  /**
+   * PayoutAuditLog delete
+   */
+  export type PayoutAuditLogDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PayoutAuditLog
+     */
+    select?: PayoutAuditLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PayoutAuditLog
+     */
+    omit?: PayoutAuditLogOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PayoutAuditLogInclude<ExtArgs> | null
+    /**
+     * Filter which PayoutAuditLog to delete.
+     */
+    where: PayoutAuditLogWhereUniqueInput
+  }
+
+  /**
+   * PayoutAuditLog deleteMany
+   */
+  export type PayoutAuditLogDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PayoutAuditLogs to delete
+     */
+    where?: PayoutAuditLogWhereInput
+    /**
+     * Limit how many PayoutAuditLogs to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * PayoutAuditLog without action
+   */
+  export type PayoutAuditLogDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PayoutAuditLog
+     */
+    select?: PayoutAuditLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PayoutAuditLog
+     */
+    omit?: PayoutAuditLogOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PayoutAuditLogInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -14957,6 +16208,12 @@ export namespace Prisma {
     role: 'role',
     isVerified: 'isVerified',
     fundAccountId: 'fundAccountId',
+    whatsappNumber: 'whatsappNumber',
+    upiId: 'upiId',
+    bankAccountNumber: 'bankAccountNumber',
+    ifscCode: 'ifscCode',
+    bankAccountHolder: 'bankAccountHolder',
+    payoutMethod: 'payoutMethod',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -15117,6 +16374,16 @@ export namespace Prisma {
   };
 
   export type ConversationScalarFieldEnum = (typeof ConversationScalarFieldEnum)[keyof typeof ConversationScalarFieldEnum]
+
+
+  export const PayoutAuditLogScalarFieldEnum: {
+    id: 'id',
+    userId: 'userId',
+    changedAt: 'changedAt',
+    changeDetails: 'changeDetails'
+  };
+
+  export type PayoutAuditLogScalarFieldEnum = (typeof PayoutAuditLogScalarFieldEnum)[keyof typeof PayoutAuditLogScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -15326,6 +16593,12 @@ export namespace Prisma {
     role?: EnumRoleNullableListFilter<"User">
     isVerified?: BoolFilter<"User"> | boolean
     fundAccountId?: StringNullableFilter<"User"> | string | null
+    whatsappNumber?: StringNullableFilter<"User"> | string | null
+    upiId?: StringNullableFilter<"User"> | string | null
+    bankAccountNumber?: StringNullableFilter<"User"> | string | null
+    ifscCode?: StringNullableFilter<"User"> | string | null
+    bankAccountHolder?: StringNullableFilter<"User"> | string | null
+    payoutMethod?: StringNullableFilter<"User"> | string | null
     createdAt?: DateTimeFilter<"User"> | Date | string
     updatedAt?: DateTimeFilter<"User"> | Date | string
     messageReceived?: MessageListRelationFilter
@@ -15334,6 +16607,7 @@ export namespace Prisma {
     orders?: OrderListRelationFilter
     products?: ProductsListRelationFilter
     conversations?: ConversationListRelationFilter
+    payoutAuditLogs?: PayoutAuditLogListRelationFilter
   }
 
   export type UserOrderByWithRelationInput = {
@@ -15344,6 +16618,12 @@ export namespace Prisma {
     role?: SortOrder
     isVerified?: SortOrder
     fundAccountId?: SortOrderInput | SortOrder
+    whatsappNumber?: SortOrderInput | SortOrder
+    upiId?: SortOrderInput | SortOrder
+    bankAccountNumber?: SortOrderInput | SortOrder
+    ifscCode?: SortOrderInput | SortOrder
+    bankAccountHolder?: SortOrderInput | SortOrder
+    payoutMethod?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     messageReceived?: MessageOrderByRelationAggregateInput
@@ -15352,6 +16632,7 @@ export namespace Prisma {
     orders?: OrderOrderByRelationAggregateInput
     products?: ProductsOrderByRelationAggregateInput
     conversations?: ConversationOrderByRelationAggregateInput
+    payoutAuditLogs?: PayoutAuditLogOrderByRelationAggregateInput
   }
 
   export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -15365,6 +16646,12 @@ export namespace Prisma {
     role?: EnumRoleNullableListFilter<"User">
     isVerified?: BoolFilter<"User"> | boolean
     fundAccountId?: StringNullableFilter<"User"> | string | null
+    whatsappNumber?: StringNullableFilter<"User"> | string | null
+    upiId?: StringNullableFilter<"User"> | string | null
+    bankAccountNumber?: StringNullableFilter<"User"> | string | null
+    ifscCode?: StringNullableFilter<"User"> | string | null
+    bankAccountHolder?: StringNullableFilter<"User"> | string | null
+    payoutMethod?: StringNullableFilter<"User"> | string | null
     createdAt?: DateTimeFilter<"User"> | Date | string
     updatedAt?: DateTimeFilter<"User"> | Date | string
     messageReceived?: MessageListRelationFilter
@@ -15373,6 +16660,7 @@ export namespace Prisma {
     orders?: OrderListRelationFilter
     products?: ProductsListRelationFilter
     conversations?: ConversationListRelationFilter
+    payoutAuditLogs?: PayoutAuditLogListRelationFilter
   }, "id" | "email">
 
   export type UserOrderByWithAggregationInput = {
@@ -15383,6 +16671,12 @@ export namespace Prisma {
     role?: SortOrder
     isVerified?: SortOrder
     fundAccountId?: SortOrderInput | SortOrder
+    whatsappNumber?: SortOrderInput | SortOrder
+    upiId?: SortOrderInput | SortOrder
+    bankAccountNumber?: SortOrderInput | SortOrder
+    ifscCode?: SortOrderInput | SortOrder
+    bankAccountHolder?: SortOrderInput | SortOrder
+    payoutMethod?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: UserCountOrderByAggregateInput
@@ -15401,6 +16695,12 @@ export namespace Prisma {
     role?: EnumRoleNullableListFilter<"User">
     isVerified?: BoolWithAggregatesFilter<"User"> | boolean
     fundAccountId?: StringNullableWithAggregatesFilter<"User"> | string | null
+    whatsappNumber?: StringNullableWithAggregatesFilter<"User"> | string | null
+    upiId?: StringNullableWithAggregatesFilter<"User"> | string | null
+    bankAccountNumber?: StringNullableWithAggregatesFilter<"User"> | string | null
+    ifscCode?: StringNullableWithAggregatesFilter<"User"> | string | null
+    bankAccountHolder?: StringNullableWithAggregatesFilter<"User"> | string | null
+    payoutMethod?: StringNullableWithAggregatesFilter<"User"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
   }
@@ -16225,6 +17525,56 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"Conversation"> | Date | string
   }
 
+  export type PayoutAuditLogWhereInput = {
+    AND?: PayoutAuditLogWhereInput | PayoutAuditLogWhereInput[]
+    OR?: PayoutAuditLogWhereInput[]
+    NOT?: PayoutAuditLogWhereInput | PayoutAuditLogWhereInput[]
+    id?: StringFilter<"PayoutAuditLog"> | string
+    userId?: StringFilter<"PayoutAuditLog"> | string
+    changedAt?: DateTimeFilter<"PayoutAuditLog"> | Date | string
+    changeDetails?: StringFilter<"PayoutAuditLog"> | string
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }
+
+  export type PayoutAuditLogOrderByWithRelationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    changedAt?: SortOrder
+    changeDetails?: SortOrder
+    user?: UserOrderByWithRelationInput
+  }
+
+  export type PayoutAuditLogWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: PayoutAuditLogWhereInput | PayoutAuditLogWhereInput[]
+    OR?: PayoutAuditLogWhereInput[]
+    NOT?: PayoutAuditLogWhereInput | PayoutAuditLogWhereInput[]
+    userId?: StringFilter<"PayoutAuditLog"> | string
+    changedAt?: DateTimeFilter<"PayoutAuditLog"> | Date | string
+    changeDetails?: StringFilter<"PayoutAuditLog"> | string
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }, "id">
+
+  export type PayoutAuditLogOrderByWithAggregationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    changedAt?: SortOrder
+    changeDetails?: SortOrder
+    _count?: PayoutAuditLogCountOrderByAggregateInput
+    _max?: PayoutAuditLogMaxOrderByAggregateInput
+    _min?: PayoutAuditLogMinOrderByAggregateInput
+  }
+
+  export type PayoutAuditLogScalarWhereWithAggregatesInput = {
+    AND?: PayoutAuditLogScalarWhereWithAggregatesInput | PayoutAuditLogScalarWhereWithAggregatesInput[]
+    OR?: PayoutAuditLogScalarWhereWithAggregatesInput[]
+    NOT?: PayoutAuditLogScalarWhereWithAggregatesInput | PayoutAuditLogScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PayoutAuditLog"> | string
+    userId?: StringWithAggregatesFilter<"PayoutAuditLog"> | string
+    changedAt?: DateTimeWithAggregatesFilter<"PayoutAuditLog"> | Date | string
+    changeDetails?: StringWithAggregatesFilter<"PayoutAuditLog"> | string
+  }
+
   export type UserCreateInput = {
     id?: string
     name?: string | null
@@ -16233,6 +17583,12 @@ export namespace Prisma {
     role?: UserCreateroleInput | $Enums.Role[]
     isVerified: boolean
     fundAccountId?: string | null
+    whatsappNumber?: string | null
+    upiId?: string | null
+    bankAccountNumber?: string | null
+    ifscCode?: string | null
+    bankAccountHolder?: string | null
+    payoutMethod?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     messageReceived?: MessageCreateNestedManyWithoutReceiverInput
@@ -16241,6 +17597,7 @@ export namespace Prisma {
     orders?: OrderCreateNestedManyWithoutBuyerInput
     products?: ProductsCreateNestedManyWithoutSellerInput
     conversations?: ConversationCreateNestedManyWithoutParticipantsInput
+    payoutAuditLogs?: PayoutAuditLogCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateInput = {
@@ -16251,6 +17608,12 @@ export namespace Prisma {
     role?: UserCreateroleInput | $Enums.Role[]
     isVerified: boolean
     fundAccountId?: string | null
+    whatsappNumber?: string | null
+    upiId?: string | null
+    bankAccountNumber?: string | null
+    ifscCode?: string | null
+    bankAccountHolder?: string | null
+    payoutMethod?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     messageReceived?: MessageUncheckedCreateNestedManyWithoutReceiverInput
@@ -16259,6 +17622,7 @@ export namespace Prisma {
     orders?: OrderUncheckedCreateNestedManyWithoutBuyerInput
     products?: ProductsUncheckedCreateNestedManyWithoutSellerInput
     conversations?: ConversationUncheckedCreateNestedManyWithoutParticipantsInput
+    payoutAuditLogs?: PayoutAuditLogUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserUpdateInput = {
@@ -16269,6 +17633,12 @@ export namespace Prisma {
     role?: UserUpdateroleInput | $Enums.Role[]
     isVerified?: BoolFieldUpdateOperationsInput | boolean
     fundAccountId?: NullableStringFieldUpdateOperationsInput | string | null
+    whatsappNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    upiId?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    ifscCode?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
+    payoutMethod?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     messageReceived?: MessageUpdateManyWithoutReceiverNestedInput
@@ -16277,6 +17647,7 @@ export namespace Prisma {
     orders?: OrderUpdateManyWithoutBuyerNestedInput
     products?: ProductsUpdateManyWithoutSellerNestedInput
     conversations?: ConversationUpdateManyWithoutParticipantsNestedInput
+    payoutAuditLogs?: PayoutAuditLogUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateInput = {
@@ -16287,6 +17658,12 @@ export namespace Prisma {
     role?: UserUpdateroleInput | $Enums.Role[]
     isVerified?: BoolFieldUpdateOperationsInput | boolean
     fundAccountId?: NullableStringFieldUpdateOperationsInput | string | null
+    whatsappNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    upiId?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    ifscCode?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
+    payoutMethod?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     messageReceived?: MessageUncheckedUpdateManyWithoutReceiverNestedInput
@@ -16295,6 +17672,7 @@ export namespace Prisma {
     orders?: OrderUncheckedUpdateManyWithoutBuyerNestedInput
     products?: ProductsUncheckedUpdateManyWithoutSellerNestedInput
     conversations?: ConversationUncheckedUpdateManyWithoutParticipantsNestedInput
+    payoutAuditLogs?: PayoutAuditLogUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateManyInput = {
@@ -16305,6 +17683,12 @@ export namespace Prisma {
     role?: UserCreateroleInput | $Enums.Role[]
     isVerified: boolean
     fundAccountId?: string | null
+    whatsappNumber?: string | null
+    upiId?: string | null
+    bankAccountNumber?: string | null
+    ifscCode?: string | null
+    bankAccountHolder?: string | null
+    payoutMethod?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -16317,6 +17701,12 @@ export namespace Prisma {
     role?: UserUpdateroleInput | $Enums.Role[]
     isVerified?: BoolFieldUpdateOperationsInput | boolean
     fundAccountId?: NullableStringFieldUpdateOperationsInput | string | null
+    whatsappNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    upiId?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    ifscCode?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
+    payoutMethod?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -16329,6 +17719,12 @@ export namespace Prisma {
     role?: UserUpdateroleInput | $Enums.Role[]
     isVerified?: BoolFieldUpdateOperationsInput | boolean
     fundAccountId?: NullableStringFieldUpdateOperationsInput | string | null
+    whatsappNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    upiId?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    ifscCode?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
+    payoutMethod?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -17231,6 +18627,54 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type PayoutAuditLogCreateInput = {
+    id?: string
+    changedAt?: Date | string
+    changeDetails: string
+    user: UserCreateNestedOneWithoutPayoutAuditLogsInput
+  }
+
+  export type PayoutAuditLogUncheckedCreateInput = {
+    id?: string
+    userId: string
+    changedAt?: Date | string
+    changeDetails: string
+  }
+
+  export type PayoutAuditLogUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    changedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    changeDetails?: StringFieldUpdateOperationsInput | string
+    user?: UserUpdateOneRequiredWithoutPayoutAuditLogsNestedInput
+  }
+
+  export type PayoutAuditLogUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    changedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    changeDetails?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type PayoutAuditLogCreateManyInput = {
+    id?: string
+    userId: string
+    changedAt?: Date | string
+    changeDetails: string
+  }
+
+  export type PayoutAuditLogUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    changedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    changeDetails?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type PayoutAuditLogUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    changedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    changeDetails?: StringFieldUpdateOperationsInput | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -17315,6 +18759,12 @@ export namespace Prisma {
     none?: ConversationWhereInput
   }
 
+  export type PayoutAuditLogListRelationFilter = {
+    every?: PayoutAuditLogWhereInput
+    some?: PayoutAuditLogWhereInput
+    none?: PayoutAuditLogWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -17340,6 +18790,10 @@ export namespace Prisma {
     _count?: SortOrder
   }
 
+  export type PayoutAuditLogOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
   export type UserCountOrderByAggregateInput = {
     id?: SortOrder
     name?: SortOrder
@@ -17348,6 +18802,12 @@ export namespace Prisma {
     role?: SortOrder
     isVerified?: SortOrder
     fundAccountId?: SortOrder
+    whatsappNumber?: SortOrder
+    upiId?: SortOrder
+    bankAccountNumber?: SortOrder
+    ifscCode?: SortOrder
+    bankAccountHolder?: SortOrder
+    payoutMethod?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -17359,6 +18819,12 @@ export namespace Prisma {
     phone?: SortOrder
     isVerified?: SortOrder
     fundAccountId?: SortOrder
+    whatsappNumber?: SortOrder
+    upiId?: SortOrder
+    bankAccountNumber?: SortOrder
+    ifscCode?: SortOrder
+    bankAccountHolder?: SortOrder
+    payoutMethod?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -17370,6 +18836,12 @@ export namespace Prisma {
     phone?: SortOrder
     isVerified?: SortOrder
     fundAccountId?: SortOrder
+    whatsappNumber?: SortOrder
+    upiId?: SortOrder
+    bankAccountNumber?: SortOrder
+    ifscCode?: SortOrder
+    bankAccountHolder?: SortOrder
+    payoutMethod?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -18129,6 +19601,27 @@ export namespace Prisma {
     updatedAt?: SortOrder
   }
 
+  export type PayoutAuditLogCountOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    changedAt?: SortOrder
+    changeDetails?: SortOrder
+  }
+
+  export type PayoutAuditLogMaxOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    changedAt?: SortOrder
+    changeDetails?: SortOrder
+  }
+
+  export type PayoutAuditLogMinOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    changedAt?: SortOrder
+    changeDetails?: SortOrder
+  }
+
   export type UserCreateroleInput = {
     set: $Enums.Role[]
   }
@@ -18174,6 +19667,13 @@ export namespace Prisma {
     connect?: ConversationWhereUniqueInput | ConversationWhereUniqueInput[]
   }
 
+  export type PayoutAuditLogCreateNestedManyWithoutUserInput = {
+    create?: XOR<PayoutAuditLogCreateWithoutUserInput, PayoutAuditLogUncheckedCreateWithoutUserInput> | PayoutAuditLogCreateWithoutUserInput[] | PayoutAuditLogUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: PayoutAuditLogCreateOrConnectWithoutUserInput | PayoutAuditLogCreateOrConnectWithoutUserInput[]
+    createMany?: PayoutAuditLogCreateManyUserInputEnvelope
+    connect?: PayoutAuditLogWhereUniqueInput | PayoutAuditLogWhereUniqueInput[]
+  }
+
   export type MessageUncheckedCreateNestedManyWithoutReceiverInput = {
     create?: XOR<MessageCreateWithoutReceiverInput, MessageUncheckedCreateWithoutReceiverInput> | MessageCreateWithoutReceiverInput[] | MessageUncheckedCreateWithoutReceiverInput[]
     connectOrCreate?: MessageCreateOrConnectWithoutReceiverInput | MessageCreateOrConnectWithoutReceiverInput[]
@@ -18213,6 +19713,13 @@ export namespace Prisma {
     create?: XOR<ConversationCreateWithoutParticipantsInput, ConversationUncheckedCreateWithoutParticipantsInput> | ConversationCreateWithoutParticipantsInput[] | ConversationUncheckedCreateWithoutParticipantsInput[]
     connectOrCreate?: ConversationCreateOrConnectWithoutParticipantsInput | ConversationCreateOrConnectWithoutParticipantsInput[]
     connect?: ConversationWhereUniqueInput | ConversationWhereUniqueInput[]
+  }
+
+  export type PayoutAuditLogUncheckedCreateNestedManyWithoutUserInput = {
+    create?: XOR<PayoutAuditLogCreateWithoutUserInput, PayoutAuditLogUncheckedCreateWithoutUserInput> | PayoutAuditLogCreateWithoutUserInput[] | PayoutAuditLogUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: PayoutAuditLogCreateOrConnectWithoutUserInput | PayoutAuditLogCreateOrConnectWithoutUserInput[]
+    createMany?: PayoutAuditLogCreateManyUserInputEnvelope
+    connect?: PayoutAuditLogWhereUniqueInput | PayoutAuditLogWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -18319,6 +19826,20 @@ export namespace Prisma {
     deleteMany?: ConversationScalarWhereInput | ConversationScalarWhereInput[]
   }
 
+  export type PayoutAuditLogUpdateManyWithoutUserNestedInput = {
+    create?: XOR<PayoutAuditLogCreateWithoutUserInput, PayoutAuditLogUncheckedCreateWithoutUserInput> | PayoutAuditLogCreateWithoutUserInput[] | PayoutAuditLogUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: PayoutAuditLogCreateOrConnectWithoutUserInput | PayoutAuditLogCreateOrConnectWithoutUserInput[]
+    upsert?: PayoutAuditLogUpsertWithWhereUniqueWithoutUserInput | PayoutAuditLogUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: PayoutAuditLogCreateManyUserInputEnvelope
+    set?: PayoutAuditLogWhereUniqueInput | PayoutAuditLogWhereUniqueInput[]
+    disconnect?: PayoutAuditLogWhereUniqueInput | PayoutAuditLogWhereUniqueInput[]
+    delete?: PayoutAuditLogWhereUniqueInput | PayoutAuditLogWhereUniqueInput[]
+    connect?: PayoutAuditLogWhereUniqueInput | PayoutAuditLogWhereUniqueInput[]
+    update?: PayoutAuditLogUpdateWithWhereUniqueWithoutUserInput | PayoutAuditLogUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: PayoutAuditLogUpdateManyWithWhereWithoutUserInput | PayoutAuditLogUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: PayoutAuditLogScalarWhereInput | PayoutAuditLogScalarWhereInput[]
+  }
+
   export type MessageUncheckedUpdateManyWithoutReceiverNestedInput = {
     create?: XOR<MessageCreateWithoutReceiverInput, MessageUncheckedCreateWithoutReceiverInput> | MessageCreateWithoutReceiverInput[] | MessageUncheckedCreateWithoutReceiverInput[]
     connectOrCreate?: MessageCreateOrConnectWithoutReceiverInput | MessageCreateOrConnectWithoutReceiverInput[]
@@ -18400,6 +19921,20 @@ export namespace Prisma {
     update?: ConversationUpdateWithWhereUniqueWithoutParticipantsInput | ConversationUpdateWithWhereUniqueWithoutParticipantsInput[]
     updateMany?: ConversationUpdateManyWithWhereWithoutParticipantsInput | ConversationUpdateManyWithWhereWithoutParticipantsInput[]
     deleteMany?: ConversationScalarWhereInput | ConversationScalarWhereInput[]
+  }
+
+  export type PayoutAuditLogUncheckedUpdateManyWithoutUserNestedInput = {
+    create?: XOR<PayoutAuditLogCreateWithoutUserInput, PayoutAuditLogUncheckedCreateWithoutUserInput> | PayoutAuditLogCreateWithoutUserInput[] | PayoutAuditLogUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: PayoutAuditLogCreateOrConnectWithoutUserInput | PayoutAuditLogCreateOrConnectWithoutUserInput[]
+    upsert?: PayoutAuditLogUpsertWithWhereUniqueWithoutUserInput | PayoutAuditLogUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: PayoutAuditLogCreateManyUserInputEnvelope
+    set?: PayoutAuditLogWhereUniqueInput | PayoutAuditLogWhereUniqueInput[]
+    disconnect?: PayoutAuditLogWhereUniqueInput | PayoutAuditLogWhereUniqueInput[]
+    delete?: PayoutAuditLogWhereUniqueInput | PayoutAuditLogWhereUniqueInput[]
+    connect?: PayoutAuditLogWhereUniqueInput | PayoutAuditLogWhereUniqueInput[]
+    update?: PayoutAuditLogUpdateWithWhereUniqueWithoutUserInput | PayoutAuditLogUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: PayoutAuditLogUpdateManyWithWhereWithoutUserInput | PayoutAuditLogUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: PayoutAuditLogScalarWhereInput | PayoutAuditLogScalarWhereInput[]
   }
 
   export type OrderItemCreateNestedManyWithoutProductInput = {
@@ -18982,6 +20517,20 @@ export namespace Prisma {
     deleteMany?: UserScalarWhereInput | UserScalarWhereInput[]
   }
 
+  export type UserCreateNestedOneWithoutPayoutAuditLogsInput = {
+    create?: XOR<UserCreateWithoutPayoutAuditLogsInput, UserUncheckedCreateWithoutPayoutAuditLogsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutPayoutAuditLogsInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type UserUpdateOneRequiredWithoutPayoutAuditLogsNestedInput = {
+    create?: XOR<UserCreateWithoutPayoutAuditLogsInput, UserUncheckedCreateWithoutPayoutAuditLogsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutPayoutAuditLogsInput
+    upsert?: UserUpsertWithoutPayoutAuditLogsInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutPayoutAuditLogsInput, UserUpdateWithoutPayoutAuditLogsInput>, UserUncheckedUpdateWithoutPayoutAuditLogsInput>
+  }
+
   export type NestedStringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -19501,6 +21050,28 @@ export namespace Prisma {
     create: XOR<ConversationCreateWithoutParticipantsInput, ConversationUncheckedCreateWithoutParticipantsInput>
   }
 
+  export type PayoutAuditLogCreateWithoutUserInput = {
+    id?: string
+    changedAt?: Date | string
+    changeDetails: string
+  }
+
+  export type PayoutAuditLogUncheckedCreateWithoutUserInput = {
+    id?: string
+    changedAt?: Date | string
+    changeDetails: string
+  }
+
+  export type PayoutAuditLogCreateOrConnectWithoutUserInput = {
+    where: PayoutAuditLogWhereUniqueInput
+    create: XOR<PayoutAuditLogCreateWithoutUserInput, PayoutAuditLogUncheckedCreateWithoutUserInput>
+  }
+
+  export type PayoutAuditLogCreateManyUserInputEnvelope = {
+    data: PayoutAuditLogCreateManyUserInput | PayoutAuditLogCreateManyUserInput[]
+    skipDuplicates?: boolean
+  }
+
   export type MessageUpsertWithWhereUniqueWithoutReceiverInput = {
     where: MessageWhereUniqueInput
     update: XOR<MessageUpdateWithoutReceiverInput, MessageUncheckedUpdateWithoutReceiverInput>
@@ -19683,6 +21254,32 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"Conversation"> | Date | string
   }
 
+  export type PayoutAuditLogUpsertWithWhereUniqueWithoutUserInput = {
+    where: PayoutAuditLogWhereUniqueInput
+    update: XOR<PayoutAuditLogUpdateWithoutUserInput, PayoutAuditLogUncheckedUpdateWithoutUserInput>
+    create: XOR<PayoutAuditLogCreateWithoutUserInput, PayoutAuditLogUncheckedCreateWithoutUserInput>
+  }
+
+  export type PayoutAuditLogUpdateWithWhereUniqueWithoutUserInput = {
+    where: PayoutAuditLogWhereUniqueInput
+    data: XOR<PayoutAuditLogUpdateWithoutUserInput, PayoutAuditLogUncheckedUpdateWithoutUserInput>
+  }
+
+  export type PayoutAuditLogUpdateManyWithWhereWithoutUserInput = {
+    where: PayoutAuditLogScalarWhereInput
+    data: XOR<PayoutAuditLogUpdateManyMutationInput, PayoutAuditLogUncheckedUpdateManyWithoutUserInput>
+  }
+
+  export type PayoutAuditLogScalarWhereInput = {
+    AND?: PayoutAuditLogScalarWhereInput | PayoutAuditLogScalarWhereInput[]
+    OR?: PayoutAuditLogScalarWhereInput[]
+    NOT?: PayoutAuditLogScalarWhereInput | PayoutAuditLogScalarWhereInput[]
+    id?: StringFilter<"PayoutAuditLog"> | string
+    userId?: StringFilter<"PayoutAuditLog"> | string
+    changedAt?: DateTimeFilter<"PayoutAuditLog"> | Date | string
+    changeDetails?: StringFilter<"PayoutAuditLog"> | string
+  }
+
   export type OrderItemCreateWithoutProductInput = {
     id?: string
     price: number
@@ -19734,6 +21331,12 @@ export namespace Prisma {
     role?: UserCreateroleInput | $Enums.Role[]
     isVerified: boolean
     fundAccountId?: string | null
+    whatsappNumber?: string | null
+    upiId?: string | null
+    bankAccountNumber?: string | null
+    ifscCode?: string | null
+    bankAccountHolder?: string | null
+    payoutMethod?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     messageReceived?: MessageCreateNestedManyWithoutReceiverInput
@@ -19741,6 +21344,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     orders?: OrderCreateNestedManyWithoutBuyerInput
     conversations?: ConversationCreateNestedManyWithoutParticipantsInput
+    payoutAuditLogs?: PayoutAuditLogCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutProductsInput = {
@@ -19751,6 +21355,12 @@ export namespace Prisma {
     role?: UserCreateroleInput | $Enums.Role[]
     isVerified: boolean
     fundAccountId?: string | null
+    whatsappNumber?: string | null
+    upiId?: string | null
+    bankAccountNumber?: string | null
+    ifscCode?: string | null
+    bankAccountHolder?: string | null
+    payoutMethod?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     messageReceived?: MessageUncheckedCreateNestedManyWithoutReceiverInput
@@ -19758,6 +21368,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     orders?: OrderUncheckedCreateNestedManyWithoutBuyerInput
     conversations?: ConversationUncheckedCreateNestedManyWithoutParticipantsInput
+    payoutAuditLogs?: PayoutAuditLogUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutProductsInput = {
@@ -19836,6 +21447,12 @@ export namespace Prisma {
     role?: UserUpdateroleInput | $Enums.Role[]
     isVerified?: BoolFieldUpdateOperationsInput | boolean
     fundAccountId?: NullableStringFieldUpdateOperationsInput | string | null
+    whatsappNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    upiId?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    ifscCode?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
+    payoutMethod?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     messageReceived?: MessageUpdateManyWithoutReceiverNestedInput
@@ -19843,6 +21460,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     orders?: OrderUpdateManyWithoutBuyerNestedInput
     conversations?: ConversationUpdateManyWithoutParticipantsNestedInput
+    payoutAuditLogs?: PayoutAuditLogUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProductsInput = {
@@ -19853,6 +21471,12 @@ export namespace Prisma {
     role?: UserUpdateroleInput | $Enums.Role[]
     isVerified?: BoolFieldUpdateOperationsInput | boolean
     fundAccountId?: NullableStringFieldUpdateOperationsInput | string | null
+    whatsappNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    upiId?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    ifscCode?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
+    payoutMethod?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     messageReceived?: MessageUncheckedUpdateManyWithoutReceiverNestedInput
@@ -19860,6 +21484,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     orders?: OrderUncheckedUpdateManyWithoutBuyerNestedInput
     conversations?: ConversationUncheckedUpdateManyWithoutParticipantsNestedInput
+    payoutAuditLogs?: PayoutAuditLogUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProductsCreateWithoutCategoryInput = {
@@ -19977,6 +21602,12 @@ export namespace Prisma {
     role?: UserCreateroleInput | $Enums.Role[]
     isVerified: boolean
     fundAccountId?: string | null
+    whatsappNumber?: string | null
+    upiId?: string | null
+    bankAccountNumber?: string | null
+    ifscCode?: string | null
+    bankAccountHolder?: string | null
+    payoutMethod?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     messageReceived?: MessageCreateNestedManyWithoutReceiverInput
@@ -19984,6 +21615,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     products?: ProductsCreateNestedManyWithoutSellerInput
     conversations?: ConversationCreateNestedManyWithoutParticipantsInput
+    payoutAuditLogs?: PayoutAuditLogCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutOrdersInput = {
@@ -19994,6 +21626,12 @@ export namespace Prisma {
     role?: UserCreateroleInput | $Enums.Role[]
     isVerified: boolean
     fundAccountId?: string | null
+    whatsappNumber?: string | null
+    upiId?: string | null
+    bankAccountNumber?: string | null
+    ifscCode?: string | null
+    bankAccountHolder?: string | null
+    payoutMethod?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     messageReceived?: MessageUncheckedCreateNestedManyWithoutReceiverInput
@@ -20001,6 +21639,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     products?: ProductsUncheckedCreateNestedManyWithoutSellerInput
     conversations?: ConversationUncheckedCreateNestedManyWithoutParticipantsInput
+    payoutAuditLogs?: PayoutAuditLogUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutOrdersInput = {
@@ -20177,6 +21816,12 @@ export namespace Prisma {
     role?: UserUpdateroleInput | $Enums.Role[]
     isVerified?: BoolFieldUpdateOperationsInput | boolean
     fundAccountId?: NullableStringFieldUpdateOperationsInput | string | null
+    whatsappNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    upiId?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    ifscCode?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
+    payoutMethod?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     messageReceived?: MessageUpdateManyWithoutReceiverNestedInput
@@ -20184,6 +21829,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     products?: ProductsUpdateManyWithoutSellerNestedInput
     conversations?: ConversationUpdateManyWithoutParticipantsNestedInput
+    payoutAuditLogs?: PayoutAuditLogUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutOrdersInput = {
@@ -20194,6 +21840,12 @@ export namespace Prisma {
     role?: UserUpdateroleInput | $Enums.Role[]
     isVerified?: BoolFieldUpdateOperationsInput | boolean
     fundAccountId?: NullableStringFieldUpdateOperationsInput | string | null
+    whatsappNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    upiId?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    ifscCode?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
+    payoutMethod?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     messageReceived?: MessageUncheckedUpdateManyWithoutReceiverNestedInput
@@ -20201,6 +21853,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     products?: ProductsUncheckedUpdateManyWithoutSellerNestedInput
     conversations?: ConversationUncheckedUpdateManyWithoutParticipantsNestedInput
+    payoutAuditLogs?: PayoutAuditLogUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type NotificationUpsertWithWhereUniqueWithoutOrderInput = {
@@ -20865,6 +22518,12 @@ export namespace Prisma {
     role?: UserCreateroleInput | $Enums.Role[]
     isVerified: boolean
     fundAccountId?: string | null
+    whatsappNumber?: string | null
+    upiId?: string | null
+    bankAccountNumber?: string | null
+    ifscCode?: string | null
+    bankAccountHolder?: string | null
+    payoutMethod?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     messageReceived?: MessageCreateNestedManyWithoutReceiverInput
@@ -20872,6 +22531,7 @@ export namespace Prisma {
     orders?: OrderCreateNestedManyWithoutBuyerInput
     products?: ProductsCreateNestedManyWithoutSellerInput
     conversations?: ConversationCreateNestedManyWithoutParticipantsInput
+    payoutAuditLogs?: PayoutAuditLogCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutNotificationsInput = {
@@ -20882,6 +22542,12 @@ export namespace Prisma {
     role?: UserCreateroleInput | $Enums.Role[]
     isVerified: boolean
     fundAccountId?: string | null
+    whatsappNumber?: string | null
+    upiId?: string | null
+    bankAccountNumber?: string | null
+    ifscCode?: string | null
+    bankAccountHolder?: string | null
+    payoutMethod?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     messageReceived?: MessageUncheckedCreateNestedManyWithoutReceiverInput
@@ -20889,6 +22555,7 @@ export namespace Prisma {
     orders?: OrderUncheckedCreateNestedManyWithoutBuyerInput
     products?: ProductsUncheckedCreateNestedManyWithoutSellerInput
     conversations?: ConversationUncheckedCreateNestedManyWithoutParticipantsInput
+    payoutAuditLogs?: PayoutAuditLogUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutNotificationsInput = {
@@ -20986,6 +22653,12 @@ export namespace Prisma {
     role?: UserUpdateroleInput | $Enums.Role[]
     isVerified?: BoolFieldUpdateOperationsInput | boolean
     fundAccountId?: NullableStringFieldUpdateOperationsInput | string | null
+    whatsappNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    upiId?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    ifscCode?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
+    payoutMethod?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     messageReceived?: MessageUpdateManyWithoutReceiverNestedInput
@@ -20993,6 +22666,7 @@ export namespace Prisma {
     orders?: OrderUpdateManyWithoutBuyerNestedInput
     products?: ProductsUpdateManyWithoutSellerNestedInput
     conversations?: ConversationUpdateManyWithoutParticipantsNestedInput
+    payoutAuditLogs?: PayoutAuditLogUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutNotificationsInput = {
@@ -21003,6 +22677,12 @@ export namespace Prisma {
     role?: UserUpdateroleInput | $Enums.Role[]
     isVerified?: BoolFieldUpdateOperationsInput | boolean
     fundAccountId?: NullableStringFieldUpdateOperationsInput | string | null
+    whatsappNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    upiId?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    ifscCode?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
+    payoutMethod?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     messageReceived?: MessageUncheckedUpdateManyWithoutReceiverNestedInput
@@ -21010,6 +22690,7 @@ export namespace Prisma {
     orders?: OrderUncheckedUpdateManyWithoutBuyerNestedInput
     products?: ProductsUncheckedUpdateManyWithoutSellerNestedInput
     conversations?: ConversationUncheckedUpdateManyWithoutParticipantsNestedInput
+    payoutAuditLogs?: PayoutAuditLogUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrderCreateWithoutStatusHistoryInput = {
@@ -21175,6 +22856,12 @@ export namespace Prisma {
     role?: UserCreateroleInput | $Enums.Role[]
     isVerified: boolean
     fundAccountId?: string | null
+    whatsappNumber?: string | null
+    upiId?: string | null
+    bankAccountNumber?: string | null
+    ifscCode?: string | null
+    bankAccountHolder?: string | null
+    payoutMethod?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     messageSent?: MessageCreateNestedManyWithoutSenderInput
@@ -21182,6 +22869,7 @@ export namespace Prisma {
     orders?: OrderCreateNestedManyWithoutBuyerInput
     products?: ProductsCreateNestedManyWithoutSellerInput
     conversations?: ConversationCreateNestedManyWithoutParticipantsInput
+    payoutAuditLogs?: PayoutAuditLogCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutMessageReceivedInput = {
@@ -21192,6 +22880,12 @@ export namespace Prisma {
     role?: UserCreateroleInput | $Enums.Role[]
     isVerified: boolean
     fundAccountId?: string | null
+    whatsappNumber?: string | null
+    upiId?: string | null
+    bankAccountNumber?: string | null
+    ifscCode?: string | null
+    bankAccountHolder?: string | null
+    payoutMethod?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     messageSent?: MessageUncheckedCreateNestedManyWithoutSenderInput
@@ -21199,6 +22893,7 @@ export namespace Prisma {
     orders?: OrderUncheckedCreateNestedManyWithoutBuyerInput
     products?: ProductsUncheckedCreateNestedManyWithoutSellerInput
     conversations?: ConversationUncheckedCreateNestedManyWithoutParticipantsInput
+    payoutAuditLogs?: PayoutAuditLogUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutMessageReceivedInput = {
@@ -21214,6 +22909,12 @@ export namespace Prisma {
     role?: UserCreateroleInput | $Enums.Role[]
     isVerified: boolean
     fundAccountId?: string | null
+    whatsappNumber?: string | null
+    upiId?: string | null
+    bankAccountNumber?: string | null
+    ifscCode?: string | null
+    bankAccountHolder?: string | null
+    payoutMethod?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     messageReceived?: MessageCreateNestedManyWithoutReceiverInput
@@ -21221,6 +22922,7 @@ export namespace Prisma {
     orders?: OrderCreateNestedManyWithoutBuyerInput
     products?: ProductsCreateNestedManyWithoutSellerInput
     conversations?: ConversationCreateNestedManyWithoutParticipantsInput
+    payoutAuditLogs?: PayoutAuditLogCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutMessageSentInput = {
@@ -21231,6 +22933,12 @@ export namespace Prisma {
     role?: UserCreateroleInput | $Enums.Role[]
     isVerified: boolean
     fundAccountId?: string | null
+    whatsappNumber?: string | null
+    upiId?: string | null
+    bankAccountNumber?: string | null
+    ifscCode?: string | null
+    bankAccountHolder?: string | null
+    payoutMethod?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     messageReceived?: MessageUncheckedCreateNestedManyWithoutReceiverInput
@@ -21238,6 +22946,7 @@ export namespace Prisma {
     orders?: OrderUncheckedCreateNestedManyWithoutBuyerInput
     products?: ProductsUncheckedCreateNestedManyWithoutSellerInput
     conversations?: ConversationUncheckedCreateNestedManyWithoutParticipantsInput
+    payoutAuditLogs?: PayoutAuditLogUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutMessageSentInput = {
@@ -21289,6 +22998,12 @@ export namespace Prisma {
     role?: UserUpdateroleInput | $Enums.Role[]
     isVerified?: BoolFieldUpdateOperationsInput | boolean
     fundAccountId?: NullableStringFieldUpdateOperationsInput | string | null
+    whatsappNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    upiId?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    ifscCode?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
+    payoutMethod?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     messageSent?: MessageUpdateManyWithoutSenderNestedInput
@@ -21296,6 +23011,7 @@ export namespace Prisma {
     orders?: OrderUpdateManyWithoutBuyerNestedInput
     products?: ProductsUpdateManyWithoutSellerNestedInput
     conversations?: ConversationUpdateManyWithoutParticipantsNestedInput
+    payoutAuditLogs?: PayoutAuditLogUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutMessageReceivedInput = {
@@ -21306,6 +23022,12 @@ export namespace Prisma {
     role?: UserUpdateroleInput | $Enums.Role[]
     isVerified?: BoolFieldUpdateOperationsInput | boolean
     fundAccountId?: NullableStringFieldUpdateOperationsInput | string | null
+    whatsappNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    upiId?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    ifscCode?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
+    payoutMethod?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     messageSent?: MessageUncheckedUpdateManyWithoutSenderNestedInput
@@ -21313,6 +23035,7 @@ export namespace Prisma {
     orders?: OrderUncheckedUpdateManyWithoutBuyerNestedInput
     products?: ProductsUncheckedUpdateManyWithoutSellerNestedInput
     conversations?: ConversationUncheckedUpdateManyWithoutParticipantsNestedInput
+    payoutAuditLogs?: PayoutAuditLogUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserUpsertWithoutMessageSentInput = {
@@ -21334,6 +23057,12 @@ export namespace Prisma {
     role?: UserUpdateroleInput | $Enums.Role[]
     isVerified?: BoolFieldUpdateOperationsInput | boolean
     fundAccountId?: NullableStringFieldUpdateOperationsInput | string | null
+    whatsappNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    upiId?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    ifscCode?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
+    payoutMethod?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     messageReceived?: MessageUpdateManyWithoutReceiverNestedInput
@@ -21341,6 +23070,7 @@ export namespace Prisma {
     orders?: OrderUpdateManyWithoutBuyerNestedInput
     products?: ProductsUpdateManyWithoutSellerNestedInput
     conversations?: ConversationUpdateManyWithoutParticipantsNestedInput
+    payoutAuditLogs?: PayoutAuditLogUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutMessageSentInput = {
@@ -21351,6 +23081,12 @@ export namespace Prisma {
     role?: UserUpdateroleInput | $Enums.Role[]
     isVerified?: BoolFieldUpdateOperationsInput | boolean
     fundAccountId?: NullableStringFieldUpdateOperationsInput | string | null
+    whatsappNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    upiId?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    ifscCode?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
+    payoutMethod?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     messageReceived?: MessageUncheckedUpdateManyWithoutReceiverNestedInput
@@ -21358,6 +23094,7 @@ export namespace Prisma {
     orders?: OrderUncheckedUpdateManyWithoutBuyerNestedInput
     products?: ProductsUncheckedUpdateManyWithoutSellerNestedInput
     conversations?: ConversationUncheckedUpdateManyWithoutParticipantsNestedInput
+    payoutAuditLogs?: PayoutAuditLogUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type MessageCreateWithoutConversationInput = {
@@ -21396,6 +23133,12 @@ export namespace Prisma {
     role?: UserCreateroleInput | $Enums.Role[]
     isVerified: boolean
     fundAccountId?: string | null
+    whatsappNumber?: string | null
+    upiId?: string | null
+    bankAccountNumber?: string | null
+    ifscCode?: string | null
+    bankAccountHolder?: string | null
+    payoutMethod?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     messageReceived?: MessageCreateNestedManyWithoutReceiverInput
@@ -21403,6 +23146,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     orders?: OrderCreateNestedManyWithoutBuyerInput
     products?: ProductsCreateNestedManyWithoutSellerInput
+    payoutAuditLogs?: PayoutAuditLogCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutConversationsInput = {
@@ -21413,6 +23157,12 @@ export namespace Prisma {
     role?: UserCreateroleInput | $Enums.Role[]
     isVerified: boolean
     fundAccountId?: string | null
+    whatsappNumber?: string | null
+    upiId?: string | null
+    bankAccountNumber?: string | null
+    ifscCode?: string | null
+    bankAccountHolder?: string | null
+    payoutMethod?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     messageReceived?: MessageUncheckedCreateNestedManyWithoutReceiverInput
@@ -21420,6 +23170,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     orders?: OrderUncheckedCreateNestedManyWithoutBuyerInput
     products?: ProductsUncheckedCreateNestedManyWithoutSellerInput
+    payoutAuditLogs?: PayoutAuditLogUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutConversationsInput = {
@@ -21470,8 +23221,126 @@ export namespace Prisma {
     role?: EnumRoleNullableListFilter<"User">
     isVerified?: BoolFilter<"User"> | boolean
     fundAccountId?: StringNullableFilter<"User"> | string | null
+    whatsappNumber?: StringNullableFilter<"User"> | string | null
+    upiId?: StringNullableFilter<"User"> | string | null
+    bankAccountNumber?: StringNullableFilter<"User"> | string | null
+    ifscCode?: StringNullableFilter<"User"> | string | null
+    bankAccountHolder?: StringNullableFilter<"User"> | string | null
+    payoutMethod?: StringNullableFilter<"User"> | string | null
     createdAt?: DateTimeFilter<"User"> | Date | string
     updatedAt?: DateTimeFilter<"User"> | Date | string
+  }
+
+  export type UserCreateWithoutPayoutAuditLogsInput = {
+    id?: string
+    name?: string | null
+    email?: string | null
+    phone?: string | null
+    role?: UserCreateroleInput | $Enums.Role[]
+    isVerified: boolean
+    fundAccountId?: string | null
+    whatsappNumber?: string | null
+    upiId?: string | null
+    bankAccountNumber?: string | null
+    ifscCode?: string | null
+    bankAccountHolder?: string | null
+    payoutMethod?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    messageReceived?: MessageCreateNestedManyWithoutReceiverInput
+    messageSent?: MessageCreateNestedManyWithoutSenderInput
+    notifications?: NotificationCreateNestedManyWithoutUserInput
+    orders?: OrderCreateNestedManyWithoutBuyerInput
+    products?: ProductsCreateNestedManyWithoutSellerInput
+    conversations?: ConversationCreateNestedManyWithoutParticipantsInput
+  }
+
+  export type UserUncheckedCreateWithoutPayoutAuditLogsInput = {
+    id?: string
+    name?: string | null
+    email?: string | null
+    phone?: string | null
+    role?: UserCreateroleInput | $Enums.Role[]
+    isVerified: boolean
+    fundAccountId?: string | null
+    whatsappNumber?: string | null
+    upiId?: string | null
+    bankAccountNumber?: string | null
+    ifscCode?: string | null
+    bankAccountHolder?: string | null
+    payoutMethod?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    messageReceived?: MessageUncheckedCreateNestedManyWithoutReceiverInput
+    messageSent?: MessageUncheckedCreateNestedManyWithoutSenderInput
+    notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    orders?: OrderUncheckedCreateNestedManyWithoutBuyerInput
+    products?: ProductsUncheckedCreateNestedManyWithoutSellerInput
+    conversations?: ConversationUncheckedCreateNestedManyWithoutParticipantsInput
+  }
+
+  export type UserCreateOrConnectWithoutPayoutAuditLogsInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutPayoutAuditLogsInput, UserUncheckedCreateWithoutPayoutAuditLogsInput>
+  }
+
+  export type UserUpsertWithoutPayoutAuditLogsInput = {
+    update: XOR<UserUpdateWithoutPayoutAuditLogsInput, UserUncheckedUpdateWithoutPayoutAuditLogsInput>
+    create: XOR<UserCreateWithoutPayoutAuditLogsInput, UserUncheckedCreateWithoutPayoutAuditLogsInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutPayoutAuditLogsInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutPayoutAuditLogsInput, UserUncheckedUpdateWithoutPayoutAuditLogsInput>
+  }
+
+  export type UserUpdateWithoutPayoutAuditLogsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    role?: UserUpdateroleInput | $Enums.Role[]
+    isVerified?: BoolFieldUpdateOperationsInput | boolean
+    fundAccountId?: NullableStringFieldUpdateOperationsInput | string | null
+    whatsappNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    upiId?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    ifscCode?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
+    payoutMethod?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    messageReceived?: MessageUpdateManyWithoutReceiverNestedInput
+    messageSent?: MessageUpdateManyWithoutSenderNestedInput
+    notifications?: NotificationUpdateManyWithoutUserNestedInput
+    orders?: OrderUpdateManyWithoutBuyerNestedInput
+    products?: ProductsUpdateManyWithoutSellerNestedInput
+    conversations?: ConversationUpdateManyWithoutParticipantsNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutPayoutAuditLogsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    role?: UserUpdateroleInput | $Enums.Role[]
+    isVerified?: BoolFieldUpdateOperationsInput | boolean
+    fundAccountId?: NullableStringFieldUpdateOperationsInput | string | null
+    whatsappNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    upiId?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    ifscCode?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
+    payoutMethod?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    messageReceived?: MessageUncheckedUpdateManyWithoutReceiverNestedInput
+    messageSent?: MessageUncheckedUpdateManyWithoutSenderNestedInput
+    notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    orders?: OrderUncheckedUpdateManyWithoutBuyerNestedInput
+    products?: ProductsUncheckedUpdateManyWithoutSellerNestedInput
+    conversations?: ConversationUncheckedUpdateManyWithoutParticipantsNestedInput
   }
 
   export type MessageCreateManyReceiverInput = {
@@ -21542,6 +23411,12 @@ export namespace Prisma {
     isSold?: boolean
     ticketQuantity?: number
     ticketPartner: string
+  }
+
+  export type PayoutAuditLogCreateManyUserInput = {
+    id?: string
+    changedAt?: Date | string
+    changeDetails: string
   }
 
   export type MessageUpdateWithoutReceiverInput = {
@@ -21786,6 +23661,24 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type PayoutAuditLogUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    changedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    changeDetails?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type PayoutAuditLogUncheckedUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    changedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    changeDetails?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type PayoutAuditLogUncheckedUpdateManyWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    changedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    changeDetails?: StringFieldUpdateOperationsInput | string
+  }
+
   export type OrderItemCreateManyProductInput = {
     id?: string
     orderId: string
@@ -22028,6 +23921,12 @@ export namespace Prisma {
     role?: UserUpdateroleInput | $Enums.Role[]
     isVerified?: BoolFieldUpdateOperationsInput | boolean
     fundAccountId?: NullableStringFieldUpdateOperationsInput | string | null
+    whatsappNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    upiId?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    ifscCode?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
+    payoutMethod?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     messageReceived?: MessageUpdateManyWithoutReceiverNestedInput
@@ -22035,6 +23934,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     orders?: OrderUpdateManyWithoutBuyerNestedInput
     products?: ProductsUpdateManyWithoutSellerNestedInput
+    payoutAuditLogs?: PayoutAuditLogUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutConversationsInput = {
@@ -22045,6 +23945,12 @@ export namespace Prisma {
     role?: UserUpdateroleInput | $Enums.Role[]
     isVerified?: BoolFieldUpdateOperationsInput | boolean
     fundAccountId?: NullableStringFieldUpdateOperationsInput | string | null
+    whatsappNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    upiId?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    ifscCode?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
+    payoutMethod?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     messageReceived?: MessageUncheckedUpdateManyWithoutReceiverNestedInput
@@ -22052,6 +23958,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     orders?: OrderUncheckedUpdateManyWithoutBuyerNestedInput
     products?: ProductsUncheckedUpdateManyWithoutSellerNestedInput
+    payoutAuditLogs?: PayoutAuditLogUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateManyWithoutConversationsInput = {
@@ -22062,6 +23969,12 @@ export namespace Prisma {
     role?: UserUpdateroleInput | $Enums.Role[]
     isVerified?: BoolFieldUpdateOperationsInput | boolean
     fundAccountId?: NullableStringFieldUpdateOperationsInput | string | null
+    whatsappNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    upiId?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    ifscCode?: NullableStringFieldUpdateOperationsInput | string | null
+    bankAccountHolder?: NullableStringFieldUpdateOperationsInput | string | null
+    payoutMethod?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }

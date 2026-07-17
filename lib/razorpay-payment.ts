@@ -55,6 +55,7 @@ async function sendSellerPaidNotification(order: NonNullable<Awaited<ReturnType<
   await sendNotification({
     email: seller.email,
     phone: seller.phone,
+    whatsappNumber: seller.whatsappNumber,
     subject: `Buyer paid for ${eventName}`,
     html: `
       <h1>Buyer payment secured</h1>

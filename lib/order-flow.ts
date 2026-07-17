@@ -5,7 +5,7 @@ type PrismaLike = Prisma.TransactionClient | Prisma.DefaultPrismaClient;
 export const SELLER_TIMEOUT_MINUTES = 30;
 export const TRANSFER_GRACE_MINUTES = 5;
 export const EVIDENCE_TIMEOUT_MINUTES = 15;
-export const BUYER_AUTO_CONFIRM_MINUTES = 10;
+export const BUYER_AUTO_CONFIRM_MINUTES = 15;
 
 const legacyStatusMap: Record<string, OrderStatus> = {
   PENDING: "PAYMENT_PENDING",

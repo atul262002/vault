@@ -1,4 +1,3 @@
-"use client"
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -6,7 +5,6 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { ThemeProvider } from "@/components/ui/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { UserContextProvider } from "@/contexts/userContext";
-// import Chatbot from "@/components/chatbotComponents/chat-bot";
 import DraggableChatWidget from "@/components/freeChatBot/draggable-chat-widget";
 
 const geistSans = Geist({
@@ -19,7 +17,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const metadata: Metadata = {
+export const metadata: Metadata = {
   title: "Vault",
   description: "Vault keeps your payment safe whether you are shopping online or buying from someone from OLX, Facebook, Instagram, or elsewhere",
 };

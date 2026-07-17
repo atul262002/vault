@@ -12,52 +12,68 @@ export async function GET() {
 
     const userEmail = user.emailAddresses[0].emailAddress;
 
-    // Get user by email to find seller id
     const dbUser = await prisma.user.findUnique({ where: { email: userEmail } });
     if (!dbUser) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
     const sellerId = dbUser.id;
 
-    // Get all completed order items where product seller is the logged-in user
-    const [completedStats] = await prisma.$queryRaw<Array<{
-      totalEarnings: number | null;
-      vaultRecovered: number | bigint;
-    }>>(Prisma.sql`
-      SELECT
-        COALESCE(SUM(oi."price"), 0) AS "totalEarnings",
-        COUNT(*) AS "vaultRecovered"
-      FROM "OrderItem" oi
-      JOIN "Products" p ON p."id" = oi."productId"
-      JOIN "Order" o ON o."id" = oi."orderId"
-      WHERE p."sellerId" = ${sellerId}
-        AND o."status" = ${"COMPLETE"}::"OrderStatus"
-    `);
+    // Earnings: SUM(ticket price - 2.5% seller fee) for COMPLETE orders
+    const [earningsRow] = await prisma.$queryRaw<Array<{ totalEarnings: number | null }>>(
+      Prisma.sql`
+        SELECT
+          COALESCE(SUM(oi."price" - COALESCE(o."platformFeeSeller", 0)), 0) AS "totalEarnings"
+        FROM "OrderItem" oi
+        JOIN "Products" p ON p."id" = oi."productId"
+        JOIN "Order" o ON o."id" = oi."orderId"
+        WHERE p."sellerId" = ${sellerId}
+          AND o."status" = ${"COMPLETE"}::"OrderStatus"
+      `
+    );
 
-    const [pendingStats] = await prisma.$queryRaw<Array<{
-      pendingAmount: number | null;
-    }>>(Prisma.sql`
-      SELECT COALESCE(SUM(oi."price"), 0) AS "pendingAmount"
-      FROM "OrderItem" oi
-      JOIN "Products" p ON p."id" = oi."productId"
-      JOIN "Order" o ON o."id" = oi."orderId"
-      WHERE p."sellerId" = ${sellerId}
-        AND o."status" IN (
-          ${"PAYMENT_PENDING"}::"OrderStatus",
-          ${"FUNDS_HELD"}::"OrderStatus",
-          ${"TRANSFER_PENDING"}::"OrderStatus",
-          ${"TRANSFER_IN_PROGRESS"}::"OrderStatus",
-          ${"AWAITING_CONFIRMATION"}::"OrderStatus"
-        )
-    `);
+    // Pending: SUM held in escrow including DISPUTED status
+    const [pendingRow] = await prisma.$queryRaw<Array<{ pendingAmount: number | null }>>(
+      Prisma.sql`
+        SELECT COALESCE(SUM(oi."price"), 0) AS "pendingAmount"
+        FROM "OrderItem" oi
+        JOIN "Products" p ON p."id" = oi."productId"
+        JOIN "Order" o ON o."id" = oi."orderId"
+        WHERE p."sellerId" = ${sellerId}
+          AND o."status" IN (
+            ${"PAYMENT_PENDING"}::"OrderStatus",
+            ${"FUNDS_HELD"}::"OrderStatus",
+            ${"TRANSFER_PENDING"}::"OrderStatus",
+            ${"TRANSFER_IN_PROGRESS"}::"OrderStatus",
+            ${"AWAITING_CONFIRMATION"}::"OrderStatus",
+            ${"DISPUTED"}::"OrderStatus"
+          )
+      `
+    );
 
-    const totalEarnings = Number(completedStats?.totalEarnings ?? 0);
-    const pendingAmount = Number(pendingStats?.pendingAmount ?? 0);
-    const vaultRecovered = Number(completedStats?.vaultRecovered ?? 0);
+    // Recovered: SUM refunded to buyers where dispute was decided REFUND (seller lost)
+    const [recoveredRow] = await prisma.$queryRaw<Array<{ vaultRecovered: number | null }>>(
+      Prisma.sql`
+        SELECT COALESCE(SUM(o."totalAmount"), 0) AS "vaultRecovered"
+        FROM "Order" o
+        JOIN "OrderItem" oi ON oi."orderId" = o."id"
+        JOIN "Products" p ON p."id" = oi."productId"
+        JOIN "Dispute" d ON d."transactionId" = o."id"
+        WHERE p."sellerId" = ${sellerId}
+          AND o."status" = ${"REFUNDED"}::"OrderStatus"
+          AND d."decisionType" = ${"REFUND"}::"DisputeDecisionType"
+      `
+    );
 
-    return NextResponse.json({ totalEarnings, pendingAmount, vaultRecovered });
+    return NextResponse.json({
+      totalEarnings: Number(earningsRow?.totalEarnings ?? 0),
+      pendingAmount: Number(pendingRow?.pendingAmount ?? 0),
+      vaultRecovered: Number(recoveredRow?.vaultRecovered ?? 0),
+    });
   } catch (error: unknown) {
-    console.error("Internal server error:", error);
-    return NextResponse.json({ message: error instanceof Error ? error.message : "Internal server error" }, { status: 500 });
+    console.error("Stats API error:", error);
+    return NextResponse.json(
+      { message: error instanceof Error ? error.message : "Internal server error" },
+      { status: 500 }
+    );
   }
 }

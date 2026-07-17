@@ -100,7 +100,7 @@ export async function POST(
         });
 
         // Notify Admin/Support
-        const ADMIN_EMAIL = "admin@vault.com"; // Hardcoded as requested
+        const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "writeatul2002@gmail.com";
 
         await import("@/lib/mail").then(({ sendMail }) =>
             sendMail({

@@ -67,22 +67,32 @@ interface Order {
 }
 
 export default function OrderDetailsPage() {
-    const { user, isLoaded } = useUser();
+    const { isLoaded } = useUser();
     const params = useParams();
     const [order, setOrder] = useState<Order | null>(null);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
-    const [evidenceLink, setEvidenceLink] = useState(""); // For simplicity, using text input for URL. Ideally file upload.
+    const [evidenceLink, setEvidenceLink] = useState("");
     const [timeLeft, setTimeLeft] = useState<string | null>(null);
-
-    // Fetch Order Details (Need to implement a GET route for this or use server component)
-    // For now assuming we can fetch via a GET route. I'll need to create this GET route if it doesn't exist.
-    // Actually, standard is to use server components in App Router, but for dynamic updates client is easier.
-    // I will check if get-orders supports fetching by ID or I'll add a new GET route.
+    // DB user ID (UUID) — Clerk user.id is NOT the DB id
+    const [dbUserId, setDbUserId] = useState<string | null>(null);
 
     useEffect(() => {
-        // Placeholder fetching logic - I need to ensure the GET route exists. 
-        // I'll create `app/api/orders/[orderId]/route.ts` next.
+        const fetchDbUser = async () => {
+            try {
+                const res = await fetch("/api/user/get-user");
+                if (res.ok) {
+                    const data = await res.json();
+                    setDbUserId(data.id);
+                }
+            } catch {
+                console.error("Failed to fetch DB user id");
+            }
+        };
+        fetchDbUser();
+    }, []);
+
+    useEffect(() => {
         const fetchOrder = async () => {
             try {
                 const response = await axios.get(`/api/orders/${params.orderId}`);
@@ -106,12 +116,15 @@ export default function OrderDetailsPage() {
             let targetTime: number | null = null;
             const currentStatus = normalizeStatus(order.status);
 
-            if (currentStatus === "FUNDS_HELD" && order.transferStartedAt) {
-                targetTime = new Date(order.transferStartedAt).getTime() + 30 * 60000;
+            // FUNDS_HELD: seller has 30 min from when funds were captured (transferPendingAt)
+            if (currentStatus === "FUNDS_HELD" && (order as any).transferPendingAt) {
+                targetTime = new Date((order as any).transferPendingAt).getTime() + 30 * 60000;
+            // TRANSFER_IN_PROGRESS: seller has 15 min to upload evidence from when they started
             } else if (currentStatus === "TRANSFER_IN_PROGRESS" && order.transferStartedAt) {
                 targetTime = new Date(order.transferStartedAt).getTime() + 15 * 60000;
+            // AWAITING_CONFIRMATION: buyer has 15 min to confirm
             } else if (currentStatus === "AWAITING_CONFIRMATION" && order.evidenceUploadedAt) {
-                targetTime = new Date(order.evidenceUploadedAt).getTime() + 10 * 60000;
+                targetTime = new Date(order.evidenceUploadedAt).getTime() + 15 * 60000;
             } else {
                 setTimeLeft(null);
                 return;
@@ -221,11 +234,12 @@ export default function OrderDetailsPage() {
     };
 
     if (loading || !isLoaded) return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin" /></div>;
-    if (!order || !user) return <div className="text-center p-10">Order not found or unauthorized</div>;
+    if (!order) return <div className="text-center p-10">Order not found or unauthorized</div>;
 
     const currentStatus = normalizeStatus(order.status);
-    const isBuyer = user.id === order.buyerId;
-    const isSeller = user.id === order.orderItems[0]?.product.sellerId;
+    // Use DB user ID (UUID) for comparison — Clerk user.id is NOT the DB id
+    const isBuyer = dbUserId !== null && dbUserId === order.buyerId;
+    const isSeller = dbUserId !== null && dbUserId === order.orderItems[0]?.product.sellerId;
 
     return (
         <div className="max-w-4xl mx-auto p-6 space-y-6">
@@ -322,7 +336,7 @@ export default function OrderDetailsPage() {
                                                 <Clock className="w-5 h-5" />
                                                 <span className="font-bold">Time Remaining: {timeLeft}</span>
                                             </div>
-                                            <p className="text-sm text-yellow-700">Please complete the transfer and upload evidence before the timer expires (60 mins) to avoid cancellation.</p>
+                                            <p className="text-sm text-yellow-700">Please complete the transfer and upload evidence before the timer expires (15 mins) to avoid cancellation.</p>
                                         </div>
 
                                         <div className="space-y-2">
@@ -347,7 +361,7 @@ export default function OrderDetailsPage() {
                                         <Clock className="h-4 w-4 text-blue-600" />
                                         <AlertTitle>Waiting for Buyer Confirmation</AlertTitle>
                                         <AlertDescription>
-                                            You have uploaded evidence. The buyer has 30 minutes to confirm receipt. Funds will be released upon confirmation.
+                                            You have uploaded evidence. The buyer has 15 minutes to confirm receipt. Funds will be released upon confirmation.
                                             {timeLeft && timeLeft !== "Expired" && <div className="mt-2 font-mono font-bold">Auto-approval in: {timeLeft}</div>}
                                             {timeLeft === "Expired" && (
                                                 <div className="mt-4">
