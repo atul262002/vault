@@ -16,11 +16,17 @@ export async function POST(request:NextRequest){
         })
 
         if(!existingUser){
+            // Normalize Clerk phone to +91XXXXXXXXXX
+            const rawPhone = user.phoneNumbers?.[0]?.phoneNumber ?? "";
+            const digits = rawPhone.replace(/\D/g, "");
+            const tenDigit = digits.startsWith("91") && digits.length === 12 ? digits.slice(2) : digits;
+            const normalizedPhone = /^[6-9]\d{9}$/.test(tenDigit) ? `+91${tenDigit}` : (rawPhone || undefined);
+
             await prisma.user.create({
                 data:{
                     name:user.firstName,
                     email:email,
-                    phone:user.phoneNumbers?.[0].phoneNumber,
+                    phone: normalizedPhone,
                     role:["SELLER"],
                     isVerified:true       
                 }

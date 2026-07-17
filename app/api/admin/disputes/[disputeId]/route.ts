@@ -18,13 +18,13 @@ export async function GET(
       order: {
         include: {
           statusHistory: { orderBy: { createdAt: "asc" } },
-          buyer: { select: { id: true, name: true, email: true, phone: true } },
+          buyer: { select: { id: true, name: true, email: true, phone: true, whatsappNumber: true } },
           payment: { select: { paymentId: true, status: true } },
           orderItems: {
             include: {
               product: {
                 include: {
-                  seller: { select: { id: true, name: true, email: true, phone: true, fundAccountId: true } },
+                  seller: { select: { id: true, name: true, email: true, phone: true, whatsappNumber: true, fundAccountId: true } },
                 },
               },
             },

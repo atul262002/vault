@@ -14,16 +14,29 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { account_type, phoneNumber } = body;
+    const { account_type, phoneNumber: rawPhone } = body;
     console.log("📦 Received body:", body);
 
-    if (!account_type || !phoneNumber) {
+    if (!account_type || !rawPhone) {
       console.log("❌ Missing required fields");
       return NextResponse.json(
         { message: "Account type and phone number are required" },
         { status: 400 }
       );
     }
+
+    // Normalize phone number to +91XXXXXXXXXX
+    const digitsOnly = rawPhone.replace(/\D/g, "");
+    const tenDigit = digitsOnly.startsWith("91") && digitsOnly.length === 12
+      ? digitsOnly.slice(2)   // strip leading 91 country code
+      : digitsOnly;
+    if (!/^[6-9]\d{9}$/.test(tenDigit)) {
+      return NextResponse.json(
+        { message: "Enter a valid 10-digit Indian mobile number (starts with 6–9)" },
+        { status: 400 }
+      );
+    }
+    const phoneNumber = `+91${tenDigit}`;
 
     // Validate based on account type
     if (account_type === "bank_account") {
