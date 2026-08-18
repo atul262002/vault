@@ -56,6 +56,8 @@ interface Order {
     platformFeeSeller: number;
     ticketPartner: string | null;
     transferDetails: string | null;
+    receiverName: string | null;
+    receiverPhone: string | null;
     transferStartedAt: string | null;
     evidenceUploadedAt: string | null;
     evidenceUrl: string | null;
@@ -285,21 +287,27 @@ export default function OrderDetailsPage() {
                         </div>
                     </div>
 
-                    {/* TRANSFER DETAILS */}
-                    {(order.ticketPartner || order.transferDetails) && (
-                        <div className="border p-4 rounded-lg bg-blue-50">
-                            <h3 className="font-semibold mb-2 text-blue-800">Transfer Instructions</h3>
-                            <div className="grid grid-cols-2 gap-4 text-sm">
-                                {order.ticketPartner && (
-                                    <div>
-                                        <span className="text-gray-500 block">Ticket Partner</span>
-                                        <span className="font-medium">{order.ticketPartner}</span>
+                    {/* RECEIVER / TRANSFER DETAILS — highlighted for seller */}
+                    {(order.receiverName || order.receiverPhone || order.ticketPartner) && (
+                        <div className="border-2 border-indigo-300 bg-indigo-50 p-4 rounded-lg">
+                            <h3 className="font-bold text-indigo-900 mb-3 text-sm uppercase tracking-wide">📋 Transfer To</h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                {order.receiverName && (
+                                    <div className="bg-white rounded-lg border border-indigo-200 px-4 py-3">
+                                        <span className="text-xs text-indigo-500 font-medium block mb-1">Receiver Name</span>
+                                        <span className="font-bold text-gray-900 text-base">{order.receiverName}</span>
                                     </div>
                                 )}
-                                {order.transferDetails && (
-                                    <div>
-                                        <span className="text-gray-500 block">Transfer To</span>
-                                        <span className="font-medium">{order.transferDetails}</span>
+                                {order.receiverPhone && (
+                                    <div className="bg-white rounded-lg border border-indigo-200 px-4 py-3">
+                                        <span className="text-xs text-indigo-500 font-medium block mb-1">Phone / WhatsApp</span>
+                                        <span className="font-bold text-gray-900 text-base">{order.receiverPhone}</span>
+                                    </div>
+                                )}
+                                {order.ticketPartner && (
+                                    <div className="bg-white rounded-lg border border-indigo-200 px-4 py-3">
+                                        <span className="text-xs text-indigo-500 font-medium block mb-1">Ticket Partner</span>
+                                        <span className="font-bold text-gray-900 text-base">{order.ticketPartner}</span>
                                     </div>
                                 )}
                             </div>
@@ -392,7 +400,7 @@ export default function OrderDetailsPage() {
                                         </Alert>
                                         <Button onClick={handleCancelOrder} disabled={actionLoading} variant="outline" className="w-full border-red-300 text-red-700 hover:bg-red-50">
                                             {actionLoading ? <Loader2 className="animate-spin mr-2" /> : <TimerOff className="mr-2 h-4 w-4" />}
-                                            Cancel Order and Refund Buyer
+                                            Cancel order and initiate refund
                                         </Button>
                                     </div>
                                 )}

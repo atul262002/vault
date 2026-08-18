@@ -1,5 +1,8 @@
 import nodemailer from 'nodemailer';
 
+const SMTP_PORT = Number(process.env.SMTP_PORT ?? 587);
+const FROM_ADDRESS = process.env.SMTP_FROM_EMAIL ?? 'support@vaultpay.co.in';
+
 export const sendMail = async ({
     to,
     subject,
@@ -12,8 +15,8 @@ export const sendMail = async ({
     try {
         const transporter = nodemailer.createTransport({
             host: process.env.SMTP_HOST,
-            port: Number(process.env.SMTP_PORT),
-            secure: false, // true for 465, false for other ports
+            port: SMTP_PORT,
+            secure: SMTP_PORT === 465, // true for port 465 (SSL), false for 587 (TLS/STARTTLS)
             auth: {
                 user: process.env.SMTP_USER,
                 pass: process.env.SMTP_PASS,
@@ -21,7 +24,7 @@ export const sendMail = async ({
         });
 
         const info = await transporter.sendMail({
-            from: '"Vault App" <no-reply@vaultapp.com>', // sender address
+            from: `"Vault" <${FROM_ADDRESS}>`,
             to, // list of receivers
             subject, // Subject line
             html, // html body

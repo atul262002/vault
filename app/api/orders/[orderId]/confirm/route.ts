@@ -134,6 +134,9 @@ export async function POST(
                         <p><strong>Payout Status:</strong> ${payout.status}</p>
                         <br/>
                         <p>Your payout has been initiated through RazorpayX.</p>
+                        <p style="background:#f0fdf4;border-left:4px solid #16a34a;padding:12px;border-radius:4px;">
+                          <strong>💰 Payment Credit Timeline:</strong> Your earnings of <strong>₹${netPayout}</strong> will be credited to your registered bank account or UPI within <strong>24–48 hours</strong>, subject to your bank's processing time.
+                        </p>
                         <p><a href="${orderPortalUrl}">Open this order in Vault</a></p>
                     `
                 })

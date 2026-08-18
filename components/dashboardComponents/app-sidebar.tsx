@@ -81,11 +81,6 @@ const data = {
       icon: MessageCircle,
 
     },
-    {
-      title: "Admin",
-      url: "/admin",
-      icon: ShieldCheck,
-    },
   ],
   projects: [
     {

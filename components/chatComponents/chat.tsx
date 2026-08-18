@@ -1,9 +1,10 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import axios from "axios"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { ArrowLeft, Send } from "lucide-react"
 
 interface Message {
   id: string
@@ -24,7 +25,8 @@ const Chat: React.FC<ChatProps> = ({ receiverId, productId, conversationId }) =>
   const [input, setInput] = useState("")
   const [userId, setUserId] = useState<string>()
   const [sending, setSending] = useState<boolean>(false)
-  const [conversation, setConversation] = useState<any>(null);
+  const [conversation, setConversation] = useState<any>(null)
+  const bottomRef = useRef<HTMLDivElement>(null)
 
   const fetchMessages = useCallback(async () => {
     try {
@@ -33,31 +35,21 @@ const Chat: React.FC<ChatProps> = ({ receiverId, productId, conversationId }) =>
       setUserId(currentUser.id)
 
       if (conversationId) {
-        // Fetch conversation details
         const convRes = await fetch(`/api/conversations/${conversationId}`);
-        if (convRes.ok) {
-          setConversation(await convRes.json());
-        }
+        if (convRes.ok) setConversation(await convRes.json());
 
         const res = await fetch(`/api/conversations/${conversationId}/messages`);
         if (res.ok) {
-          const data = await res.json();
-          setMessages(data);
-
-          // Mark as read
+          setMessages(await res.json());
           await fetch(`/api/conversations/${conversationId}/read`, { method: "POST" });
         }
       } else if (productId && receiverId) {
         const res = await fetch(`/api/messages/conversation`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            productId,
-            receiverId,
-          }),
+          body: JSON.stringify({ productId, receiverId }),
         })
-        const data = await res.json()
-        setMessages(data)
+        setMessages(await res.json())
       }
     } catch (error) {
       console.error("Error fetching messages:", error)
@@ -66,20 +58,12 @@ const Chat: React.FC<ChatProps> = ({ receiverId, productId, conversationId }) =>
 
   const sendMessage = async () => {
     if (!input.trim() || sending) return
-
     setSending(true)
     try {
       if (conversationId) {
-        await axios.post(`/api/conversations/${conversationId}/messages`, {
-          content: input,
-          // receiverId might be inferred by backend for existing conversation
-        });
+        await axios.post(`/api/conversations/${conversationId}/messages`, { content: input });
       } else if (productId && receiverId) {
-        await axios.post("/api/messages/send", {
-          content: input,
-          receiverId,
-          productId
-        })
+        await axios.post("/api/messages/send", { content: input, receiverId, productId })
       }
       setInput("")
       await fetchMessages()
@@ -96,44 +80,80 @@ const Chat: React.FC<ChatProps> = ({ receiverId, productId, conversationId }) =>
     return () => clearInterval(interval)
   }, [fetchMessages])
 
+  // Auto-scroll to bottom on new messages
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages])
+
   const otherParticipant = conversation?.participants?.find((p: any) => p.id !== userId);
   const displayName = otherParticipant?.name || otherParticipant?.email || "Chat";
 
   return (
-    <div className="flex flex-col p-4 border rounded-lg bg-transparent shadow-sm w-full mx-auto h-full">
-      {/* Mobile Header */}
-      <div className="md:hidden flex items-center gap-3 pb-4 border-b mb-4">
-        <Button variant="ghost" size="icon" onClick={() => window.location.href = '/chats'}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-arrow-left"><path d="m12 19-7-7 7-7" /><path d="M19 12H5" /></svg>
+    <div className="flex flex-col h-full w-full bg-[#0d0d0d]">
+      {/* Mobile back header */}
+      <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-white/10 bg-[#111]">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-gray-400 hover:text-white hover:bg-white/10"
+          onClick={() => window.location.href = "/chats"}
+        >
+          <ArrowLeft className="h-5 w-5" />
         </Button>
-        <span className="font-semibold text-lg">{displayName}</span>
+        <span className="font-semibold text-white">{displayName}</span>
       </div>
 
-      <div className="flex-1 space-y-2 overflow-y-auto pr-2">
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`w-fit max-w-[80%] p-2 rounded text-sm ${msg.senderId === userId
-              ? "bg-neutral-200 text-black ml-auto"
-              : "bg-blue-600 text-white mr-auto"
-              }`}
-          >
-            {msg.content}
+      {/* Desktop name header */}
+      <div className="hidden md:flex items-center px-5 py-3 border-b border-white/10 bg-[#111]">
+        <span className="font-semibold text-white">{displayName}</span>
+      </div>
+
+      {/* Messages area */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
+        {messages.length === 0 && (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-gray-600 text-sm">No messages yet. Say hello!</p>
           </div>
-        ))}
+        )}
+        {messages.map((msg) => {
+          const isMine = msg.senderId === userId;
+          return (
+            <div
+              key={msg.id}
+              className={`flex ${isMine ? "justify-end" : "justify-start"}`}
+            >
+              <div
+                className={`max-w-[75%] px-3 py-2 rounded-2xl text-sm leading-relaxed break-words
+                  ${isMine
+                    ? "bg-indigo-600 text-white rounded-br-sm"
+                    : "bg-white/10 text-gray-100 rounded-bl-sm"
+                  }`}
+              >
+                {msg.content}
+              </div>
+            </div>
+          );
+        })}
+        <div ref={bottomRef} />
       </div>
 
-      <div className="mt-4 flex gap-2">
+      {/* Input bar */}
+      <div className="px-4 py-3 border-t border-white/10 bg-[#111] flex gap-2 items-center">
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type a message..."
-          className="flex-1"
+          className="flex-1 bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus-visible:ring-indigo-500 rounded-xl"
           disabled={sending}
-          onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+          onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
         />
-        <Button onClick={sendMessage} disabled={sending}>
-          {sending ? "Sending..." : "Send"}
+        <Button
+          onClick={sendMessage}
+          disabled={sending || !input.trim()}
+          size="icon"
+          className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl h-10 w-10 flex-shrink-0 disabled:opacity-40"
+        >
+          <Send className="h-4 w-4" />
         </Button>
       </div>
     </div>

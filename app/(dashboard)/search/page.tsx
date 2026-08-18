@@ -1,7 +1,7 @@
 "use client"
 import UserSearch from "@/components/userComponents/user-search";
 import { useEffect, useState } from "react";
-
+import { MessageSquarePlus } from "lucide-react";
 
 export default function SearchPage() {
     const [userId, setUserId] = useState<string>()
@@ -17,9 +17,17 @@ export default function SearchPage() {
     }, [])
 
     return (
-        <main className="w-full h-full p-4 bg-secondary flex flex-col items-center justify-center mx-auto">
-            <h1 className="text-2xl font-bold mb-4">Search Users to Chat</h1>
-            <UserSearch currentUserId={userId ?? ""} />
+        <main className="w-full min-h-full p-6 bg-[#0d0d0d] flex flex-col items-center">
+            <div className="w-full max-w-lg">
+                <div className="flex items-center gap-3 mb-6">
+                    <MessageSquarePlus className="h-6 w-6 text-indigo-400" />
+                    <div>
+                        <h1 className="text-lg font-semibold text-white">New Chat</h1>
+                        <p className="text-xs text-gray-500">Search for a user to start a conversation</p>
+                    </div>
+                </div>
+                <UserSearch currentUserId={userId ?? ""} />
+            </div>
         </main>
     );
 }

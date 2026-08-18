@@ -136,7 +136,7 @@ export async function POST(
             return NextResponse.json({ message: "Evidence upload time has not expired yet" }, { status: 400 });
         }
 
-        // SCENARIO 3: Buyer confirmation timeout (10 mins)
+        // SCENARIO 3: Buyer confirmation timeout (15 mins)
         if (normalizedStatus === "AWAITING_CONFIRMATION" && order.evidenceUploadedAt) {
             const confirmationDeadline = new Date(order.evidenceUploadedAt).getTime() + BUYER_AUTO_CONFIRM_MINUTES * 60000;
 
@@ -197,7 +197,7 @@ export async function POST(
                     const subject = `Order #${order.id} completed: Auto-confirmation`;
                     const htmlBase = `
                         <h1>Order Completed</h1>
-                        <p>The seller claimed completion. The buyer did not confirm within the 10-minute window.</p>
+                        <p>The seller claimed completion. The buyer did not confirm within the 15-minute window.</p>
                         <p><strong>Order ID:</strong> ${order.id}</p>
                         <p><strong>Payout ID:</strong> ${payout.id}</p>
                         <p><strong>Payout Status:</strong> ${payout.status}</p>

@@ -14,9 +14,7 @@ export function TotalRevenueCard({ revenue, title }: { revenue: number, title: s
             <Separator />
             <CardContent>
                 <p className="text-3xl sm:text-4xl md:text-5xl font-bold dark:text-white text-black">
-                    {title === "Vault Recovered"
-                        ? revenue.toLocaleString()
-                        : `₹${revenue.toLocaleString()}`}
+                    ₹{revenue.toLocaleString()}
                 </p>
             </CardContent>
         </Card>

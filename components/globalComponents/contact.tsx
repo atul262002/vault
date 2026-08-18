@@ -60,6 +60,8 @@ const ContactSection = () => {
               <a href="/privacy" className="hover:underline">Privacy policy</a>
               <span>·</span>
               <a href="/cancellation-policy" className="hover:underline">Cancellation policy</a>
+              <span>·</span>
+              <a href="/admin" className="hover:underline text-gray-600 transition-colors">Admin</a>
             </p>
           </div>
 

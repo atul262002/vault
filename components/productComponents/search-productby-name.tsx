@@ -1145,6 +1145,7 @@ type ListingProduct = Products & {
 const ProductSearchByName = () => {
   const [searchValue, setSearchValue] = useState("");
   const debouncedSearch = useDebounce<string>(searchValue, 500);
+  const [isSearching, setIsSearching] = useState(false);
   const [products, setProducts] = useState<ListingProduct[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<ListingProduct | null>(null);
   const [isRazorpayLoading, setIsRazorpayLoading] = useState(false);
@@ -1171,12 +1172,17 @@ const ProductSearchByName = () => {
     const fetchByName = async () => {
       if (!debouncedSearch.trim()) {
         setProducts([]);
+        setIsSearching(false);
         return;
       }
 
+      setIsSearching(true);
       try {
+        // If input looks like a listing ID (starts with VLT-), send as-is for exact match.
+        // Backend ILIKE on listingId will match it case-insensitively.
+        const isListingId = debouncedSearch.trim().toUpperCase().startsWith("VLT-");
         const response = await axios.post("/api/product/get-product-by-name", {
-          name: debouncedSearch,
+          name: isListingId ? debouncedSearch.trim().toUpperCase() : debouncedSearch,
         });
 
         if (response.status === 200) {
@@ -1184,6 +1190,8 @@ const ProductSearchByName = () => {
         }
       } catch (error) {
         console.error("Error fetching products by name:", error);
+      } finally {
+        setIsSearching(false);
       }
     };
 
@@ -1571,13 +1579,23 @@ const ProductSearchByName = () => {
       )}
 
       <div className="relative mb-8 max-w-md mx-auto">
-        <Search className="absolute h-4 w-4 left-4 text-muted-foreground top-3.5" />
+        {isSearching ? (
+          <Loader2 className="absolute h-4 w-4 left-4 text-indigo-500 top-3.5 animate-spin" />
+        ) : (
+          <Search className="absolute h-4 w-4 left-4 text-muted-foreground top-3.5" />
+        )}
         <Input
+          id="dashboard-search-input"
           placeholder="Search by event name or listing ID"
-          className="pl-10 bg-primary/10 h-12"
+          className="pl-10 bg-primary/10 h-12 transition-colors focus:bg-white"
           onChange={onChange}
           value={searchValue}
         />
+        {searchValue.toUpperCase().startsWith("VLT-") && (
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-medium text-indigo-500 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded">
+            ID search
+          </span>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -1620,9 +1638,9 @@ const ProductSearchByName = () => {
       {selectedProduct && (
         <Dialog open={!!selectedProduct} onOpenChange={() => setSelectedProduct(null)}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogTitle className="text-2xl font-bold">Event Details</DialogTitle>
+            <DialogTitle className="text-2xl font-bold dark:text-gray-100">Event Details</DialogTitle>
             <div className="space-y-6 mt-4">
-              <div className="w-full flex justify-center bg-gray-50 rounded-lg p-4">
+              <div className="w-full flex justify-center bg-gray-50 dark:bg-slate-800 rounded-lg p-4">
                 <div className="relative w-full max-w-md h-64">
                   <Image
                     src={selectedProduct.imageUrl || selectedProduct.image || ""}
@@ -1634,52 +1652,59 @@ const ProductSearchByName = () => {
               </div>
 
               <div className="border-t pt-4">
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                  {selectedProduct.name}
-                </h2>
-                <p className="text-sm text-gray-500">Listing ID: {selectedProduct.listingId}</p>
-                <div className="bg-gray-50 p-3 rounded-md mb-4 space-y-1">
-                  <div className="flex justify-between text-sm text-gray-600">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                  <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+                    {selectedProduct.name}
+                  </h2>
+                  <div className="inline-flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-md border border-indigo-200">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-indigo-500">Listing ID</span>
+                    <span className="font-mono font-bold text-sm">{selectedProduct.listingId}</span>
+                  </div>
+                </div>
+                <div className="bg-gray-50 dark:bg-slate-800 p-3 rounded-md mb-4 space-y-1">
+                  <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300">
                     <span>Ticket Price:</span>
                     <span>₹{selectedProduct.price.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between text-sm text-gray-600">
+                  <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300">
                     <span>Platform Fee (5%):</span>
                     <span>₹{(selectedProduct.price * 0.05).toFixed(2)}</span>
                   </div>
-                  <div className="border-t border-gray-200 pt-2 mt-2 flex justify-between items-center font-bold text-lg text-green-600">
+                  <div className="border-t border-gray-200 dark:border-slate-700 pt-2 mt-2 flex justify-between items-center font-bold text-lg text-green-600 dark:text-green-400">
                     <span>Total to Pay:</span>
                     <span>₹{(selectedProduct.price * 1.05).toFixed(2)}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+              <div className="rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/30 p-4 text-sm text-amber-900 dark:text-amber-200">
                 <p className="font-semibold">Please read all event details carefully before initiating payment.</p>
                 <p className="mt-2">Vault is only a mediator ensuring tickets are safely traded. We are not affiliated with the event organisers or ticketing partners.</p>
               </div>
 
               <div className="space-y-3 mb-4">
                 <div>
-                  <label className="text-sm font-medium">Receiver&apos;s Name</label>
+                  <label className="text-sm font-medium dark:text-gray-200">Receiver&apos;s Name</label>
                   <Input
                     placeholder="Enter the name the seller should transfer to"
                     value={receiverName}
                     onChange={(e) => setReceiverName(e.target.value)}
+                    className="dark:bg-slate-800 dark:border-slate-700"
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Receiver&apos;s Phone Number</label>
+                  <label className="text-sm font-medium dark:text-gray-200">Receiver&apos;s Phone Number</label>
                   <Input
                     placeholder="Enter the transfer phone number"
                     value={receiverPhone}
                     onChange={(e) => setReceiverPhone(e.target.value)}
+                    className="dark:bg-slate-800 dark:border-slate-700"
                   />
                 </div>
-                <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                <div className="rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 p-4 text-sm text-red-700 dark:text-red-400">
                   Please ensure the details entered here are correct. Disputes arising from incorrectly entered details will not be considered.
                 </div>
-                <div className="flex items-start gap-3 rounded-xl border p-4">
+                <div className="flex items-start gap-3 rounded-xl border dark:border-slate-700 p-4">
                   <input
                     id="termsAccepted"
                     type="checkbox"
@@ -1687,8 +1712,8 @@ const ProductSearchByName = () => {
                     checked={termsAccepted}
                     onChange={(e) => setTermsAccepted(e.target.checked)}
                   />
-                  <label htmlFor="termsAccepted" className="text-sm text-gray-700">
-                    I have reviewed all event details and understand that if I do not respond within 10 minutes after seller evidence is submitted, the order will auto-complete.
+                  <label htmlFor="termsAccepted" className="text-sm text-gray-700 dark:text-gray-300">
+                    I have reviewed all event details and understand that if I do not respond within 15 minutes after seller evidence is submitted, the order will auto-complete.
                   </label>
                 </div>
               </div>

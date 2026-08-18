@@ -1006,8 +1006,8 @@ import Image from "next/image";
 import { Products } from "@prisma/client";
 import { Button } from "../ui/button";
 import { useDebounce } from "@/hooks/use-debounce";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useUser } from "@clerk/nextjs";
+import PurchaseDialog from "./purchase-dialog";
 
 type RazorpayPaymentResponse = {
   razorpay_order_id: string;
@@ -1044,7 +1044,7 @@ const ProductSearchByName = () => {
   const razorpayLoaderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const razorpayStatusPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastCompletedPaymentIdRef = useRef<string | null>(null);
-  // NEW: payment success state
+  // payment success state
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [successPaymentId, setSuccessPaymentId] = useState("");
 
@@ -1210,7 +1210,7 @@ const ProductSearchByName = () => {
     }, 2500);
   };
 
-  async function handlePurchase(product: Products) {
+  async function handlePurchase(product: Products, receiverName?: string, receiverPhone?: string) {
     if (!isRazorpayReady) {
       alert("Payment system is loading. Please wait a moment and try again.");
       return;
@@ -1263,6 +1263,8 @@ const ProductSearchByName = () => {
           notes: {
             product_id: product.id,
             product_name: product.name,
+            receiver_name: receiverName || "",
+            receiver_phone: receiverPhone || "",
           },
           theme: {
             color: "#3399cc",
@@ -1391,7 +1393,7 @@ const ProductSearchByName = () => {
 
   return (
     <div className="p-4 max-w-7xl mx-auto">
-      {/* Loading overlay — shown while opening Razorpay OR verifying payment */}
+      {/* Loading overlay */}
       {isRazorpayLoading && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4">
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-2xl">
@@ -1408,7 +1410,7 @@ const ProductSearchByName = () => {
         </div>
       )}
 
-      {/* ✅ Payment success overlay */}
+      {/* Payment success overlay */}
       {paymentSuccess && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-4">
           <div className="w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-2xl">
@@ -1433,41 +1435,57 @@ const ProductSearchByName = () => {
         </div>
       )}
 
+      {/* Search bar */}
       <div className="relative mb-8 max-w-md mx-auto">
         <Search className="absolute h-4 w-4 left-4 text-muted-foreground top-3.5" />
         <Input
-          placeholder="Search products by name"
+          id="product-search-input"
+          placeholder="Search by event name or listing ID"
           className="pl-10 bg-primary/10 h-12"
           onChange={onChange}
           value={searchValue}
         />
+        {searchValue.toUpperCase().startsWith("VLT-") && (
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-medium text-indigo-500 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded">
+            ID search
+          </span>
+        )}
       </div>
 
+      {/* Product grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {products.map((product) => (
           <div
             onClick={() => setSelectedProduct(product)}
             key={product.id}
-            className="border rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer bg-white"
+            className="group border border-white/10 rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer bg-[#111] hover:border-white/20"
           >
-            <div className="relative h-48 w-full bg-gray-100">
+            <div className="relative h-44 w-full bg-gray-900">
               <Image
                 src={product.imageUrl || product.image || ""}
                 alt={product.name}
                 fill
-                className="object-cover"
+                className="object-cover group-hover:scale-105 transition-transform duration-300"
               />
+              {product.isSold && (
+                <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                  <span className="text-red-400 font-bold text-sm border border-red-400 px-3 py-1 rounded-full">SOLD OUT</span>
+                </div>
+              )}
             </div>
             <div className="p-4">
-              <h2 className="text-lg font-semibold line-clamp-2 min-h-[3.5rem]">
+              <h2 className="text-sm font-semibold text-white line-clamp-2 min-h-[2.5rem]">
                 {product.name}
               </h2>
-              <p className="text-green-600 font-bold text-xl mt-2">
-                ₹{product.price.toFixed(2)}
+              <p className="text-green-400 font-bold text-base mt-2">
+                ₹{product.price.toFixed(0)}
               </p>
-              <p className="text-sm text-gray-600 mt-2 line-clamp-2">
-                {product.description}
-              </p>
+              {product.categoryId && (
+                <p className="text-xs text-gray-500 mt-1 truncate">{product.categoryId}</p>
+              )}
+              {product.estimatedTime && (
+                <p className="text-xs text-gray-600 mt-0.5">{product.estimatedTime}</p>
+              )}
             </div>
           </div>
         ))}
@@ -1475,131 +1493,27 @@ const ProductSearchByName = () => {
 
       {searchValue && products.length === 0 && (
         <div className="text-center mt-12">
-          <p className="text-gray-500 text-lg">No products found.</p>
+          <p className="text-gray-500 text-lg">No tickets found.</p>
           <p className="text-gray-400 text-sm mt-2">Try searching with different keywords</p>
         </div>
       )}
 
-      {selectedProduct && (
-        <Dialog open={!!selectedProduct} onOpenChange={() => setSelectedProduct(null)}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogTitle className="text-2xl font-bold">Product Details</DialogTitle>
-            <div className="space-y-6 mt-4">
-              <div className="w-full flex justify-center bg-gray-50 rounded-lg p-4">
-                <div className="relative w-full max-w-md h-64">
-                  <Image
-                    src={selectedProduct.imageUrl || selectedProduct.image || ""}
-                    alt={selectedProduct.name}
-                    fill
-                    className="rounded-lg shadow-md object-contain"
-                  />
-                </div>
-              </div>
-
-              <div className="border-t pt-4">
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                  {selectedProduct.name}
-                </h2>
-                <div className="bg-gray-50 p-3 rounded-md mb-4 space-y-1">
-                  <div className="flex justify-between text-sm text-gray-600">
-                    <span>Product Price:</span>
-                    <span>₹{selectedProduct.price.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm text-gray-600">
-                    <span>Platform Fee (5%):</span>
-                    <span>₹{(selectedProduct.price * 0.05).toFixed(2)}</span>
-                  </div>
-                  <div className="border-t border-gray-200 pt-2 mt-2 flex justify-between items-center font-bold text-lg text-green-600">
-                    <span>Total to Pay:</span>
-                    <span>₹{(selectedProduct.price * 1.05).toFixed(2)}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4">
-                {selectedProduct.isSold ? (
-                  <Button
-                    variant="ghost"
-                    disabled
-                    className="flex-1 bg-red-100 text-red-600 font-bold border border-red-200"
-                  >
-                    Sold Out
-                  </Button>
-                ) : (
-                  <Button
-                    variant="default"
-                    onClick={() => handlePurchase(selectedProduct)}
-                    disabled={isRazorpayLoading || !isRazorpayReady}
-                    className="flex-1"
-                  >
-                    {isRazorpayLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Opening Payment...
-                      </>
-                    ) : !isRazorpayReady ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Loading Payment...
-                      </>
-                    ) : (
-                      "Purchase Now"
-                    )}
-                  </Button>
-                )}
-                <Button
-                  variant="outline"
-                  className="flex-1 w-full"
-                  onClick={() => handleChat(selectedProduct.sellerId)}
-                  disabled={isChatLoading}
-                >
-                  {isChatLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating Chat...
-                    </>
-                  ) : (
-                    "Chat with Seller"
-                  )}
-                </Button>
-              </div>
-
-              <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                <p className="text-gray-700 leading-relaxed">
-                  {selectedProduct.description}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-blue-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-1">Refund Period</p>
-                  <p className="font-semibold text-gray-800">
-                    {selectedProduct.refundPeriod}
-                  </p>
-                </div>
-                <div className="bg-purple-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-1">Category</p>
-                  <p className="font-semibold text-gray-800">
-                    {selectedProduct.categoryId}
-                  </p>
-                </div>
-              </div>
-
-              <div className="text-center pt-4 border-t">
-                <p className="text-gray-400 text-xs">
-                  Listed on {new Date(selectedProduct.createdAt).toLocaleDateString('en-IN', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </p>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
+      {/* 3-section Purchase Dialog */}
+      <PurchaseDialog
+        product={selectedProduct}
+        onClose={() => setSelectedProduct(null)}
+        onPay={(receiverName, receiverPhone) => {
+          if (selectedProduct) handlePurchase(selectedProduct, receiverName, receiverPhone);
+        }}
+        isRazorpayLoading={isRazorpayLoading}
+        isRazorpayReady={isRazorpayReady}
+        defaultName={user?.fullName || user?.firstName || ""}
+        defaultPhone={user?.phoneNumbers?.[0]?.phoneNumber || ""}
+      />
     </div>
   );
 };
 
 export default ProductSearchByName;
+
+

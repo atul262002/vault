@@ -8,8 +8,20 @@ export async function POST(req: Request) {
   const search = typeof name === "string" ? name.trim() : "";
 
   try {
-    const normalizedSearch = `%${search}%`;
+    // Smart detection: if query starts with VLT- treat it as a listing ID exact match
+    const isListingId = search.toUpperCase().startsWith("VLT-");
+    
+    // Split search into words for robust partial matching
+    const searchWords = search.split(/\s+/).filter(Boolean);
     const normalizedListingSearch = `%${search.toUpperCase()}%`;
+
+    // Generate dynamic conditions for ILIKE on multiple words
+    const nameConditions = searchWords.length > 0 
+      ? Prisma.join(
+          searchWords.map(word => Prisma.sql`p."name" ILIKE ${'%' + word + '%'}`),
+          ' AND '
+        )
+      : Prisma.sql`1=1`;
 
     const productRows = await prisma.$queryRaw<Array<{
       id: string;
@@ -50,8 +62,10 @@ export async function POST(req: Request) {
             )
         )
         AND (
-          p."name" ILIKE ${normalizedSearch}
-          OR p."listingId" ILIKE ${normalizedListingSearch}
+          ${isListingId
+            ? Prisma.sql`p."listingId" = ${search.toUpperCase()}`
+            : Prisma.sql`(${nameConditions}) OR p."listingId" ILIKE ${normalizedListingSearch}`
+          }
         )
       ORDER BY p."createdAt" DESC
     `);
