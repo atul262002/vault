@@ -64,21 +64,21 @@ export default function PurchaseDialog({
 
   return (
     <Dialog open={!!product} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-lg w-full max-h-[95vh] p-0 overflow-hidden flex flex-col bg-[#0d0d0d] border border-white/10 text-white rounded-2xl">
+      <DialogContent className="max-w-lg w-full max-h-[95vh] p-0 overflow-hidden flex flex-col bg-background border border-border text-foreground rounded-2xl">
         {/* Header */}
-        <div className="flex items-center gap-3 px-5 pt-5 pb-3 border-b border-white/10">
+        <div className="flex items-center gap-3 px-5 pt-5 pb-3 border-b border-border">
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-white/10 transition text-gray-400 hover:text-white"
+            className="p-1.5 rounded-full hover:bg-secondary transition text-muted-foreground hover:text-foreground"
             aria-label="Go back"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div>
-            <DialogTitle className="text-base font-semibold text-white leading-tight">
+            <DialogTitle className="text-base font-semibold text-foreground leading-tight">
               Purchase Ticket
             </DialogTitle>
-            <p className="text-xs text-gray-400 mt-0.5">Complete your purchase safely</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Complete your purchase safely</p>
           </div>
         </div>
 
@@ -87,13 +87,13 @@ export default function PurchaseDialog({
 
           {/* ── SECTION 1: Event Details ── */}
           <section>
-            <h2 className="text-sm font-semibold text-gray-300 mb-3">
+            <h2 className="text-sm font-semibold text-muted-foreground mb-3">
               1. Event Details
             </h2>
-            <div className="rounded-xl border border-white/10 bg-white/5 overflow-hidden">
+            <div className="rounded-xl border border-border bg-secondary overflow-hidden">
               {/* Image + name row */}
-              <div className="flex gap-3 p-4 border-b border-white/8">
-                <div className="relative w-24 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-white/10">
+              <div className="flex gap-3 p-4 border-b border-border">
+                <div className="relative w-24 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-secondary">
                   {(product.imageUrl || product.image) ? (
                     <Image
                       src={product.imageUrl || product.image || ""}
@@ -103,17 +103,17 @@ export default function PurchaseDialog({
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <Ticket className="h-8 w-8 text-gray-600" />
+                      <Ticket className="h-8 w-8 text-muted-foreground" />
                     </div>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-white text-sm leading-snug line-clamp-3">
+                  <p className="font-semibold text-foreground text-sm leading-snug line-clamp-3">
                     {product.name}
                   </p>
                   <p className="mt-2 text-lg font-bold text-green-400">
                     ₹{(product.price * 1.05).toFixed(0)}
-                    <span className="text-xs font-normal text-gray-500 ml-1">(incl. 5% fee)</span>
+                    <span className="text-xs font-normal text-muted-foreground ml-1">(incl. 5% fee)</span>
                   </p>
                 </div>
               </div>
@@ -141,10 +141,10 @@ export default function PurchaseDialog({
 
           {/* ── SECTION 2: Receiver Details ── */}
           <section>
-            <h2 className="text-sm font-semibold text-gray-300 mb-1">
+            <h2 className="text-sm font-semibold text-muted-foreground mb-1">
               2. Receiver Details
             </h2>
-            <p className="text-xs text-gray-500 mb-3">
+            <p className="text-xs text-muted-foreground mb-3">
               Tickets will be transferred as per details entered below.
             </p>
 
@@ -158,9 +158,9 @@ export default function PurchaseDialog({
 
             <div className="space-y-3">
               {/* Name field */}
-              <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+              <div className="rounded-xl border border-border bg-secondary px-4 py-3">
                 <div className="flex justify-between items-center mb-1">
-                  <span className="text-xs text-gray-400 font-medium">Name</span>
+                  <span className="text-xs text-muted-foreground font-medium">Name</span>
                   <button
                     onClick={() => setEditingName(!editingName)}
                     className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 transition"
@@ -176,19 +176,19 @@ export default function PurchaseDialog({
                     onBlur={() => setEditingName(false)}
                     autoFocus
                     placeholder="Enter full name"
-                    className="w-full bg-transparent text-sm text-white placeholder-gray-600 outline-none border-b border-white/20 pb-1"
+                    className="w-full bg-transparent text-sm text-foreground placeholder-gray-600 outline-none border-b border-border pb-1"
                   />
                 ) : (
-                  <p className="text-sm text-white">
-                    {receiverName || <span className="text-gray-600">Enter full name</span>}
+                  <p className="text-sm text-foreground">
+                    {receiverName || <span className="text-muted-foreground">Enter full name</span>}
                   </p>
                 )}
               </div>
 
               {/* Phone field */}
-              <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+              <div className="rounded-xl border border-border bg-secondary px-4 py-3">
                 <div className="flex justify-between items-center mb-1">
-                  <span className="text-xs text-gray-400 font-medium">Registered Phone Number (with WhatsApp)</span>
+                  <span className="text-xs text-muted-foreground font-medium">Registered Phone Number (with WhatsApp)</span>
                   <button
                     onClick={() => setEditingPhone(!editingPhone)}
                     className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 flex-shrink-0 ml-2 transition"
@@ -204,14 +204,14 @@ export default function PurchaseDialog({
                     onBlur={() => setEditingPhone(false)}
                     autoFocus
                     placeholder="Enter WhatsApp number"
-                    className="w-full bg-transparent text-sm text-white placeholder-gray-600 outline-none border-b border-white/20 pb-1"
+                    className="w-full bg-transparent text-sm text-foreground placeholder-gray-600 outline-none border-b border-border pb-1"
                   />
                 ) : (
-                  <p className="text-sm text-white">
-                    {receiverPhone || <span className="text-gray-600">Enter WhatsApp number</span>}
+                  <p className="text-sm text-foreground">
+                    {receiverPhone || <span className="text-muted-foreground">Enter WhatsApp number</span>}
                   </p>
                 )}
-                <p className="text-xs text-gray-500 mt-1.5">
+                <p className="text-xs text-muted-foreground mt-1.5">
                   Ticket transfer &amp; dispute resolution will happen on this number.
                 </p>
               </div>
@@ -220,7 +220,7 @@ export default function PurchaseDialog({
 
           {/* ── SECTION 3: Rules & Payment ── */}
           <section>
-            <h2 className="text-sm font-semibold text-gray-300 mb-3">
+            <h2 className="text-sm font-semibold text-muted-foreground mb-3">
               3. Rules &amp; Payment
             </h2>
 
@@ -236,8 +236,8 @@ export default function PurchaseDialog({
                   <div key={i} className="flex gap-2.5 items-start">
                     <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="text-sm text-gray-200">{item.title}</p>
-                      {item.sub && <p className="text-xs text-gray-500 mt-0.5">{item.sub}</p>}
+                      <p className="text-sm text-foreground">{item.title}</p>
+                      {item.sub && <p className="text-xs text-muted-foreground mt-0.5">{item.sub}</p>}
                     </div>
                   </div>
                 ))}
@@ -247,7 +247,7 @@ export default function PurchaseDialog({
             {/* 3.2 T&C link */}
             <div className="mb-4">
               <p className="text-xs font-semibold text-green-400 mb-1">3.2 Terms &amp; Conditions</p>
-              <p className="text-xs text-gray-400 mb-1.5">For full details, please read our complete Terms &amp; Conditions.</p>
+              <p className="text-xs text-muted-foreground mb-1.5">For full details, please read our complete Terms &amp; Conditions.</p>
               <a
                 href="/Vault_Buyer_Terms_and_Conditions.pdf"
                 target="_blank"
@@ -268,7 +268,7 @@ export default function PurchaseDialog({
                   onChange={(e) => setTermsAccepted(e.target.checked)}
                   className="mt-0.5 h-4 w-4 rounded accent-green-500 cursor-pointer"
                 />
-                <span className="text-sm text-gray-300 group-hover:text-white transition select-none">
+                <span className="text-sm text-muted-foreground group-hover:text-foreground transition select-none">
                   I have read the terms carefully and comply
                 </span>
               </label>
@@ -277,14 +277,14 @@ export default function PurchaseDialog({
         </div>
 
         {/* ── Sticky bottom: Proceed to Payment ── */}
-        <div className="px-5 pb-5 pt-3 border-t border-white/10 bg-[#0d0d0d]">
+        <div className="px-5 pb-5 pt-3 border-t border-border bg-background">
           <Button
             onClick={handleProceed}
             disabled={!canPay}
             className={`w-full h-12 text-sm font-semibold rounded-xl transition-all duration-200 flex flex-col items-center justify-center gap-0.5
               ${canPay
-                ? "bg-white text-black hover:bg-gray-100"
-                : "bg-white/10 text-gray-600 cursor-not-allowed"
+                ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                : "bg-secondary text-muted-foreground cursor-not-allowed"
               }`}
           >
             {isRazorpayLoading ? (
@@ -303,7 +303,7 @@ export default function PurchaseDialog({
             )}
           </Button>
           {!termsAccepted && (
-            <p className="text-center text-xs text-gray-600 mt-2">
+            <p className="text-center text-xs text-muted-foreground mt-2">
               Accept terms above to enable payment
             </p>
           )}
@@ -322,7 +322,7 @@ function DetailRow({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
     <div className="flex items-center gap-3 px-4 py-2.5">
       <span className="flex-shrink-0">{icon}</span>
-      <span className="text-sm text-gray-200">{label}</span>
+      <span className="text-sm text-foreground">{label}</span>
     </div>
   );
 }

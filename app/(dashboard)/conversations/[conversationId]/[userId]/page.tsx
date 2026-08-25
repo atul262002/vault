@@ -18,7 +18,7 @@ export default function ChatPage({ params }: ChatPageProps) {
         fetchUser()
     }, [])
     return (
-        <main className="h-screen w-full bg-white">
+        <main className="h-screen w-full bg-background">
             <Chat conversationId={params.conversationId} currentUserId={currentId ?? ""} recieverId={params.userId}/>
         </main>
     );

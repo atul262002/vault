@@ -58,20 +58,20 @@ function EditableField({
   };
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+    <div className="rounded-xl border border-border bg-secondary px-4 py-3">
       <div className="flex items-center justify-between mb-1">
-        <div className="flex items-center gap-2 text-xs text-gray-400">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
           {icon}
           {label}
         </div>
         {locked ? (
-          <span className="flex items-center gap-1 text-xs text-gray-600">
+          <span className="flex items-center gap-1 text-xs text-muted-foreground">
             <Lock className="h-3 w-3" /> Locked
           </span>
         ) : editing ? (
           <div className="flex gap-2">
             <button onClick={() => { setEditing(false); setDraft(value); }}
-              className="text-gray-500 hover:text-gray-300 transition">
+              className="text-muted-foreground hover:text-gray-300 transition">
               <X className="h-3.5 w-3.5" />
             </button>
             <button onClick={handleSave} disabled={saving}
@@ -92,16 +92,16 @@ function EditableField({
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           autoFocus
-          className="w-full bg-transparent text-sm text-white placeholder-gray-600 outline-none border-b border-white/20 pb-1 mt-1"
+          className="w-full bg-transparent text-sm text-foreground placeholder-gray-600 outline-none border-b border-border pb-1 mt-1"
           placeholder={placeholder}
           onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") { setEditing(false); setDraft(value); } }}
         />
       ) : (
-        <p className="text-sm text-white mt-0.5">
-          {value || <span className="text-gray-600 italic">{placeholder}</span>}
+        <p className="text-sm text-foreground mt-0.5">
+          {value || <span className="text-muted-foreground italic">{placeholder}</span>}
         </p>
       )}
-      {hint && !editing && <p className="text-[10px] text-gray-600 mt-1">{hint}</p>}
+      {hint && !editing && <p className="text-[10px] text-muted-foreground mt-1">{hint}</p>}
     </div>
   );
 }
@@ -199,7 +199,7 @@ export default function ProfilePage() {
   if (fetching) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader className="h-6 w-6 animate-spin text-gray-500" />
+        <Loader className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -210,8 +210,8 @@ export default function ProfilePage() {
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-white">Profile</h1>
-          <p className="text-xs text-gray-500 mt-0.5">Manage your account, contacts & payout details</p>
+          <h1 className="text-xl font-bold text-foreground">Profile</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">Manage your account, contacts & payout details</p>
         </div>
         <Button
           variant="ghost"
@@ -226,25 +226,25 @@ export default function ProfilePage() {
 
       {/* ── Account Info (read-only) ── */}
       <section className="space-y-2">
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-widest px-1">Account</h2>
-        <div className="rounded-xl border border-white/10 bg-white/5 divide-y divide-white/5">
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest px-1">Account</h2>
+        <div className="rounded-xl border border-border bg-secondary divide-y divide-white/5">
           {data?.name && (
             <div className="flex items-center gap-3 px-4 py-3">
-              <User className="h-4 w-4 text-gray-500" />
+              <User className="h-4 w-4 text-muted-foreground" />
               <div>
-                <p className="text-[10px] text-gray-500">Full Name</p>
-                <p className="text-sm text-white font-medium">{data.name}</p>
+                <p className="text-[10px] text-muted-foreground">Full Name</p>
+                <p className="text-sm text-foreground font-medium">{data.name}</p>
               </div>
             </div>
           )}
           {data?.email && (
             <div className="flex items-center gap-3 px-4 py-3">
-              <Mail className="h-4 w-4 text-gray-500" />
+              <Mail className="h-4 w-4 text-muted-foreground" />
               <div className="flex-1">
-                <p className="text-[10px] text-gray-500">Email</p>
-                <p className="text-sm text-white font-medium">{data.email}</p>
+                <p className="text-[10px] text-muted-foreground">Email</p>
+                <p className="text-sm text-foreground font-medium">{data.email}</p>
               </div>
-              <span className="text-[10px] text-gray-600 flex items-center gap-1">
+              <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                 <Lock className="h-3 w-3" /> Managed by Clerk
               </span>
             </div>
@@ -254,7 +254,7 @@ export default function ProfilePage() {
 
       {/* ── Contact Details (editable) ── */}
       <section className="space-y-2">
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-widest px-1">Contact Details</h2>
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest px-1">Contact Details</h2>
         <div className="space-y-2">
           <EditableField
             label="WhatsApp Number"
@@ -287,12 +287,12 @@ export default function ProfilePage() {
 
       {/* ── Payout Details ── */}
       <section className="space-y-3">
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-widest px-1">Payout Details</h2>
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest px-1">Payout Details</h2>
 
-        <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-4">
+        <div className="rounded-xl border border-border bg-secondary p-4 space-y-4">
           <div className="flex items-center gap-2">
             <CreditCard className="h-4 w-4 text-indigo-400" />
-            <p className="text-sm font-medium text-white">How you receive earnings</p>
+            <p className="text-sm font-medium text-foreground">How you receive earnings</p>
           </div>
 
           <form onSubmit={handleSavePayout} className="space-y-4">
@@ -306,7 +306,7 @@ export default function ProfilePage() {
                   className={`flex items-center justify-center gap-2 rounded-lg border p-2.5 text-sm font-medium transition-all ${
                     payoutMethod === m
                       ? "border-indigo-500 bg-indigo-600 text-white"
-                      : "border-white/10 bg-white/5 text-gray-400 hover:bg-white/10"
+                      : "border-border bg-secondary text-muted-foreground hover:bg-secondary/80"
                   }`}
                 >
                   {m === "UPI" ? <Smartphone className="h-4 w-4" /> : <Building2 className="h-4 w-4" />}
@@ -317,14 +317,14 @@ export default function ProfilePage() {
 
             {payoutMethod === "UPI" && (
               <div>
-                <label className="block text-xs text-gray-400 mb-1.5">UPI ID</label>
+                <label className="block text-xs text-muted-foreground mb-1.5">UPI ID</label>
                 <Input
                   placeholder="yourname@upi"
                   value={upiId}
                   onChange={(e) => setUpiId(e.target.value)}
-                  className="bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus-visible:ring-indigo-500"
+                  className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-indigo-500"
                 />
-                <p className="mt-1 text-[10px] text-gray-600">e.g. john@oksbi, john@paytm</p>
+                <p className="mt-1 text-[10px] text-muted-foreground">e.g. john@oksbi, john@paytm</p>
               </div>
             )}
 
@@ -336,12 +336,12 @@ export default function ProfilePage() {
                   { label: "IFSC Code", value: ifscCode, setter: setIfscCode, placeholder: "e.g. SBIN0001234", transform: (v: string) => v.toUpperCase() },
                 ].map(({ label, value, setter, placeholder, transform }) => (
                   <div key={label}>
-                    <label className="block text-xs text-gray-400 mb-1.5">{label}</label>
+                    <label className="block text-xs text-muted-foreground mb-1.5">{label}</label>
                     <Input
                       placeholder={placeholder}
                       value={value}
                       onChange={(e) => setter(transform(e.target.value))}
-                      className="bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus-visible:ring-indigo-500"
+                      className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-indigo-500"
                     />
                   </div>
                 ))}
@@ -367,7 +367,7 @@ export default function ProfilePage() {
       <section className="space-y-2">
         <button
           onClick={() => setShowAudit(!showAudit)}
-          className="w-full flex items-center justify-between px-1 text-xs font-semibold text-gray-500 uppercase tracking-widest hover:text-gray-400 transition"
+          className="w-full flex items-center justify-between px-1 text-xs font-semibold text-muted-foreground uppercase tracking-widest hover:text-muted-foreground transition"
         >
           <div className="flex items-center gap-2">
             <History className="h-3.5 w-3.5" />
@@ -377,9 +377,9 @@ export default function ProfilePage() {
         </button>
 
         {showAudit && (
-          <div className="rounded-xl border border-white/10 bg-[#111] overflow-hidden">
+          <div className="rounded-xl border border-border bg-card overflow-hidden">
             {/* Explanation */}
-            <div className="flex gap-2 items-start px-4 py-3 border-b border-white/5 bg-emerald-950/20">
+            <div className="flex gap-2 items-start px-4 py-3 border-b border-border bg-emerald-950/20">
               <ShieldCheck className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
               <p className="text-xs text-emerald-300 leading-relaxed">
                 Vault maintains a permanent, tamper-proof log of all payout and contact changes. This ensures accountability — if any fraudulent activity occurs, we have a complete trail of who changed what and when.
@@ -387,7 +387,7 @@ export default function ProfilePage() {
             </div>
 
             {auditLogs.length === 0 ? (
-              <p className="text-center text-gray-600 text-xs py-6">No changes recorded yet.</p>
+              <p className="text-center text-muted-foreground text-xs py-6">No changes recorded yet.</p>
             ) : (
               <ul className="divide-y divide-white/5 max-h-72 overflow-y-auto">
                 {auditLogs.map((log) => (
@@ -395,7 +395,7 @@ export default function ProfilePage() {
                     <div className="mt-0.5 h-1.5 w-1.5 rounded-full bg-indigo-400 flex-shrink-0 mt-2" />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-gray-300 break-words">{log.changeDetails}</p>
-                      <p className="text-[10px] text-gray-600 mt-0.5">
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
                         {new Date(log.changedAt).toLocaleString("en-IN", {
                           day: "numeric", month: "short", year: "numeric",
                           hour: "2-digit", minute: "2-digit"

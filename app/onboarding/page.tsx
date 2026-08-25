@@ -49,8 +49,8 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-secondary p-4">
+      <div className="w-full max-w-md bg-card text-card-foreground rounded-2xl shadow-xl p-8">
         {/* Icon */}
         <div className="flex justify-center mb-6">
           <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center">
@@ -58,21 +58,21 @@ export default function OnboardingPage() {
           </div>
         </div>
 
-        <h1 className="text-2xl font-bold text-center text-gray-900 mb-1">
+        <h1 className="text-2xl font-bold text-center text-card-foreground mb-1">
           One last thing 👋
         </h1>
-        <p className="text-center text-gray-500 text-sm mb-6">
+        <p className="text-center text-muted-foreground text-sm mb-6">
           Add your WhatsApp number to complete your profile. This is required to receive
           transaction updates and assist with dispute resolution.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="whatsapp" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="whatsapp" className="block text-sm font-medium text-card-foreground mb-1">
               WhatsApp Number
             </label>
             <div className="flex gap-2">
-              <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
+              <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-muted text-muted-foreground text-sm">
                 +91
               </span>
               <Input

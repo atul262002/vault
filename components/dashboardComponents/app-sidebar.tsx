@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   SquareTerminal,
   ShoppingBag,
+  User,
 } from "lucide-react"
 import { NavMain } from "@/components/dashboardComponents/nav-main"
 import { NavProjects } from "@/components/dashboardComponents/nav-projects"
@@ -80,6 +81,11 @@ const data = {
       url: "/chats",
       icon: MessageCircle,
 
+    },
+    {
+      title: "Profile & Payouts",
+      url: "/profile",
+      icon: User,
     },
   ],
   projects: [

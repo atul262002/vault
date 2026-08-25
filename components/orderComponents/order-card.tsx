@@ -193,13 +193,13 @@ export default function OrderCard({ order, currentUser, refreshOrders }: OrderCa
     };
 
     return (
-        <Card className="w-full shadow-md border border-gray-200 p-4">
+        <Card className="w-full shadow-md border border-border p-4">
             <CardHeader className="p-0 pb-4">
                 <CardTitle className="flex justify-between items-center text-lg">
                     <span>Order #{order.id.slice(0, 8)}</span>
-                    <span className={`px-2 py-1 rounded text-xs font-bold ${order.status === 'COMPLETE' ? 'bg-green-100 text-green-800' :
-                            ["DISPUTED", "SELLER_TIMEOUT", "EVIDENCE_TIMEOUT"].includes(order.status) ? 'bg-red-100 text-red-800' :
-                                'bg-blue-100 text-blue-800'
+                    <span className={`px-2 py-1 rounded text-xs font-bold ${order.status === 'COMPLETE' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100' :
+                            ["DISPUTED", "SELLER_TIMEOUT", "EVIDENCE_TIMEOUT"].includes(order.status) ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-100' :
+                                'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100'
                         }`}>
                         {order.status.replace(/_/g, " ")}
                     </span>
@@ -208,12 +208,12 @@ export default function OrderCard({ order, currentUser, refreshOrders }: OrderCa
             <CardContent className="p-0 space-y-4">
                 {order.orderItems.map((item) => (
                     <div key={item.id} className="flex gap-4">
-                        <div className="w-20 h-20 relative bg-gray-100 rounded">
+                        <div className="w-20 h-20 relative bg-muted rounded">
                             {item.product.imageUrl && <Image src={item.product.imageUrl} alt={item.product.name} fill className="object-cover rounded" />}
                         </div>
                         <div>
                             <p className="font-semibold">{item.product.name}</p>
-                            <p className="text-sm text-gray-500">₹{item.price}</p>
+                            <p className="text-sm text-muted-foreground">₹{item.price}</p>
                             <p className="text-sm">Listing: {item.product.listingId || item.productId}</p>
                             <p className="text-sm">Event date: {item.product.estimatedTime}</p>
                             <p className="text-sm">Event time: {item.product.refundPeriod}</p>
@@ -223,30 +223,30 @@ export default function OrderCard({ order, currentUser, refreshOrders }: OrderCa
 
                 {/* Seller Actions */}
                 {isSeller && (
-                    <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
+                    <div className="mt-4 p-4 bg-secondary rounded-lg border">
                         <h4 className="font-bold mb-4">Seller Action Required</h4>
 
                         {/* RECEIVER DETAILS — highlighted for seller */}
                         {(order.receiverName || order.receiverPhone || order.orderItems[0]?.product.ticketPartner) && (
-                            <div className="border-2 border-indigo-300 bg-indigo-50 p-4 rounded-lg mb-6">
-                                <h3 className="font-bold text-indigo-900 mb-3 text-sm uppercase tracking-wide">📋 Transfer To</h3>
+                            <div className="border-2 border-indigo-300 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950 p-4 rounded-lg mb-6">
+                                <h3 className="font-bold text-indigo-900 dark:text-indigo-100 mb-3 text-sm uppercase tracking-wide">📋 Transfer To</h3>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                     {order.receiverName && (
-                                        <div className="bg-white rounded-lg border border-indigo-200 px-3 py-2">
-                                            <span className="text-xs text-indigo-500 font-medium block mb-1">Receiver Name</span>
-                                            <span className="font-bold text-gray-900 text-sm">{order.receiverName}</span>
+                                        <div className="bg-card rounded-lg border border-indigo-200 dark:border-indigo-900 px-3 py-2">
+                                            <span className="text-xs text-indigo-500 dark:text-indigo-400 font-medium block mb-1">Receiver Name</span>
+                                            <span className="font-bold text-foreground text-sm">{order.receiverName}</span>
                                         </div>
                                     )}
                                     {order.receiverPhone && (
-                                        <div className="bg-white rounded-lg border border-indigo-200 px-3 py-2">
-                                            <span className="text-xs text-indigo-500 font-medium block mb-1">Phone / WhatsApp</span>
-                                            <span className="font-bold text-gray-900 text-sm">{order.receiverPhone}</span>
+                                        <div className="bg-card rounded-lg border border-indigo-200 dark:border-indigo-900 px-3 py-2">
+                                            <span className="text-xs text-indigo-500 dark:text-indigo-400 font-medium block mb-1">Phone / WhatsApp</span>
+                                            <span className="font-bold text-foreground text-sm">{order.receiverPhone}</span>
                                         </div>
                                     )}
                                     {order.orderItems[0]?.product.ticketPartner && (
-                                        <div className="bg-white rounded-lg border border-indigo-200 px-3 py-2">
-                                            <span className="text-xs text-indigo-500 font-medium block mb-1">Ticket Partner</span>
-                                            <span className="font-bold text-gray-900 text-sm">{order.orderItems[0].product.ticketPartner}</span>
+                                        <div className="bg-card rounded-lg border border-indigo-200 dark:border-indigo-900 px-3 py-2">
+                                            <span className="text-xs text-indigo-500 dark:text-indigo-400 font-medium block mb-1">Ticket Partner</span>
+                                            <span className="font-bold text-foreground text-sm">{order.orderItems[0].product.ticketPartner}</span>
                                         </div>
                                     )}
                                 </div>
@@ -255,7 +255,7 @@ export default function OrderCard({ order, currentUser, refreshOrders }: OrderCa
 
                         {order.status === "FUNDS_HELD" && (
                             <div>
-                                <div className="bg-yellow-50 p-3 text-sm text-yellow-800 rounded mb-4">
+                                <div className="bg-yellow-50 dark:bg-yellow-950 p-3 text-sm text-yellow-800 dark:text-yellow-100 rounded mb-4">
                                     <p className="font-bold">PLEASE READ CAREFULLY</p>
                                     <ul className="list-disc ml-4 mt-2 space-y-1">
                                         <li>Transfer the ticket to the buyer using the details provided above.</li>
@@ -282,10 +282,10 @@ export default function OrderCard({ order, currentUser, refreshOrders }: OrderCa
 
                                 <div className="space-y-4">
                                     <ImageKitProvider urlEndpoint={urlEndpoint} publicKey={publicKey}>
-                                        <div className={`border-2 border-dashed border-indigo-300 p-6 flex flex-col items-center justify-center text-center rounded-lg ${isUploading ? 'bg-indigo-50/50' : 'bg-indigo-50/20 hover:bg-indigo-50/50 transition-colors'}`}>
+                                        <div className={`border-2 border-dashed border-indigo-300 dark:border-indigo-800 p-6 flex flex-col items-center justify-center text-center rounded-lg ${isUploading ? 'bg-indigo-50 dark:bg-indigo-950/50 dark:bg-indigo-950/50' : 'bg-indigo-50 dark:bg-indigo-950/20 hover:bg-indigo-50 dark:bg-indigo-950/50 dark:bg-indigo-950/50 dark:bg-indigo-950/20 dark:hover:bg-indigo-950/50 transition-colors'}`}>
                                             <Upload className="w-8 h-8 text-indigo-400 mb-3" />
-                                            <p className="text-sm font-semibold text-indigo-900 mb-1">Upload Screen Recording</p>
-                                            <p className="text-xs text-indigo-500 mb-4">Select or drag & drop your video evidence</p>
+                                            <p className="text-sm font-semibold text-indigo-900 dark:text-indigo-100 mb-1">Upload Screen Recording</p>
+                                            <p className="text-xs text-indigo-500 dark:text-indigo-400 mb-4">Select or drag & drop your video evidence</p>
                                             <IKUpload
                                                 onError={onUploadError}
                                                 onSuccess={onUploadSuccess}
@@ -293,7 +293,7 @@ export default function OrderCard({ order, currentUser, refreshOrders }: OrderCa
                                                 onUploadProgress={(e) => setUploadProgress((e.loaded / e.total) * 100)}
                                                 folder="/evidence"
                                                 authenticator={authenticator}
-                                                className="w-full max-w-xs mx-auto text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"
+                                                className="w-full max-w-xs mx-auto text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 dark:bg-indigo-950 file:text-indigo-700 dark:text-indigo-300 hover:file:bg-indigo-100 dark:bg-indigo-900 cursor-pointer"
                                             />
                                             {isUploading && <Progress value={uploadProgress} className="mt-4 w-full max-w-xs mx-auto" />}
                                         </div>
@@ -312,17 +312,17 @@ export default function OrderCard({ order, currentUser, refreshOrders }: OrderCa
 
                         {/* Seller Done. Waiting for Buyer */}
                         {order.status === "AWAITING_CONFIRMATION" && (
-                            <p className="text-sm text-gray-600">Proof submitted. Waiting for buyer confirmation.</p>
+                            <p className="text-sm text-muted-foreground">Proof submitted. Waiting for buyer confirmation.</p>
                         )}
 
                         {/* Seller — Order Complete */}
                         {order.status === "COMPLETE" && (
-                            <div className="bg-green-50 border border-green-200 p-4 rounded-lg space-y-2">
-                                <p className="font-bold text-green-800">🎉 Order Complete — Payment Released!</p>
-                                <p className="text-sm text-green-700">
+                            <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-900 p-4 rounded-lg space-y-2">
+                                <p className="font-bold text-green-800 dark:text-green-100">🎉 Order Complete — Payment Released!</p>
+                                <p className="text-sm text-green-700 dark:text-green-200">
                                     The buyer has confirmed receipt. Your payout has been initiated.
                                 </p>
-                                <p className="text-sm font-medium text-green-800 bg-green-100 rounded px-3 py-2">
+                                <p className="text-sm font-medium text-green-800 dark:text-green-100 bg-green-100 dark:bg-green-900 rounded px-3 py-2">
                                     💰 Your earnings will be credited to your bank account or UPI within <strong>24–48 hours</strong>, subject to your bank&apos;s processing time.
                                 </p>
                             </div>
@@ -332,14 +332,14 @@ export default function OrderCard({ order, currentUser, refreshOrders }: OrderCa
 
                 {/* Buyer Actions */}
                 {isBuyer && (
-                    <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
+                    <div className="mt-4 p-4 bg-secondary rounded-lg border">
                         {order.status === "FUNDS_HELD" && (
                             <div className="space-y-3">
-                                <div className="bg-blue-50 p-3 text-sm text-blue-800 rounded">
+                                <div className="bg-blue-50 dark:bg-blue-950 p-3 text-sm text-blue-800 dark:text-blue-100 rounded">
                                     Your payment is secured with Vault. The seller has been notified to initiate transfer.
                                     {timeLeft && <p className="mt-2 font-semibold">Seller time remaining: {timeLeft}</p>}
                                 </div>
-                                <Button onClick={handleCancelOrder} variant="outline" disabled={loading} className="w-full border-red-300 text-red-700 hover:bg-red-50">
+                                <Button onClick={handleCancelOrder} variant="outline" disabled={loading} className="w-full border-red-300 dark:border-red-800 text-red-700 dark:text-red-400 hover:bg-red-50 dark:bg-red-950">
                                     Cancel order and initiate refund
                                 </Button>
                             </div>
@@ -347,13 +347,13 @@ export default function OrderCard({ order, currentUser, refreshOrders }: OrderCa
 
                         {order.status === "TRANSFER_IN_PROGRESS" && (
                             <div>
-                                <p className="font-bold text-blue-600 mb-2">Transfer Initiated</p>
+                                <p className="font-bold text-blue-600 dark:text-blue-400 mb-2">Transfer Initiated</p>
                                 {order.transferDelayUntil && new Date(order.transferDelayUntil).getTime() > Date.now() ? (
-                                    <p className="text-gray-500">Seller has initiated the transfer. This stage becomes visible after a short 5-minute delay.</p>
+                                    <p className="text-muted-foreground">Seller has initiated the transfer. This stage becomes visible after a short 5-minute delay.</p>
                                 ) : timeLeft ? (
                                     <p className="text-red-500">Seller has approx {timeLeft} left to complete transfer and upload evidence.</p>
                                 ) : (
-                                    <p className="text-gray-500">Seller is preparing transfer...</p>
+                                    <p className="text-muted-foreground">Seller is preparing transfer...</p>
                                 )}
                             </div>
                         )}
@@ -362,7 +362,7 @@ export default function OrderCard({ order, currentUser, refreshOrders }: OrderCa
                             <div>
                                 <p className="font-bold mb-2">Seller has completed transfer. Please confirm delivery.</p>
                                 <p className="text-red-500 font-bold mb-4">Auto-confirm in: {timeLeft}</p>
-                                <p className="text-xs text-gray-500 mb-4">If no reply within 15 minutes, funds will be released to seller automatically.</p>
+                                <p className="text-xs text-muted-foreground mb-4">If no reply within 15 minutes, funds will be released to seller automatically.</p>
                                 <div className="flex gap-4">
                                     <Button onClick={() => handleConfirm(true)} className="flex-1 bg-green-600 hover:bg-green-700" disabled={loading}>
                                         YES, I Received it
@@ -375,31 +375,31 @@ export default function OrderCard({ order, currentUser, refreshOrders }: OrderCa
                         )}
 
                         {order.status === "COMPLETE" && (
-                            <div className="bg-green-50 p-3 text-green-800 rounded">
+                            <div className="bg-green-50 dark:bg-green-950 p-3 text-green-800 dark:text-green-100 rounded">
                                 Order Complete!
                             </div>
                         )}
 
                         {order.status === "DISPUTED" && (
-                            <div className="bg-red-50 p-3 text-red-800 rounded">
+                            <div className="bg-red-50 dark:bg-red-950 p-3 text-red-800 dark:text-red-100 rounded">
                                 Dispute raised. We are reviewing the evidence.
                             </div>
                         )}
 
                         {order.status === "SELLER_TIMEOUT" && (
-                            <div className="bg-red-50 p-3 text-red-800 rounded">
+                            <div className="bg-red-50 dark:bg-red-950 p-3 text-red-800 dark:text-red-100 rounded">
                                 Seller did not initiate the transfer in time. Refund flow should be triggered.
                             </div>
                         )}
 
                         {order.status === "REFUNDED" && (
-                            <div className="bg-green-50 p-3 text-green-800 rounded">
+                            <div className="bg-green-50 dark:bg-green-950 p-3 text-green-800 dark:text-green-100 rounded">
                                 Order cancelled and refund initiated successfully.
                             </div>
                         )}
 
                         {order.status === "EVIDENCE_TIMEOUT" && (
-                            <div className="bg-amber-50 p-3 text-amber-800 rounded">
+                            <div className="bg-amber-50 dark:bg-amber-950 p-3 text-amber-800 dark:text-amber-100 rounded">
                                 Seller missed the evidence upload deadline. Vault will review the transaction manually.
                             </div>
                         )}

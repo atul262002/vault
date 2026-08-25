@@ -14,7 +14,7 @@ export function Features() {
                         <span className="text-lg md:text-xl text-muted-foreground">
                             ⭐ Product Overview
                         </span>
-                        <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-black dark:text-white drop-shadow-lg dark:drop-shadow-[0_4px_10px_rgba(255,255,255,0.3)] leading-tight">
+                        <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-foreground drop-shadow-lg dark:drop-shadow-[0_4px_10px_rgba(255,255,255,0.3)] leading-tight">
                             A frictionless experience prioritising your convenience and safety
                         </h1>
                         <h2 className="mt-3 md:mt-5 p-4 text-muted-foreground text-base md:text-lg max-w-2xl mx-auto">

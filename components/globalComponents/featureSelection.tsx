@@ -75,7 +75,7 @@ export function FeaturesSectionDemo() {
         <div className="relative z-10 py-10 md:py-16 max-w-7xl mx-auto" id="features">
             {/* New Heading & Description Section */}
             <div className="text-center max-w-4xl mx-auto mb-6 md:mb-10">
-                <h1 className="text-xl md:text-2xl font-extrabold text-black dark:text-white drop-shadow-lg dark:drop-shadow-[0_4px_10px_rgba(255,255,255,0.3)] leading-tight">
+                <h1 className="text-xl md:text-2xl font-extrabold text-foreground drop-shadow-lg dark:drop-shadow-[0_4px_10px_rgba(255,255,255,0.3)] leading-tight">
                     <span className="block md:inline">A powerful solution that empowers you with advanced fraud prevention,</span>
                     <span className="block md:inline">AI-driven dispute resolution, and more</span>
                 </h1>

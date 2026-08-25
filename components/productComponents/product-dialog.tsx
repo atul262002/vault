@@ -39,7 +39,7 @@
 //       if (response.status === 200) {
 //         const { id, currency, amount } = response.data;
 //         const options = {
-//           key: "rzp_live_RHmP474HgZJvtk",
+//           key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
 //           amount: product?.price * 100,
 //           currency: currency,
 //           name: "VAULT",
@@ -207,7 +207,7 @@
 //         const { id, currency } = response.data;
 
 //         const options = {
-//           key: "rzp_live_RHmP474HgZJvtk",
+//           key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
 //           amount: product?.price ? product.price * 100 : 0,
 //           currency: currency,
 //           name: "VAULT",
@@ -653,7 +653,7 @@
 //         const { id, amount, currency } = response.data;
 
 //         const options = {
-//           key: "rzp_live_RHmP474HgZJvtk",
+//           key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
 //           amount: amount,
 //           currency: currency,
 //           name: "VAULT",
@@ -1239,7 +1239,7 @@ const ProductSearchByName = () => {
         const { id, amount, currency } = response.data;
 
         const options = {
-          key: "rzp_live_RHmP474HgZJvtk",
+          key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
           amount: amount,
           currency: currency,
           name: "VAULT",

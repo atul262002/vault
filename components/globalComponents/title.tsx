@@ -10,7 +10,7 @@ const Title = () => {
             {/* <Link href={'/'} className="hidden md:block">
                 <Button className="rounded-full flex items-center justify-center text-sm" variant={'secondary'}>Manage products end to end. <ArrowRight className="bg-muted-foreground rounded-full h-4 w-4" /> </Button>
             </Link> */}
-            <h1 className="text-3xl md:text-5xl lg:text-7xl font-extrabold text-black dark:text-white drop-shadow-lg dark:drop-shadow-[0_4px_10px_rgba(255,255,255,0.3)] leading-tight">
+            <h1 className="text-3xl md:text-5xl lg:text-7xl font-extrabold text-foreground drop-shadow-lg dark:drop-shadow-[0_4px_10px_rgba(255,255,255,0.3)] leading-tight">
                 <span className="block md:inline">Designed for trust</span>
                 <br className="hidden md:block" />
                 <span className="block md:inline">Built to protect</span>
@@ -25,7 +25,7 @@ const Title = () => {
                 <Button className="p-3 md:p-4 text-base">Secure deals now</Button>
             </Link>
             <div className=" flex flex-col justify-center items-center">
-            <span className="text-sm text-gray-400 mr-2">Powered by</span>
+            <span className="text-sm text-muted-foreground mr-2">Powered by</span>
             <img
               src="/razorpay.svg"
               alt="Razorpay Logo"

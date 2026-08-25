@@ -455,19 +455,19 @@ export function AddProduct() {
     return (
         <>
             {createdListingId ? (
-                <div className="fixed top-4 right-4 z-[110] w-[320px] rounded-xl border bg-white p-4 shadow-xl">
+                <div className="fixed top-4 right-4 z-[110] w-[320px] rounded-xl border bg-card p-4 text-card-foreground shadow-xl">
                     <div className="flex items-start justify-between gap-2">
                         <div className="flex items-start gap-2">
-                            <CheckCircle2 className="mt-0.5 h-5 w-5 text-green-600" />
+                            <CheckCircle2 className="mt-0.5 h-5 w-5 text-green-600 dark:text-green-400" />
                             <div>
                                 <p className="text-sm font-semibold">Listing created</p>
-                                <p className="mt-1 break-all rounded-md bg-slate-100 px-2 py-1 font-mono text-xs">{createdListingId}</p>
+                                <p className="mt-1 break-all rounded-md bg-muted text-muted-foreground px-2 py-1 font-mono text-xs">{createdListingId}</p>
                                 <p className="mt-1 text-xs text-muted-foreground">Visible for 15 seconds</p>
                             </div>
                         </div>
                         <button
                             type="button"
-                            className="rounded p-1 text-muted-foreground hover:bg-slate-100"
+                            className="rounded p-1 text-muted-foreground hover:bg-muted text-muted-foreground"
                             onClick={() => setCreatedListingId(null)}
                             aria-label="Close listing id banner"
                         >
@@ -494,7 +494,7 @@ export function AddProduct() {
                 <DialogContent className="max-w-3xl w-full max-h-[90vh] flex flex-col">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2 text-lg">
-                            <FileText className="h-5 w-5 text-blue-600" />
+                            <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                             Seller Terms &amp; Conditions
                         </DialogTitle>
                         <DialogDescription>
@@ -503,7 +503,7 @@ export function AddProduct() {
                     </DialogHeader>
 
                     {/* PDF Viewer */}
-                    <div className="flex-1 overflow-hidden rounded-md border border-gray-200 bg-gray-50" style={{ minHeight: "400px" }}>
+                    <div className="flex-1 overflow-hidden rounded-md border border-border bg-muted" style={{ minHeight: "400px" }}>
                         <iframe
                             src="/Vault_Seller_Terms_and_Conditions.pdf"
                             className="w-full h-full"
@@ -513,7 +513,7 @@ export function AddProduct() {
                     </div>
 
                     {/* Acceptance checkbox */}
-                    <div className="mt-4 flex items-start gap-3 rounded-md border border-blue-200 bg-blue-50 p-3">
+                    <div className="mt-4 flex items-start gap-3 rounded-md border border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-950 p-3">
                         <input
                             id="seller-terms-checkbox"
                             type="checkbox"
@@ -521,7 +521,7 @@ export function AddProduct() {
                             onChange={(e) => setTermsAccepted(e.target.checked)}
                             className="mt-0.5 h-4 w-4 cursor-pointer accent-blue-600"
                         />
-                        <label htmlFor="seller-terms-checkbox" className="text-sm text-blue-900 cursor-pointer select-none">
+                        <label htmlFor="seller-terms-checkbox" className="text-sm text-blue-900 dark:text-blue-100 cursor-pointer select-none">
                             I have read and agree to Vault&apos;s <strong>Seller Terms &amp; Conditions</strong>. I understand that I must follow all listed rules, including providing accurate ticket details and completing transfers on time.
                         </label>
                     </div>
@@ -652,7 +652,7 @@ export function AddProduct() {
                                                 onChange={(e) => field.onChange(Number(e.target.value))}
                                             />
                                         </FormControl>
-                                        <div className="mt-2 p-2 bg-slate-50 rounded-md border text-sm">
+                                        <div className="mt-2 p-2 bg-muted rounded-md border text-sm">
                                             <div className="flex justify-between text-muted-foreground">
                                                 <span>Platform Fee:</span>
                                                 <span>2.5%</span>
@@ -663,7 +663,7 @@ export function AddProduct() {
                                                         <span>Fee Amount:</span>
                                                         <span>₹{(field.value * 0.025).toFixed(2)}</span>
                                                     </div>
-                                                    <div className="flex justify-between font-medium text-green-600 mt-1 border-t border-dashed pt-1">
+                                                    <div className="flex justify-between font-medium text-green-600 dark:text-green-400 mt-1 border-t border-dashed pt-1">
                                                         <span>You receive per ticket:</span>
                                                         <span>₹{(field.value - (field.value * 0.025)).toFixed(2)}</span>
                                                     </div>

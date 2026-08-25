@@ -48,32 +48,32 @@ export default function UserSearch({ currentUserId }: { currentUserId: string })
     <div className="w-full max-w-lg mx-auto">
       {/* Search input */}
       <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Search by name or email..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="pl-9 bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus-visible:ring-indigo-500 rounded-xl h-11"
+          className="pl-9 bg-secondary border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-indigo-500 rounded-xl h-11"
           autoFocus
         />
       </div>
 
       {/* Results list */}
-      <div className="rounded-xl border border-white/10 bg-[#111] overflow-hidden">
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
         {results.length > 0 ? (
-          <ul className="divide-y divide-white/5">
+          <ul className="divide-y divide-border">
             {results.map((user) => (
               <li
                 key={user.id}
-                className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-white/5 transition-colors"
+                className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-secondary transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <div className="h-9 w-9 rounded-full bg-indigo-900 flex items-center justify-center flex-shrink-0">
                     <User className="h-4 w-4 text-indigo-300" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-white">{user.name || 'Anonymous'}</p>
-                    <p className="text-xs text-gray-500">{user.email}</p>
+                    <p className="text-sm font-medium text-foreground">{user.name || 'Anonymous'}</p>
+                    <p className="text-xs text-muted-foreground">{user.email}</p>
                   </div>
                 </div>
                 <Button
@@ -89,11 +89,11 @@ export default function UserSearch({ currentUserId }: { currentUserId: string })
             ))}
           </ul>
         ) : query.trim() ? (
-          <div className="py-10 text-center text-gray-600 text-sm">
+          <div className="py-10 text-center text-muted-foreground text-sm">
             No users found for &quot;{query}&quot;
           </div>
         ) : (
-          <div className="py-10 text-center text-gray-700 text-sm">
+          <div className="py-10 text-center text-muted-foreground text-sm">
             Start typing to search for users
           </div>
         )}

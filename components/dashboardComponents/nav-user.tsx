@@ -91,6 +91,12 @@ export function NavUser({
                             </DropdownMenuItem>
                         </DropdownMenuGroup>
                         <DropdownMenuGroup>
+                            <DropdownMenuItem onClick={() => window.location.href = "/profile"}>
+                                <CreditCard className="mr-2 h-4 w-4" />
+                                Profile & Payouts
+                            </DropdownMenuItem>
+                        </DropdownMenuGroup>
+                        <DropdownMenuGroup>
                             <DropdownMenuItem>
                                 {
                                     !verified ? (<>

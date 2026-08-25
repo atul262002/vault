@@ -7,9 +7,9 @@ export function InfiniteMovingCardsDemo() {
   return (
     <div
       id="reviews"
-      className="min-h-[40rem] sm:min-h-[50rem] md:min-h-[60rem] w-full rounded-md flex flex-col antialiased bg-white dark:bg-black dark:bg-grid-white/[0.05] items-center justify-center relative overflow-hidden px-4 sm:px-6"
+      className="min-h-[40rem] sm:min-h-[50rem] md:min-h-[60rem] w-full rounded-md flex flex-col antialiased bg-background dark:bg-grid-white/[0.05] items-center justify-center relative overflow-hidden px-4 sm:px-6"
     >
-      <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-black dark:text-white drop-shadow-lg text-center mb-8">
+      <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-foreground drop-shadow-lg text-center mb-8">
         What Our Users Say
       </h1>
       <div className="w-full max-w-7xl">

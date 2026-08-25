@@ -89,30 +89,30 @@ const Chat: React.FC<ChatProps> = ({ receiverId, productId, conversationId }) =>
   const displayName = otherParticipant?.name || otherParticipant?.email || "Chat";
 
   return (
-    <div className="flex flex-col h-full w-full bg-[#0d0d0d]">
+    <div className="flex flex-col h-full w-full bg-background">
       {/* Mobile back header */}
-      <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-white/10 bg-[#111]">
+      <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-border bg-card">
         <Button
           variant="ghost"
           size="icon"
-          className="text-gray-400 hover:text-white hover:bg-white/10"
+          className="text-muted-foreground hover:text-foreground hover:bg-accent"
           onClick={() => window.location.href = "/chats"}
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <span className="font-semibold text-white">{displayName}</span>
+        <span className="font-semibold text-foreground">{displayName}</span>
       </div>
 
       {/* Desktop name header */}
-      <div className="hidden md:flex items-center px-5 py-3 border-b border-white/10 bg-[#111]">
-        <span className="font-semibold text-white">{displayName}</span>
+      <div className="hidden md:flex items-center px-5 py-3 border-b border-border bg-card">
+        <span className="font-semibold text-foreground">{displayName}</span>
       </div>
 
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
         {messages.length === 0 && (
           <div className="flex items-center justify-center h-full">
-            <p className="text-gray-600 text-sm">No messages yet. Say hello!</p>
+            <p className="text-muted-foreground text-sm">No messages yet. Say hello!</p>
           </div>
         )}
         {messages.map((msg) => {
@@ -126,7 +126,7 @@ const Chat: React.FC<ChatProps> = ({ receiverId, productId, conversationId }) =>
                 className={`max-w-[75%] px-3 py-2 rounded-2xl text-sm leading-relaxed break-words
                   ${isMine
                     ? "bg-indigo-600 text-white rounded-br-sm"
-                    : "bg-white/10 text-gray-100 rounded-bl-sm"
+                    : "bg-secondary text-foreground rounded-bl-sm"
                   }`}
               >
                 {msg.content}
@@ -138,12 +138,12 @@ const Chat: React.FC<ChatProps> = ({ receiverId, productId, conversationId }) =>
       </div>
 
       {/* Input bar */}
-      <div className="px-4 py-3 border-t border-white/10 bg-[#111] flex gap-2 items-center">
+      <div className="px-4 py-3 border-t border-border bg-card flex gap-2 items-center">
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type a message..."
-          className="flex-1 bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus-visible:ring-indigo-500 rounded-xl"
+          className="flex-1 bg-secondary border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-indigo-500 rounded-xl"
           disabled={sending}
           onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
         />

@@ -265,7 +265,7 @@ export default function OrderDetailsPage() {
                     {/* Steps Visualizer could go here */}
 
                     {/* PRODUCT DETAILS */}
-                    <div className="border p-4 rounded-lg bg-gray-50">
+                    <div className="border p-4 rounded-lg bg-card text-card-foreground">
                         <h3 className="font-semibold mb-2">Product Details</h3>
                         {order.orderItems.map((item) => (
                             <div key={item.id} className="flex justify-between items-center">
@@ -273,7 +273,7 @@ export default function OrderDetailsPage() {
                                 <span className="font-bold">₹{item.price}</span>
                             </div>
                         ))}
-                        <div className="flex justify-between items-center mt-2 text-sm text-gray-500">
+                        <div className="flex justify-between items-center mt-2 text-sm text-muted-foreground">
                             <span>Platform Fee ({isBuyer ? 'Buyer' : 'Seller'})</span>
                             <span>₹{isBuyer ? order.platformFeeBuyer : order.platformFeeSeller}</span>
                         </div>
@@ -289,25 +289,25 @@ export default function OrderDetailsPage() {
 
                     {/* RECEIVER / TRANSFER DETAILS — highlighted for seller */}
                     {(order.receiverName || order.receiverPhone || order.ticketPartner) && (
-                        <div className="border-2 border-indigo-300 bg-indigo-50 p-4 rounded-lg">
-                            <h3 className="font-bold text-indigo-900 mb-3 text-sm uppercase tracking-wide">📋 Transfer To</h3>
+                        <div className="border-2 border-indigo-300 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950 p-4 rounded-lg">
+                            <h3 className="font-bold text-indigo-900 dark:text-indigo-200 mb-3 text-sm uppercase tracking-wide">📋 Transfer To</h3>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 {order.receiverName && (
-                                    <div className="bg-white rounded-lg border border-indigo-200 px-4 py-3">
+                                    <div className="bg-background rounded-lg border border-indigo-200 dark:border-indigo-800 px-4 py-3">
                                         <span className="text-xs text-indigo-500 font-medium block mb-1">Receiver Name</span>
-                                        <span className="font-bold text-gray-900 text-base">{order.receiverName}</span>
+                                        <span className="font-bold text-foreground text-base">{order.receiverName}</span>
                                     </div>
                                 )}
                                 {order.receiverPhone && (
-                                    <div className="bg-white rounded-lg border border-indigo-200 px-4 py-3">
+                                    <div className="bg-background rounded-lg border border-indigo-200 dark:border-indigo-800 px-4 py-3">
                                         <span className="text-xs text-indigo-500 font-medium block mb-1">Phone / WhatsApp</span>
-                                        <span className="font-bold text-gray-900 text-base">{order.receiverPhone}</span>
+                                        <span className="font-bold text-foreground text-base">{order.receiverPhone}</span>
                                     </div>
                                 )}
                                 {order.ticketPartner && (
-                                    <div className="bg-white rounded-lg border border-indigo-200 px-4 py-3">
+                                    <div className="bg-background rounded-lg border border-indigo-200 dark:border-indigo-800 px-4 py-3">
                                         <span className="text-xs text-indigo-500 font-medium block mb-1">Ticket Partner</span>
-                                        <span className="font-bold text-gray-900 text-base">{order.ticketPartner}</span>
+                                        <span className="font-bold text-foreground text-base">{order.ticketPartner}</span>
                                     </div>
                                 )}
                             </div>
@@ -354,7 +354,7 @@ export default function OrderDetailsPage() {
                                                 value={evidenceLink}
                                                 onChange={(e) => setEvidenceLink(e.target.value)}
                                             />
-                                            <p className="text-xs text-gray-500">Please ensure the link is publicly accessible.</p>
+                                            <p className="text-xs text-muted-foreground">Please ensure the link is publicly accessible.</p>
                                         </div>
 
                                         <Button onClick={handleUploadEvidence} disabled={actionLoading} className="w-full">
@@ -436,7 +436,7 @@ export default function OrderDetailsPage() {
                                         </Alert>
 
                                         {order.evidenceUrl && (
-                                            <div className="p-4 border rounded bg-gray-50 text-center">
+                                            <div className="p-4 border rounded bg-secondary text-center">
                                                 <a href={order.evidenceUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline font-medium">
                                                     View Evidence
                                                 </a>
@@ -453,7 +453,7 @@ export default function OrderDetailsPage() {
                                                 Yes, Tickets Received
                                             </Button>
                                         </div>
-                                        <div className="text-center text-xs text-gray-500">
+                                        <div className="text-center text-xs text-muted-foreground">
                                             <Clock className="inline w-3 h-3 mr-1" />
                                             Auto-confirmation in: {timeLeft}
                                         </div>
@@ -484,8 +484,8 @@ export default function OrderDetailsPage() {
                         )}
 
                         {["CANCELLED", "SELLER_TIMEOUT", "EVIDENCE_TIMEOUT"].includes(currentStatus) && (
-                            <Alert className="bg-gray-100 border-gray-300">
-                                <TimerOff className="h-4 w-4 text-gray-600" />
+                            <Alert className="bg-secondary border-border">
+                                <TimerOff className="h-4 w-4 text-muted-foreground" />
                                 <AlertTitle>{currentStatus.replace(/_/g, " ")}</AlertTitle>
                                 <AlertDescription>
                                     This order has been cancelled due to timeout or mutual agreement. Funds have been refunded to the buyer.

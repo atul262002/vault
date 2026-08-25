@@ -17,13 +17,13 @@ export default function SearchPage() {
     }, [])
 
     return (
-        <main className="w-full min-h-full p-6 bg-[#0d0d0d] flex flex-col items-center">
+        <main className="w-full min-h-full p-6 bg-background flex flex-col items-center">
             <div className="w-full max-w-lg">
                 <div className="flex items-center gap-3 mb-6">
                     <MessageSquarePlus className="h-6 w-6 text-indigo-400" />
                     <div>
-                        <h1 className="text-lg font-semibold text-white">New Chat</h1>
-                        <p className="text-xs text-gray-500">Search for a user to start a conversation</p>
+                        <h1 className="text-lg font-semibold text-foreground">New Chat</h1>
+                        <p className="text-xs text-muted-foreground">Search for a user to start a conversation</p>
                     </div>
                 </div>
                 <UserSearch currentUserId={userId ?? ""} />

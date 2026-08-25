@@ -13,7 +13,7 @@ export function TotalRevenueCard({ revenue, title }: { revenue: number, title: s
             </CardHeader>
             <Separator />
             <CardContent>
-                <p className="text-3xl sm:text-4xl md:text-5xl font-bold dark:text-white text-black">
+                <p className="text-3xl sm:text-4xl md:text-5xl font-bold dark:text-white text-foreground">
                     ₹{revenue.toLocaleString()}
                 </p>
             </CardContent>

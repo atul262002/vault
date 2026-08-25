@@ -122,7 +122,7 @@ const MyProducts = () => {
 
       {products.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-gray-500 text-lg">
+          <p className="text-muted-foreground text-lg">
             You haven't added any ticket listings yet.
           </p>
         </div>
@@ -131,7 +131,7 @@ const MyProducts = () => {
           {products.map((product) => (
             <div
               key={product.id}
-              className="border rounded-lg p-4 shadow-md hover:shadow-lg transition-shadow"
+              className="bg-card text-card-foreground border rounded-lg p-4 shadow-md hover:shadow-lg transition-shadow"
             >
               <img
                 src={product.imageUrl || ""}
@@ -139,10 +139,10 @@ const MyProducts = () => {
                 className="w-full h-48 object-cover rounded-md mb-4"
               />
 
-              <p className="text-xs text-gray-500 mt-2">Listing ID: {(product as Products & { listingId?: string }).listingId || product.id}</p>
+              <p className="text-xs text-muted-foreground mt-2">Listing ID: {(product as Products & { listingId?: string }).listingId || product.id}</p>
               <h3 className="text-xl font-semibold mb-2">{product.name}</h3>
 
-              <p className="text-gray-600 mb-3 line-clamp-2">
+              <p className="text-muted-foreground mb-3 line-clamp-2">
                 {product.description}
               </p>
 
@@ -150,10 +150,10 @@ const MyProducts = () => {
                 <p className="text-2xl font-bold text-green-600">
                   ₹{product.price}
                 </p>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   Event Time: {product.refundPeriod}
                 </p>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   Event Date: {product.estimatedTime}
                 </p>
               </div>
