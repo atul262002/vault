@@ -53,8 +53,8 @@ import React from "react";
 import { ImageKitProvider, IKUpload } from "imagekitio-next";
 import axios from "axios";
 
-const publicKey = process.env.NEXT_PUBLIC_PUBLIC_KEY!;
-const urlEndpoint = process.env.NEXT_PUBLIC_URL_ENDPOINT!;
+const publicKey = process.env.NEXT_PUBLIC_PUBLIC_KEY || "";
+const urlEndpoint = process.env.NEXT_PUBLIC_URL_ENDPOINT || "";
 
 interface ImageUploadProps {
   value: string;

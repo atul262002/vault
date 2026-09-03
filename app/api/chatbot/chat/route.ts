@@ -4,7 +4,7 @@ import OpenAI from 'openai';
 import { prisma } from '@/lib/db';
 
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_APIKEY! });
+const getOpenAI = () => new OpenAI({ apiKey: process.env.OPENAI_APIKEY! });
 
 const CLASSIFIER_SYSTEM = `
 You are a dispute-classifier.
@@ -15,7 +15,7 @@ Reply with exactly one word: SIMPLE or COMPLEX.
 `.trim();
 
 async function classifyMessage(text:any) {
-    const resp = await openai.chat.completions.create({
+    const resp = await getOpenAI().chat.completions.create({
         model: 'gpt-3.5-turbo',
         temperature: 0,
         messages: [
@@ -87,7 +87,7 @@ Seller’s active listings with ${email} as email Address:
 ${listings.map(l => `• ${l.name} (Listing ${l.id}) Refund Period ${l.refundPeriod} Price ${l.price}`).join('\n')}
 `.trim();
 
-        const chat = await openai.chat.completions.create({
+        const chat = await getOpenAI().chat.completions.create({
             model,
             temperature: 0.7,
             max_tokens: 500,

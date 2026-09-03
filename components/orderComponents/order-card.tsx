@@ -11,8 +11,8 @@ import { ImageKitProvider, IKUpload } from "imagekitio-next";
 import { Progress } from "@/components/ui/progress";
 import { BUYER_AUTO_CONFIRM_MINUTES, EVIDENCE_TIMEOUT_MINUTES, SELLER_TIMEOUT_MINUTES } from "@/lib/order-flow";
 
-const publicKey = process.env.NEXT_PUBLIC_PUBLIC_KEY!;
-const urlEndpoint = process.env.NEXT_PUBLIC_URL_ENDPOINT!;
+const publicKey = process.env.NEXT_PUBLIC_PUBLIC_KEY || "";
+const urlEndpoint = process.env.NEXT_PUBLIC_URL_ENDPOINT || "";
 
 // Authenticator for ImageKit
 const authenticator = async () => {
