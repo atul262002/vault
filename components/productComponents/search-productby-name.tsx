@@ -1136,6 +1136,7 @@ type RazorpayInstance = {
 type ListingProduct = Products & {
   listingId: string;
   ticketQuantity: number;
+  availableQuantity?: number;
   ticketPartner: string;
   category?: {
     name: string;
@@ -1208,7 +1209,6 @@ const ProductSearchByName = () => {
     script.src = "https://checkout.razorpay.com/v1/checkout.js";
     script.async = true;
     script.onload = () => {
-      console.log("Razorpay script loaded");
       setIsRazorpayReady(true);
     };
     script.onerror = () => {
@@ -1470,7 +1470,10 @@ const ProductSearchByName = () => {
     } catch (error) {
       console.error("Error creating payment:", error);
       resetPaymentUi();
-      alert("Failed to initiate payment. Please try again.");
+      const serverMessage = axios.isAxiosError(error)
+        ? (error.response?.data?.error || error.response?.data?.message)
+        : null;
+      alert(serverMessage || "Failed to initiate payment. Please try again.");
     }
   }
 
@@ -1483,7 +1486,6 @@ const ProductSearchByName = () => {
       });
 
       if (response.status === 200) {
-        console.log("Payment verified successfully");
         return true;
       }
     } catch (error) {
@@ -1535,14 +1537,14 @@ const ProductSearchByName = () => {
       {/* Loading overlay — shown while opening Razorpay OR verifying payment */}
       {isRazorpayLoading && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-2xl">
+          <div className="w-full max-w-sm rounded-2xl bg-card text-card-foreground p-6 text-center shadow-2xl border border-border">
             <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-sky-600" />
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-foreground">
               {paymentStatusMessage === "Verifying payment..."
                 ? "Verifying Payment"
                 : "Showing payment page"}
             </h3>
-            <p className="mt-2 text-sm text-gray-600">
+            <p className="mt-2 text-sm text-muted-foreground">
               {paymentStatusMessage || "Please wait while Razorpay opens."}
             </p>
           </div>
@@ -1552,12 +1554,12 @@ const ProductSearchByName = () => {
       {/* ✅ Payment success overlay */}
       {paymentSuccess && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-2xl">
+          <div className="w-full max-w-sm rounded-2xl bg-card text-card-foreground p-8 text-center shadow-2xl border border-border">
             <CheckCircle2 className="mx-auto mb-4 h-14 w-14 text-green-500" />
-            <h3 className="text-2xl font-bold text-gray-900">Payment Successful!</h3>
-            <p className="mt-2 text-sm text-gray-500">Your payment is secured with Vault. The seller has been notified to initiate transfer.</p>
+            <h3 className="text-2xl font-bold text-foreground">Payment Successful!</h3>
+            <p className="mt-2 text-sm text-muted-foreground">Your payment is secured with Vault. The seller has been notified to initiate transfer.</p>
             {successPaymentId && (
-              <p className="mt-3 rounded-lg bg-gray-100 px-3 py-2 text-xs font-mono text-gray-600 break-all">
+              <p className="mt-3 rounded-lg bg-muted px-3 py-2 text-xs font-mono text-muted-foreground break-all">
                 Payment ID: {successPaymentId}
               </p>
             )}
@@ -1587,12 +1589,13 @@ const ProductSearchByName = () => {
         <Input
           id="dashboard-search-input"
           placeholder="Search by event name or listing ID"
-          className="pl-10 bg-primary/10 h-12 transition-colors focus:bg-white"
+          autoComplete="off"
+          className="pl-10 h-12 transition-colors text-foreground bg-primary/10 focus:bg-background dark:bg-neutral-900 dark:focus:bg-neutral-900 dark:border-neutral-700 dark:focus-visible:border-neutral-500"
           onChange={onChange}
           value={searchValue}
         />
         {searchValue.toUpperCase().startsWith("VLT-") && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-medium text-indigo-500 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded">
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-medium text-indigo-500 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 px-1.5 py-0.5 rounded">
             ID search
           </span>
         )}
@@ -1603,9 +1606,9 @@ const ProductSearchByName = () => {
           <div
             onClick={() => setSelectedProduct(product)}
             key={product.id}
-            className="border rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer bg-white"
+            className="border border-border rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer bg-card text-card-foreground dark:bg-neutral-900 dark:border-neutral-800 dark:hover:border-neutral-600 dark:shadow-black/40"
           >
-            <div className="relative h-48 w-full bg-gray-100">
+            <div className="relative h-48 w-full bg-muted dark:bg-neutral-800">
               <Image
                 src={product.imageUrl || product.image || ""}
                 alt={product.name}
@@ -1614,13 +1617,13 @@ const ProductSearchByName = () => {
               />
             </div>
             <div className="p-4">
-              <h2 className="text-lg font-semibold line-clamp-2 min-h-[3.5rem]">
+              <h2 className="text-lg font-semibold text-foreground line-clamp-2 min-h-[3.5rem]">
                 {product.name}
               </h2>
-              <p className="text-green-600 font-bold text-xl mt-2">
+              <p className="text-green-600 dark:text-green-400 font-bold text-xl mt-2">
                 ₹{product.price.toFixed(2)}
               </p>
-              <p className="text-sm text-gray-600 mt-2 line-clamp-2">
+              <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
                 {product.description}
               </p>
             </div>
@@ -1630,8 +1633,8 @@ const ProductSearchByName = () => {
 
       {searchValue && products.length === 0 && (
         <div className="text-center mt-12">
-          <p className="text-gray-500 text-lg">No products found.</p>
-          <p className="text-gray-400 text-sm mt-2">Try searching with different keywords</p>
+          <p className="text-muted-foreground text-lg">No products found.</p>
+          <p className="text-muted-foreground/70 text-sm mt-2">Try searching with different keywords</p>
         </div>
       )}
 
@@ -1656,8 +1659,8 @@ const ProductSearchByName = () => {
                   <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
                     {selectedProduct.name}
                   </h2>
-                  <div className="inline-flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-md border border-indigo-200">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-indigo-500">Listing ID</span>
+                  <div className="inline-flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 px-3 py-1.5 rounded-md border border-indigo-200 dark:border-indigo-800">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-indigo-500 dark:text-indigo-400">Listing ID</span>
                     <span className="font-mono font-bold text-sm">{selectedProduct.listingId}</span>
                   </div>
                 </div>
@@ -1765,41 +1768,41 @@ const ProductSearchByName = () => {
                 </Button>
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                <p className="text-gray-700 leading-relaxed">
+              <div className="bg-gray-50 dark:bg-slate-800 rounded-lg p-4 space-y-3">
+                <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
                   {selectedProduct.description}
                 </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-blue-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-1">Event Time</p>
-                  <p className="font-semibold text-gray-800">
+                <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Event Time</p>
+                  <p className="font-semibold text-gray-800 dark:text-gray-100">
                     {selectedProduct.refundPeriod}
                   </p>
                 </div>
-                <div className="bg-purple-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-1">Event Date</p>
-                  <p className="font-semibold text-gray-800">
+                <div className="bg-purple-50 dark:bg-purple-950/30 rounded-lg p-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Event Date</p>
+                  <p className="font-semibold text-gray-800 dark:text-gray-100">
                     {selectedProduct.estimatedTime}
                   </p>
                 </div>
-                <div className="bg-emerald-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-1">Event Location</p>
-                  <p className="font-semibold text-gray-800">
+                <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-lg p-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Event Location</p>
+                  <p className="font-semibold text-gray-800 dark:text-gray-100">
                     {selectedProduct.category?.name || "Not specified"}
                   </p>
                 </div>
-                <div className="bg-orange-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-1">Number of Tickets</p>
-                  <p className="font-semibold text-gray-800">
-                    {selectedProduct.ticketQuantity}
+                <div className="bg-orange-50 dark:bg-orange-950/30 rounded-lg p-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Tickets Available</p>
+                  <p className="font-semibold text-gray-800 dark:text-gray-100">
+                    {selectedProduct.availableQuantity ?? selectedProduct.ticketQuantity}
                   </p>
                 </div>
               </div>
 
-              <div className="text-center pt-4 border-t">
-                <p className="text-gray-400 text-xs">
+              <div className="text-center pt-4 border-t border-border">
+                <p className="text-muted-foreground text-xs">
                   Listed on {new Date(selectedProduct.createdAt).toLocaleDateString('en-IN', {
                     year: 'numeric',
                     month: 'long',

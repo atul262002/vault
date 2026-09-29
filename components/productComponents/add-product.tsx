@@ -416,7 +416,6 @@ export function AddProduct() {
             const response = await axios.post("/api/product/add-product", values);
             const productId = response.data?.result?.id;
             const listingId = response.data?.result?.listingId;
-            console.log()
             if (response.status === 200 && productId) {
                 toast("Listing created successfully.", {
                     description: listingId || productId,
@@ -440,8 +439,9 @@ export function AddProduct() {
             }
         } catch (error) {
             console.error(error);
-            toast.error("Failed to add product.", {
-                description: "An error occurred while creating the product.",
+            const serverMessage = axios.isAxiosError(error) ? error.response?.data?.message : null;
+            toast.error("Failed to add listing.", {
+                description: serverMessage || "An error occurred while creating the listing.",
             });
         } finally {
             setLoading(false);

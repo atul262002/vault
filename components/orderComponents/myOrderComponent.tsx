@@ -78,9 +78,9 @@ const MyOrders = () => {
       <h1 className="text-3xl font-bold text-center mb-6">My Orders</h1>
 
       {loading ? (
-        <p className="text-center text-gray-600">Loading orders...</p>
+        <p className="text-center text-muted-foreground">Loading orders...</p>
       ) : orders.length === 0 ? (
-        <p className="text-center text-gray-600">No orders found.</p>
+        <p className="text-center text-muted-foreground">No orders found.</p>
       ) : (
         <div className="space-y-6">
           {(slug === "orders" ? orders : orders.slice(0, 3)).map((order) => (

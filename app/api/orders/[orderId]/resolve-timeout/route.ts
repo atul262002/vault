@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { BUYER_AUTO_CONFIRM_MINUTES, EVIDENCE_TIMEOUT_MINUTES, SELLER_TIMEOUT_MINUTES, normalizeOrderStatus, recordOrderStatus } from "@/lib/order-flow";
+import { BUYER_AUTO_CONFIRM_MINUTES, EVIDENCE_TIMEOUT_MINUTES, SELLER_TIMEOUT_MINUTES, decrementProductInventory, normalizeOrderStatus, recordOrderStatus } from "@/lib/order-flow";
 import { createBuyerRefund, createSellerPayout } from "@/lib/razorpay-money-flow";
 import { currentUser } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
@@ -44,7 +44,6 @@ export async function POST(
         }
 
         const now = new Date().getTime();
-        const ADMIN_EMAIL = "writeatul2002@gmail.com";
 
         const normalizedStatus = normalizeOrderStatus(order.status);
 
@@ -84,7 +83,7 @@ export async function POST(
                 });
 
                 // Notify
-                await import("@/lib/mail").then(({ sendMail }) => {
+                await import("@/lib/mail").then(({ sendMail, sendAdminMail }) => {
                     const subject = `Order #${order.id} cancelled: Seller Timeout`;
                     const htmlBase = `
                         <h1>Order Cancelled</h1>
@@ -96,7 +95,7 @@ export async function POST(
 
                     if (order.buyer.email) sendMail({ to: order.buyer.email, subject, html: `${htmlBase}<p>Your payment should be refunded according to the seller-timeout flow.</p>` });
                     if (seller?.email) sendMail({ to: seller.email, subject, html: `${htmlBase}<p>You did not initiate the transfer in time.</p>` });
-                    sendMail({ to: ADMIN_EMAIL, subject: `[ADMIN] Conflict Alert: Order #${order.id}`, html: `${htmlBase}<p>Manual claim by Buyer.</p>` });
+                    sendAdminMail({ subject: `[ADMIN] Conflict Alert: Order #${order.id}`, html: `${htmlBase}<p>Manual claim by Buyer.</p>` });
                 });
 
                 return NextResponse.json(updatedOrder);
@@ -170,17 +169,7 @@ export async function POST(
                         }
                     });
 
-                    const productIds = order.orderItems.map((item) => item.productId);
-                    if (productIds.length > 0) {
-                        await tx.products.updateMany({
-                            where: {
-                                id: { in: productIds }
-                            },
-                            data: {
-                                isSold: true
-                            }
-                        });
-                    }
+                    await decrementProductInventory(tx, order.orderItems);
 
                     await recordOrderStatus(tx, {
                         orderId,
@@ -193,7 +182,7 @@ export async function POST(
                 });
 
                 // Notify
-                await import("@/lib/mail").then(({ sendMail }) => {
+                await import("@/lib/mail").then(({ sendMail, sendAdminMail }) => {
                     const subject = `Order #${order.id} completed: Auto-confirmation`;
                     const htmlBase = `
                         <h1>Order Completed</h1>
@@ -204,7 +193,7 @@ export async function POST(
                     `;
                     if (order.buyer.email) sendMail({ to: order.buyer.email, subject, html: `${htmlBase}<p>Funds released to seller.</p>` });
                     if (seller?.email) sendMail({ to: seller.email, subject, html: `${htmlBase}<p>Funds released to you.</p>` });
-                    sendMail({ to: ADMIN_EMAIL, subject: `[ADMIN] Order Completed: Order #${order.id}`, html: `${htmlBase}<p>Manual claim by Seller.</p>` });
+                    sendAdminMail({ subject: `[ADMIN] Order Completed: Order #${order.id}`, html: `${htmlBase}<p>Manual claim by Seller.</p>` });
                 });
 
                 return NextResponse.json(updatedOrder);

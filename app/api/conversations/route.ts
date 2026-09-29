@@ -2,7 +2,7 @@ import { prisma } from '@/lib/db';
 import { currentUser } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   const user = await currentUser();
   const email = user?.emailAddresses[0]?.emailAddress;
 
@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
       }
     },
     include: {
-      participants: true,
+      participants: { select: { id: true, name: true, email: true } },
       messages: {
         orderBy: { createdAt: 'desc' },
         take: 1,
@@ -55,18 +55,46 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  // expects body with participantIds: [userA, userB]
-  const { participantIds } = await req.json();
-  if (!participantIds || participantIds.length !== 2) {
+  const user = await currentUser();
+  const email = user?.emailAddresses[0]?.emailAddress;
+  if (!email) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
+  const me = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+  if (!me) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
+  const body = await req.json().catch(() => null);
+  const participantIds: unknown = body?.participantIds;
+  if (
+    !Array.isArray(participantIds) ||
+    participantIds.length !== 2 ||
+    !participantIds.every((id) => typeof id === "string" && id.length > 0)
+  ) {
     return NextResponse.json({ error: 'Two participants are required' }, { status: 400 });
+  }
+
+  // The caller can only start a conversation that includes themselves.
+  if (!participantIds.includes(me.id)) {
+    return NextResponse.json({ error: 'You can only start conversations you are part of' }, { status: 403 });
+  }
+
+  const otherId = participantIds.find((id) => id !== me.id);
+  if (!otherId) {
+    return NextResponse.json({ error: 'You cannot start a conversation with yourself' }, { status: 400 });
+  }
+
+  const other = await prisma.user.findUnique({ where: { id: otherId }, select: { id: true } });
+  if (!other) {
+    return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
 
   const existing = await prisma.conversation.findFirst({
     where: {
-      AND: participantIds.map((id: any) => ({
-        participants: { some: { id } }
-      }))
-    }
+      AND: [
+        { participants: { some: { id: me.id } } },
+        { participants: { some: { id: other.id } } },
+      ],
+    },
+    include: { participants: { select: { id: true, name: true, email: true } } },
   });
 
   if (existing) {
@@ -76,12 +104,10 @@ export async function POST(req: NextRequest) {
   const conversation = await prisma.conversation.create({
     data: {
       participants: {
-        connect: participantIds.map((id: any) => ({ id }))
-      }
+        connect: [{ id: me.id }, { id: other.id }],
+      },
     },
-    include: {
-      participants: true
-    }
+    include: { participants: { select: { id: true, name: true, email: true } } },
   });
 
   return NextResponse.json(conversation);

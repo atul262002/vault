@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db";
 import { currentUser } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(req: NextRequest, { params }: { params: { conversationId: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ conversationId: string }> }) {
     const user = await currentUser();
     if (!user?.emailAddresses[0]?.emailAddress) {
         return NextResponse.json({ message: "Unauthorized" }, { status: 401 });

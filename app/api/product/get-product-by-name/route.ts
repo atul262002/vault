@@ -1,11 +1,15 @@
 import { prisma } from "@/lib/db";
-import { ACTIVE_LISTING_ORDER_STATUSES, PAYMENT_PENDING_LOCK_MINUTES } from "@/lib/order-availability";
+import { eventNotPastSql, reservedTicketCountSql } from "@/lib/product-inventory";
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
-  const { name } = await req.json();
-  const search = typeof name === "string" ? name.trim() : "";
+  const body = await req.json().catch(() => null);
+  const search: string = typeof body?.name === "string" ? body.name.trim().slice(0, 100) : "";
+
+  if (!search) {
+    return NextResponse.json({ result: [] }, { status: 200 });
+  }
 
   try {
     // Smart detection: if query starts with VLT- treat it as a listing ID exact match
@@ -39,28 +43,19 @@ export async function POST(req: Request) {
       createdAt: Date;
       updatedAt: Date;
       ticketQuantity: number;
+      reserved: number;
       ticketPartner: string;
       category_name: string;
     }>>(Prisma.sql`
       SELECT
         p.*,
+        ${reservedTicketCountSql(Prisma.raw(`p."id"`))} AS "reserved",
         c."name" AS category_name
       FROM "Products" p
       JOIN "Category" c ON c."id" = p."categoryId"
       WHERE p."isSold" = false
-        AND NOT EXISTS (
-          SELECT 1
-          FROM "OrderItem" oi
-          JOIN "Order" o ON o."id" = oi."orderId"
-          WHERE oi."productId" = p."id"
-            AND o."status" IN (${Prisma.join(
-              ACTIVE_LISTING_ORDER_STATUSES.map((status) => Prisma.sql`${status}::"OrderStatus"`)
-            )})
-            AND (
-              o."status" <> ${"PAYMENT_PENDING"}::"OrderStatus"
-              OR o."createdAt" >= NOW() - (${PAYMENT_PENDING_LOCK_MINUTES} * INTERVAL '1 minute')
-            )
-        )
+        AND ${reservedTicketCountSql(Prisma.raw(`p."id"`))} < p."ticketQuantity"
+        AND ${eventNotPastSql("p")}
         AND (
           ${isListingId
             ? Prisma.sql`p."listingId" = ${search.toUpperCase()}`
@@ -86,6 +81,7 @@ export async function POST(req: Request) {
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
       ticketQuantity: product.ticketQuantity,
+      availableQuantity: Math.max(product.ticketQuantity - product.reserved, 0),
       ticketPartner: product.ticketPartner,
       category: {
         name: product.category_name,

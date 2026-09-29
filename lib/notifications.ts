@@ -68,7 +68,7 @@ async function sendSms(phone: string, body: string) {
   const fromNumber = process.env.TWILIO_FROM_NUMBER;
 
   if (!accountSid || !authToken || !fromNumber) {
-    console.log(`SMS skipped for ${phone}: Twilio is not configured.`);
+    console.warn("SMS skipped: Twilio is not configured.");
     return;
   }
 
@@ -103,7 +103,7 @@ async function sendWhatsApp(whatsappNumber: string, body: string) {
   const fromNumber = process.env.TWILIO_WHATSAPP_FROM;
 
   if (!accountSid || !authToken || !fromNumber) {
-    console.log(`WhatsApp skipped for ${whatsappNumber}: TWILIO_WHATSAPP_FROM is not configured.`);
+    console.warn("WhatsApp skipped: TWILIO_WHATSAPP_FROM is not configured.");
     return;
   }
 

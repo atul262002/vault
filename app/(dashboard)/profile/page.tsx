@@ -277,9 +277,9 @@ export default function ProfilePage() {
         </div>
 
         {/* Anti-scam notice */}
-        <div className="flex gap-2 items-start rounded-lg border border-yellow-600/30 bg-yellow-950/20 px-3 py-2.5 mt-1">
-          <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0" />
-          <p className="text-xs text-yellow-400 leading-relaxed">
+        <div className="flex gap-2 items-start rounded-lg border border-amber-200 dark:border-yellow-600/30 bg-amber-50 dark:bg-yellow-950/20 px-3 py-2.5 mt-1">
+          <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-yellow-500 mt-0.5 flex-shrink-0" />
+          <p className="text-xs text-amber-900 dark:text-yellow-400 leading-relaxed">
             All contact changes are permanently logged. Vault keeps a full history of your details for fraud investigation and dispute resolution.
           </p>
         </div>

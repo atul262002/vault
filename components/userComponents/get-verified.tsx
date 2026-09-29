@@ -251,7 +251,6 @@ export function Verify() {
   async function onSubmit(values: z.infer<typeof VerifyAccount>) {
     try {
       setLoading(true);
-      console.log("Submitting values:", values);
       const response = await axios.post("/api/razorpay/fund-account", values)
       
       if (response.status === 200) {

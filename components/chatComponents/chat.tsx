@@ -14,18 +14,27 @@ interface Message {
   createdAt: string
 }
 
-interface ChatProps {
-  productId?: string;
-  receiverId?: string;
-  conversationId?: string;
+interface Participant {
+  id: string
+  name: string | null
+  email: string | null
 }
 
-const Chat: React.FC<ChatProps> = ({ receiverId, productId, conversationId }) => {
+interface ConversationSummary {
+  id: string
+  participants: Participant[]
+}
+
+interface ChatProps {
+  conversationId: string;
+}
+
+const Chat: React.FC<ChatProps> = ({ conversationId }) => {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [userId, setUserId] = useState<string>()
   const [sending, setSending] = useState<boolean>(false)
-  const [conversation, setConversation] = useState<any>(null)
+  const [conversation, setConversation] = useState<ConversationSummary | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   const fetchMessages = useCallback(async () => {
@@ -34,37 +43,24 @@ const Chat: React.FC<ChatProps> = ({ receiverId, productId, conversationId }) =>
       const currentUser = await response.json()
       setUserId(currentUser.id)
 
-      if (conversationId) {
-        const convRes = await fetch(`/api/conversations/${conversationId}`);
-        if (convRes.ok) setConversation(await convRes.json());
+      const convRes = await fetch(`/api/conversations/${conversationId}`);
+      if (convRes.ok) setConversation(await convRes.json());
 
-        const res = await fetch(`/api/conversations/${conversationId}/messages`);
-        if (res.ok) {
-          setMessages(await res.json());
-          await fetch(`/api/conversations/${conversationId}/read`, { method: "POST" });
-        }
-      } else if (productId && receiverId) {
-        const res = await fetch(`/api/messages/conversation`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ productId, receiverId }),
-        })
-        setMessages(await res.json())
+      const res = await fetch(`/api/conversations/${conversationId}/messages`);
+      if (res.ok) {
+        setMessages(await res.json());
+        await fetch(`/api/conversations/${conversationId}/read`, { method: "POST" });
       }
     } catch (error) {
       console.error("Error fetching messages:", error)
     }
-  }, [receiverId, productId, conversationId])
+  }, [conversationId])
 
   const sendMessage = async () => {
     if (!input.trim() || sending) return
     setSending(true)
     try {
-      if (conversationId) {
-        await axios.post(`/api/conversations/${conversationId}/messages`, { content: input });
-      } else if (productId && receiverId) {
-        await axios.post("/api/messages/send", { content: input, receiverId, productId })
-      }
+      await axios.post(`/api/conversations/${conversationId}/messages`, { content: input });
       setInput("")
       await fetchMessages()
     } catch (error) {
@@ -85,7 +81,7 @@ const Chat: React.FC<ChatProps> = ({ receiverId, productId, conversationId }) =>
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
-  const otherParticipant = conversation?.participants?.find((p: any) => p.id !== userId);
+  const otherParticipant = conversation?.participants?.find((p) => p.id !== userId);
   const displayName = otherParticipant?.name || otherParticipant?.email || "Chat";
 
   return (

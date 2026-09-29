@@ -1,31 +1,60 @@
+import { Prisma } from "@prisma/client";
+import { NextResponse } from "next/server";
+
+import { getCurrentDbUser } from "@/lib/current-db-user";
 import { prisma } from "@/lib/db";
-import { currentUser } from "@clerk/nextjs/server";
-import { NextRequest, NextResponse } from "next/server";
+import { describeInventory, reservedTicketCountSql, soldTicketCountSql } from "@/lib/product-inventory";
 
-export async function GET(){
-    try {
-        const user = await currentUser()
-        if(!user){
-            return NextResponse.json({message:"Unauthourized user"}, {status:405})
-        }
+type SellerListingRow = {
+  id: string;
+  listingId: string;
+  name: string;
+  imageUrl: string | null;
+  image: string | null;
+  price: number;
+  refundPeriod: string;
+  estimatedTime: string;
+  description: string;
+  ticketPartner: string;
+  isSold: boolean;
+  ticketQuantity: number;
+  createdAt: Date;
+  reserved: number;
+  sold: number;
+};
 
-        const email = user.emailAddresses?.[0].emailAddress
-        console.log(email)
-        const existingUser = await prisma.user.findUnique({
-            where:{
-                email:email
-            },
-            include:{
-                products:true
-            }
-        })
-
-        if(!existingUser){
-            return NextResponse.json({message:"Unauthourized user"}, {status:405})
-        }
-
-        return NextResponse.json({result:existingUser.products}, {status:200})
-    } catch (error) {
-        return NextResponse.json({message:"Internal server error"}, {status:500})
+export async function GET() {
+  try {
+    const seller = await getCurrentDbUser();
+    if (!seller) {
+      return NextResponse.json({ message: "Unauthorized user" }, { status: 401 });
     }
+
+    const rows = await prisma.$queryRaw<SellerListingRow[]>(Prisma.sql`
+      SELECT
+        p."id", p."listingId", p."name", p."imageUrl", p."image", p."price",
+        p."refundPeriod", p."estimatedTime", p."description", p."ticketPartner",
+        p."isSold", p."ticketQuantity", p."createdAt",
+        ${reservedTicketCountSql(Prisma.raw(`p."id"`))} AS "reserved",
+        ${soldTicketCountSql(Prisma.raw(`p."id"`))} AS "sold"
+      FROM "Products" p
+      WHERE p."sellerId" = ${seller.id}
+      ORDER BY p."createdAt" DESC
+    `);
+
+    const result = rows.map(({ reserved, sold, ...listing }) => ({
+      ...listing,
+      inventory: describeInventory({
+        ticketQuantity: listing.ticketQuantity,
+        reserved,
+        sold,
+        isSold: listing.isSold,
+      }),
+    }));
+
+    return NextResponse.json({ result }, { status: 200 });
+  } catch (error) {
+    console.error("Error fetching seller listings:", error);
+    return NextResponse.json({ message: "Internal server error" }, { status: 500 });
+  }
 }

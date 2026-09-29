@@ -1085,7 +1085,6 @@ const ProductSearchByName = () => {
     script.src = "https://checkout.razorpay.com/v1/checkout.js";
     script.async = true;
     script.onload = () => {
-      console.log("Razorpay script loaded");
       setIsRazorpayReady(true);
     };
     script.onerror = () => {
@@ -1232,7 +1231,11 @@ const ProductSearchByName = () => {
       const response = await axios.post("/api/razorpay/create-order", {
         amount: product.price,
         currency: "INR",
-        product: [{ ...product }],
+        product: [{ id: product.id }],
+        receiverName,
+        receiverPhone,
+        // The purchase dialog only enables payment once the buyer ticks the terms checkbox.
+        termsAccepted: true,
       });
 
       if (response.status === 200) {
@@ -1331,7 +1334,10 @@ const ProductSearchByName = () => {
     } catch (error) {
       console.error("Error creating payment:", error);
       resetPaymentUi();
-      alert("Failed to initiate payment. Please try again.");
+      const serverMessage = axios.isAxiosError(error)
+        ? (error.response?.data?.error || error.response?.data?.message)
+        : null;
+      alert(serverMessage || "Failed to initiate payment. Please try again.");
     }
   }
 
@@ -1344,7 +1350,6 @@ const ProductSearchByName = () => {
       });
 
       if (response.status === 200) {
-        console.log("Payment verified successfully");
         return true;
       }
     } catch (error) {
@@ -1396,14 +1401,14 @@ const ProductSearchByName = () => {
       {/* Loading overlay */}
       {isRazorpayLoading && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-2xl">
+          <div className="w-full max-w-sm rounded-2xl bg-card text-card-foreground p-6 text-center shadow-2xl border border-border">
             <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-sky-600" />
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-foreground">
               {paymentStatusMessage === "Verifying payment..."
                 ? "Verifying Payment"
                 : "Showing payment page"}
             </h3>
-            <p className="mt-2 text-sm text-gray-600">
+            <p className="mt-2 text-sm text-muted-foreground">
               {paymentStatusMessage || "Please wait while Razorpay opens."}
             </p>
           </div>
@@ -1413,12 +1418,12 @@ const ProductSearchByName = () => {
       {/* Payment success overlay */}
       {paymentSuccess && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-2xl">
+          <div className="w-full max-w-sm rounded-2xl bg-card text-card-foreground p-8 text-center shadow-2xl border border-border">
             <CheckCircle2 className="mx-auto mb-4 h-14 w-14 text-green-500" />
-            <h3 className="text-2xl font-bold text-gray-900">Payment Successful!</h3>
-            <p className="mt-2 text-sm text-gray-500">Your order has been confirmed.</p>
+            <h3 className="text-2xl font-bold text-foreground">Payment Successful!</h3>
+            <p className="mt-2 text-sm text-muted-foreground">Your order has been confirmed.</p>
             {successPaymentId && (
-              <p className="mt-3 rounded-lg bg-gray-100 px-3 py-2 text-xs font-mono text-gray-600 break-all">
+              <p className="mt-3 rounded-lg bg-muted px-3 py-2 text-xs font-mono text-muted-foreground break-all">
                 Payment ID: {successPaymentId}
               </p>
             )}
@@ -1441,12 +1446,13 @@ const ProductSearchByName = () => {
         <Input
           id="product-search-input"
           placeholder="Search by event name or listing ID"
-          className="pl-10 bg-primary/10 h-12"
+          autoComplete="off"
+          className="pl-10 h-12 transition-colors text-foreground bg-primary/10 focus:bg-background dark:bg-neutral-900 dark:focus:bg-neutral-900 dark:border-neutral-700 dark:focus-visible:border-neutral-500"
           onChange={onChange}
           value={searchValue}
         />
         {searchValue.toUpperCase().startsWith("VLT-") && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-medium text-indigo-500 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded">
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-medium text-indigo-500 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 px-1.5 py-0.5 rounded">
             ID search
           </span>
         )}
@@ -1481,10 +1487,10 @@ const ProductSearchByName = () => {
                 ₹{product.price.toFixed(0)}
               </p>
               {product.categoryId && (
-                <p className="text-xs text-gray-500 mt-1 truncate">{product.categoryId}</p>
+                <p className="text-xs text-gray-400 mt-1 truncate">{product.categoryId}</p>
               )}
               {product.estimatedTime && (
-                <p className="text-xs text-gray-600 mt-0.5">{product.estimatedTime}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{product.estimatedTime}</p>
               )}
             </div>
           </div>
@@ -1493,8 +1499,8 @@ const ProductSearchByName = () => {
 
       {searchValue && products.length === 0 && (
         <div className="text-center mt-12">
-          <p className="text-gray-500 text-lg">No tickets found.</p>
-          <p className="text-gray-400 text-sm mt-2">Try searching with different keywords</p>
+          <p className="text-muted-foreground text-lg">No tickets found.</p>
+          <p className="text-muted-foreground/70 text-sm mt-2">Try searching with different keywords</p>
         </div>
       )}
 

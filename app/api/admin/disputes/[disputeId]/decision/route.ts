@@ -1,8 +1,9 @@
 import { requireAdminSession } from "@/lib/admin-auth";
 import { createBuyerRefund, createSellerPayout } from "@/lib/razorpay-money-flow";
 import { prisma } from "@/lib/db";
+import { escapeHtml } from "@/lib/mail";
 import { sendNotification } from "@/lib/notifications";
-import { createNotificationRecord, normalizeOrderStatus, recordOrderStatus } from "@/lib/order-flow";
+import { createNotificationRecord, decrementProductInventory, normalizeOrderStatus, recordOrderStatus } from "@/lib/order-flow";
 import { DisputeDecisionType, DisputeStatus, Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -162,6 +163,13 @@ export async function POST(
         toStatus: nextOrderStatus,
         note: `Admin dispute decision: ${decisionType}. ${reason}`,
       });
+
+      // The ticket was ruled to have been legitimately delivered, so it
+      // counts against the listing's remaining inventory just like any
+      // other completed order.
+      if (nextOrderStatus === "COMPLETE") {
+        await decrementProductInventory(tx, order.orderItems);
+      }
     }
 
     return nextDispute;
@@ -173,7 +181,7 @@ export async function POST(
       phone: order.buyer.phone,
       whatsappNumber: order.buyer.whatsappNumber,
       subject: `Dispute outcome for order ${order.id}`,
-      html: `<p>${buyerMsg}</p><p><strong>Admin decision note:</strong> ${reason}</p>`,
+      html: `<p>${escapeHtml(buyerMsg)}</p><p><strong>Admin decision note:</strong> ${escapeHtml(reason)}</p>`,
       smsText: `Vault dispute result: ${buyerMsg}`,
     }),
     sendNotification({
@@ -181,7 +189,7 @@ export async function POST(
       phone: seller.phone,
       whatsappNumber: seller.whatsappNumber,
       subject: `Dispute outcome for order ${order.id}`,
-      html: `<p>${sellerMsg}</p><p><strong>Admin decision note:</strong> ${reason}</p>`,
+      html: `<p>${escapeHtml(sellerMsg)}</p><p><strong>Admin decision note:</strong> ${escapeHtml(reason)}</p>`,
       smsText: `Vault dispute result: ${sellerMsg}`,
     }),
   ]);

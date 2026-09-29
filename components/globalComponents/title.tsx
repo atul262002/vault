@@ -16,10 +16,7 @@ const Title = () => {
                 <span className="block md:inline">Built to protect</span>
             </h1>
             <span className="text-base md:text-md mt-2 md:mt-3 text-primary font-medium">
-                Vault keeps your payment safe whether you are shopping online or buying from someone from OLX, Facebook, Instagram, or elsewhere.
-            </span>
-            <span className="text-base md:text-2xl mt-2 md:mt-3 text-primary font-medium">
-                100% Refund Guranteed in case of Fraud — <Link href={`https://forms.gle/wSNX5gEKr4YqiTHb6`} className="text-yellow-400 underline">Join the waitlist!</Link>
+                Vault helps you Buy and sell tickets without the risk of getting scammed
             </span>
             <Link href={'/dashboard'}>
                 <Button className="p-3 md:p-4 text-base">Secure deals now</Button>

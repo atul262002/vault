@@ -1,97 +1,92 @@
-import { prisma } from "@/lib/db";
-import { currentUser } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(req: NextRequest, { params }: { params: { conversationId: string } }) {
-    const user = await currentUser();
-    if (!user?.emailAddresses[0]?.emailAddress) {
-        return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+import { getCurrentDbUser } from "@/lib/current-db-user";
+import { prisma } from "@/lib/db";
 
-    const email = user.emailAddresses[0].emailAddress;
-    const existingUser = await prisma.user.findUnique({
-        where: { email },
-    });
+const MAX_MESSAGE_LENGTH = 2000;
 
-    if (!existingUser) {
-        return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+type RouteContext = { params: Promise<{ conversationId: string }> };
 
-    const { conversationId } = await params;
+async function loadConversationForMember(conversationId: string, userId: string) {
+  const conversation = await prisma.conversation.findUnique({
+    where: { id: conversationId },
+    include: { participants: { select: { id: true } } },
+  });
 
-    const conversation = await prisma.conversation.findUnique({
-        where: { id: conversationId },
-        include: {
-            participants: true,
-            messages: {
-                orderBy: { createdAt: 'asc' }
-            }
-        }
-    });
+  if (!conversation) {
+    return { error: NextResponse.json({ error: "Conversation not found" }, { status: 404 }) };
+  }
 
-    if (!conversation) {
-        return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
-    }
+  if (!conversation.participants.some((p) => p.id === userId)) {
+    return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
+  }
 
-    // Verify participant
-    const isParticipant = conversation.participants.some(p => p.id === existingUser.id);
-    if (!isParticipant) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    return NextResponse.json(conversation.messages);
+  return { conversation };
 }
 
-export async function POST(req: NextRequest, { params }: { params: { conversationId: string } }) {
-    const user = await currentUser();
-    if (!user?.emailAddresses[0]?.emailAddress) {
-        return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+export async function GET(_req: NextRequest, { params }: RouteContext) {
+  const me = await getCurrentDbUser();
+  if (!me) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
 
-    const email = user.emailAddresses[0].emailAddress;
-    const existingUser = await prisma.user.findUnique({
-        where: { email },
-    });
+  const { conversationId } = await params;
+  const { error } = await loadConversationForMember(conversationId, me.id);
+  if (error) return error;
 
-    if (!existingUser) {
-        return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+  const messages = await prisma.message.findMany({
+    where: { conversationId },
+    orderBy: { createdAt: "asc" },
+  });
 
-    const { conversationId } = await params;
-    const body = await req.json();
-    const { content, receiverId } = body;
+  return NextResponse.json(messages);
+}
 
-    if (!content) {
-        return NextResponse.json({ error: "Content is required" }, { status: 400 });
-    }
+export async function POST(req: NextRequest, { params }: RouteContext) {
+  const me = await getCurrentDbUser();
+  if (!me) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
 
-    // We already have conversationId, so we can create message directly linked to it.
-    // Also need to link sender and receiver.
-    // ReceiverId might be passed or inferred?
-    // If not passed, we can infer from conversation participants (the one who is not me).
+  const { conversationId } = await params;
+  const body = await req.json().catch(() => null);
+  const content = typeof body?.content === "string" ? body.content.trim() : "";
 
-    let targetReceiverId = receiverId;
-    if (!targetReceiverId) {
-        const conversation = await prisma.conversation.findUnique({
-            where: { id: conversationId },
-            include: { participants: true }
-        });
-        if (!conversation) return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
+  if (!content) {
+    return NextResponse.json({ error: "Content is required" }, { status: 400 });
+  }
+  if (content.length > MAX_MESSAGE_LENGTH) {
+    return NextResponse.json(
+      { error: `Messages can be at most ${MAX_MESSAGE_LENGTH} characters` },
+      { status: 400 }
+    );
+  }
 
-        const otherParticipant = conversation.participants.find(p => p.id !== existingUser.id);
-        if (!otherParticipant) return NextResponse.json({ error: "Receiver not found" }, { status: 400 });
-        targetReceiverId = otherParticipant.id;
-    }
+  const { conversation, error } = await loadConversationForMember(conversationId, me.id);
+  if (error) return error;
 
-    const message = await prisma.message.create({
-        data: {
-            content,
-            senderId: existingUser.id,
-            receiverId: targetReceiverId,
-            conversationId: conversationId,
-            isRead: false
-        }
-    });
+  // The receiver is always the other participant; a client-supplied
+  // receiver id is ignored so messages can't be addressed to outsiders.
+  const receiver = conversation.participants.find((p) => p.id !== me.id);
+  if (!receiver) {
+    return NextResponse.json({ error: "Receiver not found" }, { status: 400 });
+  }
 
-    return NextResponse.json(message);
+  const [message] = await prisma.$transaction([
+    prisma.message.create({
+      data: {
+        content,
+        senderId: me.id,
+        receiverId: receiver.id,
+        conversationId,
+        isRead: false,
+      },
+    }),
+    prisma.conversation.update({
+      where: { id: conversationId },
+      data: { updatedAt: new Date() },
+    }),
+  ]);
+
+  return NextResponse.json(message);
 }

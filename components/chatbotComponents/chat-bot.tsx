@@ -59,7 +59,7 @@ export default function Chatbot() {
 
 
     const clearChat = () => {
-        const welcome = { role: 'assistant', content: 'Hi! How can I help you today?' }
+        const welcome: Message = { role: 'assistant', content: 'Hi! How can I help you today?' }
         setMessages([welcome])
         localStorage.removeItem('vault-chat')
     }
@@ -85,14 +85,14 @@ export default function Chatbot() {
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={clearChat}
-                                className="text-gray-500 hover:text-gray-800 transition"
+                                className="text-muted-foreground hover:text-foreground transition"
                                 title="Clear Chat"
                             >
                                 <Trash2 size={18} />
                             </button>
                             <button
                                 onClick={() => setIsOpen(false)}
-                                className="text-gray-500 hover:text-gray-800"
+                                className="text-muted-foreground hover:text-foreground"
                                 title="Close"
                             >
                                 <X size={18} />

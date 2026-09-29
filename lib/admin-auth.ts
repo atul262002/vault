@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 
 const ADMIN_COOKIE = "vault_admin_session";
 const SESSION_TTL_MS = 1000 * 60 * 60 * 8;
@@ -60,10 +60,20 @@ function decodeSession(token: string): AdminSessionPayload | null {
   }
 }
 
+function constantTimeEquals(a: string, b: string) {
+  // Hash both sides first so the comparison takes the same time whatever
+  // the input lengths are.
+  const hashA = createHash("sha256").update(a).digest();
+  const hashB = createHash("sha256").update(b).digest();
+  return timingSafeEqual(hashA, hashB);
+}
+
 export function validateAdminCredentials(username: string, password: string) {
   const envUsername = getRequiredEnv("ADMIN_PANEL_USERNAME");
   const envPassword = getRequiredEnv("ADMIN_PANEL_PASSWORD");
-  return username === envUsername && password === envPassword;
+  const usernameOk = constantTimeEquals(username, envUsername);
+  const passwordOk = constantTimeEquals(password, envPassword);
+  return usernameOk && passwordOk;
 }
 
 export async function createAdminSession(username: string) {

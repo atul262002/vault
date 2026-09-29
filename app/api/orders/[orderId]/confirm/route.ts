@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import { getOrderPortalUrl } from "@/lib/app-url";
 import { getCurrentDbUser } from "@/lib/current-db-user";
-import { normalizeOrderStatus, recordOrderStatus } from "@/lib/order-flow";
+import { decrementProductInventory, normalizeOrderStatus, recordOrderStatus } from "@/lib/order-flow";
 import { createSellerPayout } from "@/lib/razorpay-money-flow";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -88,17 +88,7 @@ export async function POST(
                 }
             });
 
-            const productIds = nextOrder.orderItems.map((item) => item.productId);
-            if (productIds.length > 0) {
-                await tx.products.updateMany({
-                    where: {
-                        id: { in: productIds }
-                    },
-                    data: {
-                        isSold: true
-                    }
-                });
-            }
+            await decrementProductInventory(tx, nextOrder.orderItems);
 
             await recordOrderStatus(tx, {
                 orderId,

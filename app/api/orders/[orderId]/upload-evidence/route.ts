@@ -1,3 +1,4 @@
+import { isAllowedEvidenceUrl } from "@/lib/evidence-url";
 import { prisma } from "@/lib/db";
 import { getOrderPortalUrl } from "@/lib/app-url";
 import { getCurrentDbUser } from "@/lib/current-db-user";
@@ -15,10 +16,10 @@ export async function POST(
         }
 
         const { orderId } = await params;
-        const { evidenceUrl } = await req.json();
+        const { evidenceUrl } = await req.json().catch(() => ({}));
 
-        if (!evidenceUrl) {
-            return NextResponse.json({ message: "Evidence URL required" }, { status: 400 });
+        if (!isAllowedEvidenceUrl(evidenceUrl)) {
+            return NextResponse.json({ message: "Please upload the evidence file through Vault" }, { status: 400 });
         }
 
         const order = await prisma.order.findUnique({

@@ -91,7 +91,6 @@ const ImageUpload = ({
   };
 
   const onSuccess = (res: any) => {
-    console.log("Upload Success:", res);
     if (res?.url) {
       onChange(res.url);
     }
@@ -100,7 +99,6 @@ const ImageUpload = ({
   };
 
   const handleUploadStart = (evt: any) => {
-    console.log("Upload started");
     onUploadStart?.();
     onUploadProgress?.(10);
   };
@@ -108,7 +106,6 @@ const ImageUpload = ({
   const handleUploadProgress = (evt: any) => {
     if (evt.lengthComputable) {
       const percentComplete = Math.round((evt.loaded / evt.total) * 100);
-      console.log(`Upload progress: ${percentComplete}%`);
       onUploadProgress?.(percentComplete);
     }
   };
@@ -116,7 +113,7 @@ const ImageUpload = ({
   return (
     <div className="space-y-4">
       <ImageKitProvider urlEndpoint={urlEndpoint} publicKey={publicKey}>
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-primary transition-colors">
+        <div className="border-2 border-dashed border-border rounded-lg p-6 hover:border-primary transition-colors">
           <IKUpload
             onError={onError}
             onSuccess={onSuccess}

@@ -4,7 +4,10 @@ const isPublicRoute = createRouteMatcher([
   '/sign-in(.*)',
   '/sign-up(.*)',
   '/',
+  // Server-to-server callers without a Clerk session. Each of these routes
+  // authenticates the request itself (cron secret / Razorpay HMAC signature).
   '/api/cron/reminders(.*)',
+  '/api/razorpay/webhook',
   '/admin(.*)',
   '/api/admin(.*)',
 ])

@@ -1,16 +1,32 @@
-import { prisma } from '@/lib/db';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
+
+import { getCurrentDbUser } from "@/lib/current-db-user";
+import { prisma } from "@/lib/db";
+
+const MIN_QUERY_LENGTH = 2;
+const MAX_QUERY_LENGTH = 100;
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const q = searchParams.get('q') || '';
+  const me = await getCurrentDbUser();
+  if (!me) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
+  const q = (new URL(req.url).searchParams.get("q") || "").trim().slice(0, MAX_QUERY_LENGTH);
+
+  // An empty or one-letter query would let anyone page through every
+  // user's email address.
+  if (q.length < MIN_QUERY_LENGTH) {
+    return NextResponse.json([]);
+  }
 
   const users = await prisma.user.findMany({
     where: {
+      id: { not: me.id },
       OR: [
-        { name: { contains: q, mode: 'insensitive' } },
-        { email: { contains: q, mode: 'insensitive' } }
-      ]
+        { name: { contains: q, mode: "insensitive" } },
+        { email: { startsWith: q, mode: "insensitive" } },
+      ],
     },
     select: {
       id: true,

@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Vault",
-  description: "Vault keeps your payment safe whether you are shopping online or buying from someone from OLX, Facebook, Instagram, or elsewhere",
+  description: "Vault helps you Buy and sell tickets without the risk of getting scammed",
 };
 export default function RootLayout({
   children,

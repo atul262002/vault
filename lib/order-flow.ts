@@ -70,6 +70,40 @@ export async function createNotificationRecord(
   return notification;
 }
 
+/**
+ * Releases the tickets purchased in a completed order back into inventory
+ * accounting. Each `OrderItem` represents exactly one physical ticket, so
+ * for every product referenced in `orderItems` we decrement its remaining
+ * `ticketQuantity` by the number of matching order items, and only flip
+ * `isSold` to true once the remaining quantity reaches zero. This lets a
+ * multi-ticket listing (e.g. ticketQuantity = 2) stay live and purchasable
+ * for its remaining tickets after one of them is sold, instead of the whole
+ * listing disappearing after a single sale.
+ *
+ * The update is done with a single atomic SQL statement per product so
+ * concurrent completions can't race each other into an incorrect count.
+ */
+export async function decrementProductInventory(
+  db: PrismaLike,
+  orderItems: Array<{ productId: string }>
+) {
+  const quantityByProduct = new Map<string, number>();
+  for (const item of orderItems) {
+    quantityByProduct.set(item.productId, (quantityByProduct.get(item.productId) ?? 0) + 1);
+  }
+
+  for (const [productId, quantitySold] of quantityByProduct) {
+    await db.$executeRaw(Prisma.sql`
+      UPDATE "Products"
+      SET
+        "ticketQuantity" = GREATEST("ticketQuantity" - ${quantitySold}, 0),
+        "isSold" = (GREATEST("ticketQuantity" - ${quantitySold}, 0) <= 0),
+        "updatedAt" = NOW()
+      WHERE "id" = ${productId}
+    `);
+  }
+}
+
 export async function recordOrderStatus(
   db: PrismaLike,
   {

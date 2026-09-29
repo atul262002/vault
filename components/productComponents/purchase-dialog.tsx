@@ -50,6 +50,10 @@ export default function PurchaseDialog({
 
   if (!product) return null;
 
+  // Tickets currently reserved by other buyers' checkouts are not counted.
+  const ticketsAvailable =
+    (product as Products & { availableQuantity?: number }).availableQuantity ?? product.ticketQuantity;
+
   const canPay =
     termsAccepted &&
     receiverName.trim().length > 0 &&
@@ -129,8 +133,11 @@ export default function PurchaseDialog({
                 {product.refundPeriod && (
                   <DetailRow icon={<Clock className="h-4 w-4 text-yellow-400" />} label={product.refundPeriod} />
                 )}
-                {product.ticketQuantity && (
-                  <DetailRow icon={<Ticket className="h-4 w-4 text-pink-400" />} label={`${product.ticketQuantity} Ticket${product.ticketQuantity > 1 ? "s" : ""}`} />
+                {ticketsAvailable > 0 && (
+                  <DetailRow
+                    icon={<Ticket className="h-4 w-4 text-pink-400" />}
+                    label={`${ticketsAvailable} ticket${ticketsAvailable > 1 ? "s" : ""} available · you are buying 1`}
+                  />
                 )}
                 {product.ticketPartner && (
                   <DetailRow icon={<Store className="h-4 w-4 text-orange-400" />} label={product.ticketPartner} />
@@ -149,9 +156,9 @@ export default function PurchaseDialog({
             </p>
 
             {/* Warning banner */}
-            <div className="flex gap-2 items-start rounded-lg border border-yellow-600/40 bg-yellow-950/30 px-3 py-2.5 mb-4">
-              <AlertTriangle className="h-4 w-4 text-yellow-400 mt-0.5 flex-shrink-0" />
-              <p className="text-xs text-yellow-300 leading-relaxed">
+            <div className="flex gap-2 items-start rounded-lg border border-amber-200 dark:border-yellow-600/40 bg-amber-50 dark:bg-yellow-950/30 px-3 py-2.5 mb-4">
+              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-amber-900 dark:text-yellow-300 leading-relaxed">
                 Please ensure details are correctly entered — disputes arising from incorrectly entered details will not be considered
               </p>
             </div>

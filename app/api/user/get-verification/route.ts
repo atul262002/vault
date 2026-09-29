@@ -27,7 +27,7 @@ export async function GET() {
 
         return NextResponse.json({result:userStatus?.isVerified}, {status:200})
     } catch (error) {
-        console.log(error)
+        console.error("Error fetching verification status:", error)
         return NextResponse.json({ messsage: "Internal server error" }, { status: 500 })
     }
 }

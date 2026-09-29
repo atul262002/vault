@@ -1,7 +1,16 @@
 import { prisma } from "@/lib/db";
+import { todayInIndia } from "@/lib/product-inventory";
 import { Prisma } from "@prisma/client";
 import { currentUser } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
+
+const MAX_TICKET_PRICE = 1_000_000;
+
+function isValidIsoDate(value: string) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    const date = new Date(`${value}T00:00:00Z`);
+    return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
 
 function createListingId() {
     return `VLT-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
@@ -23,6 +32,15 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ message: "Unauthorized user" }, { status: 401 })
         }
 
+        // Without a payout account the seller can't be paid when a buyer
+        // confirms, which would leave that buyer's order stuck.
+        if (!existingUser.fundAccountId) {
+            return NextResponse.json(
+                { message: "Set up your payout account (Get Verified) before listing tickets." },
+                { status: 403 }
+            );
+        }
+
         const {
             name,
             imageUrl,
@@ -37,8 +55,46 @@ export async function POST(request: NextRequest) {
         } = await request.json();
 
         if (!name || !price || !refundPeriod || !description || !category || !estimatedTime || !ticketQuantity || !ticketPartner) {
-            console.log("Missing required fields");
             return NextResponse.json({ message: "Missing required fields" }, { status: 400 });
+        }
+
+        const parsedTicketQuantity = Number(ticketQuantity);
+        if (!Number.isInteger(parsedTicketQuantity) || parsedTicketQuantity < 1) {
+            return NextResponse.json(
+                { message: "Number of tickets must be a whole number of at least 1" },
+                { status: 400 }
+            );
+        }
+
+        const parsedPrice = Number(price);
+        if (!Number.isFinite(parsedPrice) || parsedPrice < 1 || parsedPrice > MAX_TICKET_PRICE) {
+            return NextResponse.json(
+                { message: `Price must be between ₹1 and ₹${MAX_TICKET_PRICE.toLocaleString("en-IN")}` },
+                { status: 400 }
+            );
+        }
+
+        if (typeof estimatedTime !== "string" || !isValidIsoDate(estimatedTime)) {
+            return NextResponse.json({ message: "Event date must be a valid date" }, { status: 400 });
+        }
+        if (estimatedTime < todayInIndia()) {
+            return NextResponse.json({ message: "Event date can't be in the past" }, { status: 400 });
+        }
+
+        const textFields: Array<[string, unknown, number]> = [
+            ["Event name", name, 200],
+            ["Event time", refundPeriod, 100],
+            ["Description", description, 5000],
+            ["Location", category, 100],
+            ["Ticket partner", ticketPartner, 100],
+        ];
+        for (const [label, value, maxLength] of textFields) {
+            if (typeof value !== "string" || !value.trim() || value.length > maxLength) {
+                return NextResponse.json(
+                    { message: `${label} is required and must be at most ${maxLength} characters` },
+                    { status: 400 }
+                );
+            }
         }
 
         let cat = await prisma.category.findUnique({
@@ -46,7 +102,6 @@ export async function POST(request: NextRequest) {
         });
 
         if (!cat) {
-            console.log(`Category not found for name: ${category}, creating it...`);
             cat = await prisma.category.create({
                 data: { name: category }
             });
@@ -109,7 +164,7 @@ export async function POST(request: NextRequest) {
                 ${listingId},
                 ${name},
                 ${imageUrl ?? null},
-                ${Number(price)},
+                ${parsedPrice},
                 ${refundPeriod},
                 ${estimatedTime},
                 ${description},
@@ -117,7 +172,7 @@ export async function POST(request: NextRequest) {
                 ${cat.id},
                 ${image ?? null},
                 false,
-                ${Number(ticketQuantity)},
+                ${parsedTicketQuantity},
                 ${ticketPartner},
                 NOW(),
                 NOW()

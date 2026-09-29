@@ -1,11 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",   // 👈 ADD THIS
+  output: "standalone",
 
+  // Type errors fail the production build. The codebase type-checks cleanly,
+  // so keep it that way instead of shipping type errors.
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
+  // Remaining lint findings are stylistic (unused vars, `any`); lint is run
+  // separately with `npm run lint` rather than blocking deploys.
   eslint: {
     ignoreDuringBuilds: true,
   },

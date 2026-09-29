@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { ACTIVE_LISTING_ORDER_STATUSES, PAYMENT_PENDING_LOCK_MINUTES } from "@/lib/order-availability";
+import { eventNotPastSql, reservedTicketCountSql } from "@/lib/product-inventory";
 import { Prisma } from "@prisma/client";
 import { currentUser } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
@@ -34,6 +34,7 @@ export async function POST(request:NextRequest){
             createdAt: Date;
             updatedAt: Date;
             ticketQuantity: number;
+            reserved: number;
             ticketPartner: string;
             category_name: string;
             seller_name: string | null;
@@ -41,6 +42,7 @@ export async function POST(request:NextRequest){
         }>>(Prisma.sql`
             SELECT
                 p.*,
+                ${reservedTicketCountSql(Prisma.raw(`p."id"`))} AS "reserved",
                 c."name" AS category_name,
                 u."name" AS seller_name,
                 u."email" AS seller_email
@@ -52,19 +54,8 @@ export async function POST(request:NextRequest){
                 OR p."listingId" = ${normalizedProductId.toUpperCase()}
               )
               AND p."isSold" = false
-              AND NOT EXISTS (
-                SELECT 1
-                FROM "OrderItem" oi
-                JOIN "Order" o ON o."id" = oi."orderId"
-                WHERE oi."productId" = p."id"
-                  AND o."status" IN (${Prisma.join(
-                    ACTIVE_LISTING_ORDER_STATUSES.map((status) => Prisma.sql`${status}::"OrderStatus"`)
-                  )})
-                  AND (
-                    o."status" <> ${"PAYMENT_PENDING"}::"OrderStatus"
-                    OR o."createdAt" >= NOW() - (${PAYMENT_PENDING_LOCK_MINUTES} * INTERVAL '1 minute')
-                  )
-              )
+              AND ${reservedTicketCountSql(Prisma.raw(`p."id"`))} < p."ticketQuantity"
+        AND ${eventNotPastSql("p")}
             LIMIT 1
         `);
 
@@ -84,6 +75,7 @@ export async function POST(request:NextRequest){
             createdAt: productRow.createdAt,
             updatedAt: productRow.updatedAt,
             ticketQuantity: productRow.ticketQuantity,
+            availableQuantity: Math.max(productRow.ticketQuantity - productRow.reserved, 0),
             ticketPartner: productRow.ticketPartner,
             category: {
                 id: productRow.categoryId,
