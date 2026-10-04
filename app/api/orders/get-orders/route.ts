@@ -65,7 +65,7 @@ export async function GET() {
             }
         });
 
-        return NextResponse.json({ result: { orders, existingUser } }, { status: 200 })
+        return NextResponse.json({ result: { orders, existingUser: { id: existingUser.id, email: existingUser.email } } }, { status: 200 })
     } catch {
         return NextResponse.json({ message: "Internal server error" }, { status: 500 })
     }

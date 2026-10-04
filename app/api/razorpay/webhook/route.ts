@@ -19,11 +19,16 @@ export async function POST(req: NextRequest) {
       .update(rawBody)
       .digest("hex");
 
-    if (expectedSignature !== signature) {
+    const expectedBuffer = Buffer.from(expectedSignature);
+    const providedBuffer = Buffer.from(signature);
+    if (expectedBuffer.length !== providedBuffer.length || !crypto.timingSafeEqual(expectedBuffer, providedBuffer)) {
       return NextResponse.json({ message: "Invalid webhook signature" }, { status: 400 });
     }
 
     const event = JSON.parse(rawBody);
+    if (typeof event?.event !== "string") {
+      return NextResponse.json({ message: "Malformed webhook" }, { status: 400 });
+    }
 
     if (event.event !== "payment.captured") {
       return NextResponse.json({ ok: true, ignored: true });

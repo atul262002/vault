@@ -84,7 +84,7 @@ export async function createAdminSession(username: string) {
   });
   store.set(ADMIN_COOKIE, token, {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: "strict",
     secure: process.env.NODE_ENV === "production",
     path: "/",
     maxAge: Math.floor(SESSION_TTL_MS / 1000),

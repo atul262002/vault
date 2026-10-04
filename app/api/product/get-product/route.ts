@@ -38,14 +38,12 @@ export async function POST(request:NextRequest){
             ticketPartner: string;
             category_name: string;
             seller_name: string | null;
-            seller_email: string | null;
         }>>(Prisma.sql`
             SELECT
                 p.*,
                 ${reservedTicketCountSql(Prisma.raw(`p."id"`))} AS "reserved",
                 c."name" AS category_name,
-                u."name" AS seller_name,
-                u."email" AS seller_email
+                u."name" AS seller_name
             FROM "Products" p
             JOIN "Category" c ON c."id" = p."categoryId"
             JOIN "User" u ON u."id" = p."sellerId"
@@ -84,7 +82,6 @@ export async function POST(request:NextRequest){
             seller: {
                 id: productRow.sellerId,
                 name: productRow.seller_name,
-                email: productRow.seller_email,
             },
         } : null;
 

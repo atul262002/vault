@@ -1,7 +1,8 @@
-import { currentUser } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import Razorpay from "razorpay";
 
+import { getCurrentDbUser } from "@/lib/current-db-user";
+import { prisma } from "@/lib/db";
 import { completeOrderPayment } from "@/lib/razorpay-payment";
 
 type RazorpayOrderPayment = {
@@ -28,15 +29,25 @@ const getRazorpayErrorMessage = (error: unknown) => {
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await currentUser();
-    if (!user?.emailAddresses[0]?.emailAddress) {
+    const user = await getCurrentDbUser();
+    if (!user) {
       return NextResponse.json({ message: "Unauthorized user" }, { status: 401 });
     }
 
-    const { razorpay_order_id } = await req.json();
+    const body = await req.json().catch(() => null);
+    const razorpay_order_id = body?.razorpay_order_id;
 
-    if (!razorpay_order_id) {
+    if (typeof razorpay_order_id !== "string" || !razorpay_order_id) {
       return NextResponse.json({ message: "Missing order id" }, { status: 400 });
+    }
+
+    // Only the buyer who started this checkout may poll it.
+    const order = await prisma.order.findUnique({
+      where: { razorpayId: razorpay_order_id },
+      select: { buyerId: true },
+    });
+    if (!order || order.buyerId !== user.id) {
+      return NextResponse.json({ message: "Order not found" }, { status: 404 });
     }
 
     if (!process.env.RAZORPAYX_KEY_ID || !process.env.RAZORPAYX_KEY_SECRET) {
@@ -62,7 +73,8 @@ export async function POST(req: NextRequest) {
     }
 
     const successfulPayment = payments.items.find((payment: RazorpayOrderPayment) =>
-      ["authorized", "captured"].includes(payment.status)
+      // Only captured money counts; authorized payments can still be voided.
+      payment.status === "captured"
     );
 
     if (!successfulPayment) {
@@ -75,9 +87,13 @@ export async function POST(req: NextRequest) {
       source: "order_status_poll",
     });
 
+    if (result.status === 202) {
+      return NextResponse.json({ status: "pending" }, { status: 200 });
+    }
+
     return NextResponse.json(
       {
-        status: "paid",
+        status: result.ok ? "paid" : "failed",
         razorpay_payment_id: successfulPayment.id,
         message: result.message,
       },

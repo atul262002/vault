@@ -2,6 +2,12 @@ import {  currentUser } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { prisma } from '@/lib/db';
+import { rateLimit } from '@/lib/rate-limit';
+
+const MAX_MESSAGE_CHARS = 1000;
+const MAX_HISTORY_MESSAGES = 10;
+const CHAT_LIMIT_PER_WINDOW = 20;
+const CHAT_WINDOW_MS = 10 * 60 * 1000;
 
 
 const getOpenAI = () => new OpenAI({ apiKey: process.env.OPENAI_APIKEY! });
@@ -14,7 +20,7 @@ Classify incoming messages strictly as SIMPLE or COMPLEX.
 Reply with exactly one word: SIMPLE or COMPLEX.
 `.trim();
 
-async function classifyMessage(text:any) {
+async function classifyMessage(text: string) {
     const resp = await getOpenAI().chat.completions.create({
         model: 'gpt-3.5-turbo',
         temperature: 0,
@@ -50,10 +56,30 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'User not found in internal database' }, { status: 404 });
         }
 
-        const body = await req.json()
-        const message = body.message;
-        const history = body.history || []
         const userId = dbUser.id;
+
+        // Each request costs OpenAI credits, so cap how often one user can ask.
+        if (!rateLimit(`chatbot:${userId}`, CHAT_LIMIT_PER_WINDOW, CHAT_WINDOW_MS)) {
+            return NextResponse.json({ error: 'Too many messages. Please wait a few minutes.' }, { status: 429 });
+        }
+
+        const body = await req.json().catch(() => null);
+        const message = typeof body?.message === 'string' ? body.message.trim() : '';
+        if (!message || message.length > MAX_MESSAGE_CHARS) {
+            return NextResponse.json({ error: `Message must be 1-${MAX_MESSAGE_CHARS} characters` }, { status: 400 });
+        }
+
+        // Only plain user/assistant turns from the client are accepted. A
+        // client-supplied "system" message could override our instructions,
+        // and an unbounded history would run up token costs.
+        const rawHistory: unknown[] = Array.isArray(body?.history) ? body.history : [];
+        const history = rawHistory
+            .filter((m): m is { role: 'user' | 'assistant'; content: string } =>
+                typeof m === 'object' && m !== null &&
+                ((m as { role?: unknown }).role === 'user' || (m as { role?: unknown }).role === 'assistant') &&
+                typeof (m as { content?: unknown }).content === 'string')
+            .slice(-MAX_HISTORY_MESSAGES)
+            .map((m) => ({ role: m.role, content: m.content.slice(0, MAX_MESSAGE_CHARS) }));
 
         const purchases = await prisma.order.findMany({
             where: { buyerId: userId },
@@ -79,11 +105,11 @@ You are Vault’s dispute‑resolution assistant.
 Buyer’s recent purchases:
 ${purchases.map(p =>
             p.orderItems.map(item =>
-                `• ${item.product.name} (Order ${p.id}, ${p.status} ${p.totalAmount} ${p.razorpayId})`
+                `• ${item.product.name} (Order ${p.id}, ${p.status}, ₹${p.totalAmount})`
             ).join('\n')
         ).join('\n')}
 
-Seller’s active listings with ${email} as email Address:
+Seller’s active listings :
 ${listings.map(l => `• ${l.name} (Listing ${l.id}) Refund Period ${l.refundPeriod} Price ${l.price}`).join('\n')}
 `.trim();
 

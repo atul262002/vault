@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/db";
 import { getOrderPortalUrl } from "@/lib/app-url";
 import { getCurrentDbUser } from "@/lib/current-db-user";
-import { createNotificationRecord, getTransferDelayUntil, normalizeOrderStatus, recordOrderStatus } from "@/lib/order-flow";
+import { createNotificationRecord, getTransferDelayUntil, recordOrderStatus } from "@/lib/order-flow";
+import { OrderActionError, requireStatus, withLockedOrder } from "@/lib/order-lock";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(
@@ -43,15 +44,13 @@ export async function POST(
             return NextResponse.json({ message: "Unauthorized: not the seller" }, { status: 403 });
         }
 
-        const currentStatus = normalizeOrderStatus(order.status);
-        if (!["FUNDS_HELD", "TRANSFER_PENDING"].includes(currentStatus)) {
-            return NextResponse.json({ message: "Transfer cannot be initiated in the current state" }, { status: 400 });
-        }
 
         const now = new Date();
         const transferDelayUntil = getTransferDelayUntil(now);
 
-        const updatedOrder = await prisma.$transaction(async (tx) => {
+        const updatedOrder = await withLockedOrder(orderId, async (tx, currentStatus) => {
+            requireStatus(currentStatus, ["FUNDS_HELD", "TRANSFER_PENDING"], "Transfer cannot be initiated in the current state");
+
             const nextOrder = await tx.order.update({
                 where: { id: orderId },
                 data: {
@@ -98,7 +97,10 @@ export async function POST(
         return NextResponse.json(updatedOrder);
 
     } catch (error: unknown) {
+        if (error instanceof OrderActionError) {
+            return NextResponse.json({ message: error.message }, { status: error.status });
+        }
         console.error("Initiate transfer error:", error);
-        return NextResponse.json({ error: error instanceof Error ? error.message : "Internal server error" }, { status: 500 });
+        return NextResponse.json({ message: "Internal server error" }, { status: 500 });
     }
 }

@@ -6,11 +6,15 @@ import { getCurrentDbUser } from "@/lib/current-db-user";
 import { prisma } from "@/lib/db";
 import { PAYMENT_PENDING_LOCK_MINUTES } from "@/lib/order-availability";
 import { recordOrderStatus } from "@/lib/order-flow";
+import { rateLimit } from "@/lib/rate-limit";
 import { eventNotPastSql, reservedTicketCountSql } from "@/lib/product-inventory";
 
 const BUYER_FEE_RATE = 0.05;
 const SELLER_FEE_RATE = 0.025;
 const MAX_RECEIVER_NAME_LENGTH = 100;
+const MAX_OPEN_CHECKOUTS = 2;
+const CHECKOUTS_PER_WINDOW = 10;
+const CHECKOUT_WINDOW_MS = 10 * 60 * 1000;
 
 type RazorpayOrderResponse = {
   id: string;
@@ -174,6 +178,27 @@ export async function POST(req: NextRequest) {
           orderId: existingPending.id,
         },
         { status: 200 }
+      );
+    }
+
+    // Each unpaid checkout holds a ticket for PAYMENT_PENDING_LOCK_MINUTES.
+    // Without a cap, one account could keep opening checkouts and make every
+    // listing look sold out.
+    if (!rateLimit(`checkout:${buyer.id}`, CHECKOUTS_PER_WINDOW, CHECKOUT_WINDOW_MS)) {
+      return NextResponse.json({ error: "Too many checkout attempts. Please wait a few minutes." }, { status: 429 });
+    }
+
+    const openCheckouts = await prisma.order.count({
+      where: {
+        buyerId: buyer.id,
+        status: "PAYMENT_PENDING",
+        createdAt: { gte: new Date(Date.now() - PAYMENT_PENDING_LOCK_MINUTES * 60 * 1000) },
+      },
+    });
+    if (openCheckouts >= MAX_OPEN_CHECKOUTS) {
+      return NextResponse.json(
+        { error: "You already have unfinished checkouts. Complete or wait for them to expire before starting another." },
+        { status: 429 }
       );
     }
 

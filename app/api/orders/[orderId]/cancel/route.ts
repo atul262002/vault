@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/db";
 import { getOrderPortalUrl } from "@/lib/app-url";
 import { getCurrentDbUser } from "@/lib/current-db-user";
-import { createNotificationRecord, normalizeOrderStatus, recordOrderStatus } from "@/lib/order-flow";
+import { createNotificationRecord, recordOrderStatus } from "@/lib/order-flow";
+import { OrderActionError, requireStatus, withLockedOrder } from "@/lib/order-lock";
 import { createBuyerRefund } from "@/lib/razorpay-money-flow";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -41,48 +42,36 @@ export async function POST(
       return NextResponse.json({ message: "Only the buyer can cancel this order" }, { status: 403 });
     }
 
-    const currentStatus = normalizeOrderStatus(order.status);
-    if (!["PAYMENT_PENDING", "FUNDS_HELD", "TRANSFER_PENDING"].includes(currentStatus)) {
-      return NextResponse.json(
-        { message: "This order can no longer be cancelled from the buyer side" },
-        { status: 400 }
-      );
-    }
-
     const seller = order.orderItems[0]?.product.seller;
     const orderPortalUrl = getOrderPortalUrl(order.id);
-    let refundId: string | null = null;
-    let refundStatus: string | null = null;
 
-    if (order.payment?.paymentId) {
-      const refund = await createBuyerRefund({
-        paymentId: order.payment.paymentId,
-        amountInRupees: order.totalAmount,
-        orderId,
-      });
+    // Locked so a cancel can't race the payment webhook (money captured but
+    // never refunded) or the seller starting the transfer.
+    const { updatedOrder, refundId, refundStatus } = await withLockedOrder(orderId, async (tx, currentStatus) => {
+      requireStatus(
+        currentStatus,
+        ["PAYMENT_PENDING", "FUNDS_HELD", "TRANSFER_PENDING"],
+        "This order can no longer be cancelled from the buyer side"
+      );
 
-      refundId = refund.id;
-      refundStatus = refund.status;
-    }
+      const payment = await tx.payment.findUnique({ where: { orderId } });
+      let refundId: string | null = null;
+      let refundStatus: string | null = null;
 
-    const updatedOrder = await prisma.$transaction(async (tx) => {
+      if (payment?.paymentId) {
+        const refund = await createBuyerRefund({
+          paymentId: payment.paymentId,
+          amountInRupees: order.totalAmount,
+          orderId,
+        });
+        refundId = refund.id;
+        refundStatus = refund.status;
+      }
+
       const nextOrder = await tx.order.update({
         where: { id: orderId },
         data: {
           status: refundId ? "REFUNDED" : "CANCELLED",
-        },
-        include: {
-          payment: true,
-          orderItems: {
-            include: {
-              product: {
-                include: {
-                  seller: true,
-                },
-              },
-            },
-          },
-          buyer: true,
         },
       });
 
@@ -113,7 +102,7 @@ export async function POST(
           : "Your order was cancelled before payment capture.",
       });
 
-      return nextOrder;
+      return { updatedOrder: nextOrder, refundId, refundStatus };
     });
 
     await import("@/lib/mail").then(({ sendMail }) =>
@@ -146,6 +135,9 @@ export async function POST(
 
     return NextResponse.json(updatedOrder);
   } catch (error: unknown) {
+    if (error instanceof OrderActionError) {
+      return NextResponse.json({ message: error.message }, { status: error.status });
+    }
     console.error("Cancel order error:", error);
     return NextResponse.json(
       { message: error instanceof Error ? error.message : "Internal server error" },

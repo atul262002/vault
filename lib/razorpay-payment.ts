@@ -3,9 +3,10 @@ import { OrderStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { escapeHtml } from "@/lib/mail";
 import { sendNotification } from "@/lib/notifications";
-import { createNotificationRecord, normalizeOrderStatus, recordOrderStatus } from "@/lib/order-flow";
+import { createNotificationRecord, recordOrderStatus } from "@/lib/order-flow";
 import { ACTIVE_LISTING_ORDER_STATUSES } from "@/lib/order-availability";
 import { createBuyerRefund } from "@/lib/razorpay-money-flow";
+import { withLockedOrder } from "@/lib/order-lock";
 
 // Orders in these statuses never had a payment settle through the normal
 // flow (the buyer cancelled, or the order was otherwise abandoned) before
@@ -140,175 +141,178 @@ async function sendStrayPaymentRefundAlert(
   );
 }
 
+type RazorpayPaymentEntity = {
+  id: string;
+  order_id: string | null;
+  status: string;
+  amount: number;
+  currency: string;
+};
+
+/**
+ * Asks Razorpay directly for the payment. Nothing the client sends (or a
+ * forwarded webhook body) is trusted for status, order or amount.
+ */
+async function fetchRazorpayPayment(paymentId: string): Promise<RazorpayPaymentEntity | null> {
+  const keyId = process.env.RAZORPAYX_KEY_ID;
+  const keySecret = process.env.RAZORPAYX_KEY_SECRET;
+  if (!keyId || !keySecret) {
+    throw new Error("Razorpay credentials are not configured on the server");
+  }
+  if (!/^pay_[A-Za-z0-9]+$/.test(paymentId)) {
+    return null;
+  }
+
+  const response = await fetch(`https://api.razorpay.com/v1/payments/${paymentId}`, {
+    headers: {
+      Authorization: `Basic ${Buffer.from(`${keyId}:${keySecret}`).toString("base64")}`,
+    },
+  });
+
+  if (response.status === 400 || response.status === 404) {
+    return null;
+  }
+  if (!response.ok) {
+    throw new Error(`Razorpay payment lookup failed with status ${response.status}`);
+  }
+  return (await response.json()) as RazorpayPaymentEntity;
+}
+
+type PaymentResult = { ok: boolean; status: number; message: string; orderId?: string };
+
 export async function completeOrderPayment({
   razorpayOrderId,
   razorpayPaymentId,
   source = "client_verify",
-}: CompleteOrderPaymentParams) {
+}: CompleteOrderPaymentParams): Promise<PaymentResult> {
   const existingOrder = await fetchOrder(razorpayOrderId);
-
   if (!existingOrder) {
-    return { ok: false as const, status: 404, message: "Order not found" };
+    return { ok: false, status: 404, message: "Order not found" };
   }
 
-  const normalizedStatus = normalizeOrderStatus(existingOrder.status);
-
-  // Idempotency: this exact payment was already captured and the order has
-  // moved past PAYMENT_PENDING — nothing left to do.
-  if (existingOrder.payment?.paymentId === razorpayPaymentId && normalizedStatus !== "PAYMENT_PENDING") {
-    return {
-      ok: true as const,
-      status: 200,
-      message: "Payment already processed",
-      orderId: existingOrder.id,
-    };
+  const payment = await fetchRazorpayPayment(razorpayPaymentId);
+  if (!payment || payment.order_id !== razorpayOrderId) {
+    return { ok: false, status: 400, message: "Payment does not belong to this order" };
   }
 
-  // A different payment already settled this order and it has moved past
-  // PAYMENT_PENDING. The incoming payment is a duplicate charge for the same
-  // ticket. Refund it and leave the original payment and the order's
-  // progress untouched, instead of overwriting the payment record and
-  // resetting the order back to FUNDS_HELD.
-  if (
-    existingOrder.payment?.paymentId &&
-    existingOrder.payment.paymentId !== razorpayPaymentId &&
-    normalizedStatus !== "PAYMENT_PENDING"
-  ) {
-    // Key the refund on the duplicate payment's own id. Reusing the order id
-    // would make Razorpay dedupe a later, legitimate refund of the original
-    // payment (e.g. buyer cancels) against this one, and a combined
-    // order+payment id would exceed Razorpay's 40-character receipt limit.
-    const refund = await createBuyerRefund({
-      paymentId: razorpayPaymentId,
-      amountInRupees: existingOrder.totalAmount,
-      orderId: razorpayPaymentId,
-    });
+  if (payment.status !== "captured") {
+    // Authorized-but-not-captured money can still be voided, so it doesn't
+    // count as paid yet. The webhook/poll will call again once captured.
+    return { ok: false, status: 202, message: "Payment is not captured yet", orderId: existingOrder.id };
+  }
 
-    await recordOrderStatus(prisma, {
-      orderId: existingOrder.id,
-      fromStatus: normalizedStatus,
-      toStatus: normalizedStatus,
-      note: `Duplicate payment ${razorpayPaymentId} received after payment ${existingOrder.payment.paymentId} already settled. Refund ${refund.id} accepted with status ${refund.status}.`,
-    });
-
-    await sendStrayPaymentRefundAlert(
-      existingOrder,
-      refund.id,
-      refund.status,
-      "this order had already been paid for, so the second charge was a duplicate"
+  const expectedPaise = Math.round(existingOrder.totalAmount * 100);
+  if (payment.currency !== "INR" || Number(payment.amount) !== expectedPaise) {
+    console.error(
+      `Payment ${payment.id} amount ${payment.amount} ${payment.currency} does not match order ${existingOrder.id} (${expectedPaise} INR)`
     );
-
-    return {
-      ok: true as const,
-      status: 200,
-      message: "Duplicate payment refunded automatically",
-      orderId: existingOrder.id,
-    };
+    await import("@/lib/mail").then(({ sendAdminMail }) =>
+      sendAdminMail({
+        subject: `[ADMIN] Payment amount mismatch on order ${existingOrder.id}`,
+        html: `<p>Payment ${escapeHtml(payment.id)} captured ${Number(payment.amount) / 100} ${escapeHtml(payment.currency)}, but the order total is ₹${existingOrder.totalAmount}. The order was not marked as paid. Review and refund manually.</p>`,
+      })
+    );
+    return { ok: false, status: 409, message: "Payment amount does not match the order", orderId: existingOrder.id };
   }
 
-  // The order already resolved through its normal lifecycle (buyer
-  // confirmed, auto-confirmed, or was refunded through some other flow). A
-  // duplicate/late payment notification for it must not reopen anything.
-  if (ALREADY_RESOLVED_STATUSES.includes(normalizedStatus)) {
-    return {
-      ok: true as const,
-      status: 200,
-      message: `Order already resolved as ${normalizedStatus}; ignoring late payment notification`,
-      orderId: existingOrder.id,
-    };
-  }
-
-  // The order died before this payment settled — most commonly the buyer
-  // cancelled right as Razorpay's capture landed. We can't leave the
-  // buyer's money sitting against a dead order, so refund it immediately
-  // and leave the order's terminal status untouched.
-  if (DEAD_BEFORE_CAPTURE_STATUSES.includes(normalizedStatus)) {
-    const refund = await createBuyerRefund({
-      paymentId: razorpayPaymentId,
-      amountInRupees: existingOrder.totalAmount,
-      orderId: existingOrder.id,
+  // Everything below runs under the order lock, so the client callback, the
+  // status poll and the webhook can't process the same order concurrently,
+  // and a cancel can't slip in between our read and our write.
+  const { result, afterCommit } = await withLockedOrder(existingOrder.id, async (tx, status) => {
+    const order = await tx.order.findUniqueOrThrow({
+      where: { id: existingOrder.id },
+      include: { payment: true, orderItems: true },
     });
 
-    await prisma.$transaction(async (tx) => {
-      // Record the captured payment so a webhook retry or status poll for
-      // the same payment hits the idempotency guard above instead of
-      // issuing a second refund and sending duplicate emails.
-      if (!existingOrder.payment) {
+    // 1. This payment was already applied.
+    if (order.payment?.paymentId === razorpayPaymentId && status !== "PAYMENT_PENDING") {
+      return { result: { ok: true, status: 200, message: "Payment already processed", orderId: order.id } };
+    }
+
+    // 2. A different payment already settled this order: duplicate charge.
+    if (order.payment?.paymentId && order.payment.paymentId !== razorpayPaymentId && status !== "PAYMENT_PENDING") {
+      // Keyed on the duplicate payment id so it can't collide with a later,
+      // legitimate refund of the original payment.
+      const refund = await createBuyerRefund({
+        paymentId: razorpayPaymentId,
+        amountInRupees: order.totalAmount,
+        orderId: razorpayPaymentId,
+      });
+      await recordOrderStatus(tx, {
+        orderId: order.id,
+        fromStatus: status,
+        toStatus: status,
+        note: `Duplicate payment ${razorpayPaymentId} refunded (${refund.id}, ${refund.status}); payment ${order.payment.paymentId} had already settled this order.`,
+      });
+      return {
+        result: { ok: true, status: 200, message: "Duplicate payment refunded automatically", orderId: order.id },
+        afterCommit: () =>
+          sendStrayPaymentRefundAlert(existingOrder, refund.id, refund.status, "this order had already been paid for, so the second charge was a duplicate"),
+      };
+    }
+
+    // 3. Order already finished its lifecycle.
+    if (ALREADY_RESOLVED_STATUSES.includes(status)) {
+      return { result: { ok: true, status: 200, message: `Order already resolved as ${status}`, orderId: order.id } };
+    }
+
+    // 4. Order died before the payment landed (e.g. buyer cancelled).
+    if (DEAD_BEFORE_CAPTURE_STATUSES.includes(status)) {
+      const refund = await createBuyerRefund({
+        paymentId: razorpayPaymentId,
+        amountInRupees: order.totalAmount,
+        orderId: order.id,
+      });
+      if (!order.payment) {
         await tx.payment.create({
-          data: {
-            paymentId: razorpayPaymentId,
-            orderId: existingOrder.id,
-            status: "COMPLETED",
-            amount: existingOrder.totalAmount,
-          },
+          data: { paymentId: razorpayPaymentId, orderId: order.id, status: "COMPLETED", amount: order.totalAmount },
         });
       }
-
       await recordOrderStatus(tx, {
-        orderId: existingOrder.id,
-        fromStatus: normalizedStatus,
-        toStatus: normalizedStatus,
-        note: `Stray payment ${razorpayPaymentId} arrived after the order was already ${normalizedStatus}. Refund ${refund.id} accepted with status ${refund.status}.`,
+        orderId: order.id,
+        fromStatus: status,
+        toStatus: status,
+        note: `Payment ${razorpayPaymentId} arrived after the order was ${status}. Refund ${refund.id} (${refund.status}).`,
       });
-    });
+      return {
+        result: { ok: true, status: 200, message: `Order was already ${status}; payment refunded automatically`, orderId: order.id },
+        afterCommit: () =>
+          sendStrayPaymentRefundAlert(existingOrder, refund.id, refund.status, `this order was already ${status.toLowerCase()} when your payment settled`),
+      };
+    }
 
-    await sendStrayPaymentRefundAlert(
-      existingOrder,
-      refund.id,
-      refund.status,
-      `this order was already ${normalizedStatus.toLowerCase()} when your payment settled`
-    );
-
-    return {
-      ok: true as const,
-      status: 200,
-      message: `Order was already ${normalizedStatus}; stray payment refunded automatically`,
-      orderId: existingOrder.id,
-    };
-  }
-
-  const wasFirstSuccessfulCompletion = !existingOrder.payment;
-
-  const { oversold } = await prisma.$transaction(async (tx) => {
-    if (!existingOrder.payment) {
-      await tx.payment.create({
-        data: {
-          paymentId: razorpayPaymentId,
-          orderId: existingOrder.id,
-          status: "COMPLETED",
-          amount: existingOrder.totalAmount,
-        },
+    // 5. Normal capture. Record the payment first.
+    if (order.payment) {
+      await tx.payment.update({
+        where: { orderId: order.id },
+        data: { paymentId: razorpayPaymentId, status: "COMPLETED", amount: order.totalAmount },
       });
     } else {
-      await tx.payment.update({
-        where: { orderId: existingOrder.id },
-        data: {
-          paymentId: razorpayPaymentId,
-          status: "COMPLETED",
-          amount: existingOrder.totalAmount,
-        },
+      await tx.payment.create({
+        data: { paymentId: razorpayPaymentId, orderId: order.id, status: "COMPLETED", amount: order.totalAmount },
       });
     }
 
-    if (normalizedStatus === "FUNDS_HELD") {
-      return { oversold: false as const };
+    if (status !== "PAYMENT_PENDING") {
+      // Unreachable in normal operation; keep the money recorded and flag it.
+      return {
+        result: { ok: true, status: 200, message: `Payment recorded; order is ${status}`, orderId: order.id },
+        afterCommit: () =>
+          import("@/lib/mail").then(({ sendAdminMail }) =>
+            sendAdminMail({
+              subject: `[ADMIN] Unexpected payment on order ${order.id}`,
+              html: `<p>Payment ${escapeHtml(razorpayPaymentId)} was captured while the order was ${status}. Review it manually.</p>`,
+            })
+          ),
+      };
     }
 
-    // Re-verify, with a row lock, that every product in this order still
-    // has an unsold ticket available. A PAYMENT_PENDING order can reach
-    // this point well after its 15-minute reservation window lapsed —
-    // e.g. a slow bank OTP flow — by which time another buyer may already
-    // have claimed the last remaining ticket. This is the last line of
-    // defense against double-selling a ticket whose payment settles late.
-    for (const item of existingOrder.orderItems) {
-      const [lockedProduct] = await tx.$queryRaw<Array<{
-        id: string;
-        isSold: boolean;
-        ticketQuantity: number;
-        committedCount: number;
-      }>>(Prisma.sql`
+    // Re-check stock under a product lock: this payment may have settled
+    // after its 15-minute reservation lapsed and someone else bought the
+    // last ticket in the meantime.
+    for (const item of order.orderItems) {
+      const [product] = await tx.$queryRaw<Array<{ isSold: boolean; ticketQuantity: number; committedCount: number }>>(Prisma.sql`
         SELECT
-          p."id",
           p."isSold",
           p."ticketQuantity",
           (
@@ -316,23 +320,37 @@ export async function completeOrderPayment({
             FROM "OrderItem" oi
             JOIN "Order" o ON o."id" = oi."orderId"
             WHERE oi."productId" = p."id"
-              AND o."id" <> ${existingOrder.id}
-              AND o."status" IN (${Prisma.join(
-                COMMITTED_ORDER_STATUSES.map((status) => Prisma.sql`${status}::"OrderStatus"`)
-              )})
+              AND o."id" <> ${order.id}
+              AND o."status" IN (${Prisma.join(COMMITTED_ORDER_STATUSES.map((s) => Prisma.sql`${s}::"OrderStatus"`))})
           ) AS "committedCount"
         FROM "Products" p
         WHERE p."id" = ${item.productId}
         FOR UPDATE
       `);
 
-      if (!lockedProduct || lockedProduct.isSold || lockedProduct.committedCount >= lockedProduct.ticketQuantity) {
-        return { oversold: true as const };
+      if (!product || product.isSold || product.committedCount >= product.ticketQuantity) {
+        const refund = await createBuyerRefund({
+          paymentId: razorpayPaymentId,
+          amountInRupees: order.totalAmount,
+          orderId: order.id,
+        });
+        await tx.order.update({ where: { id: order.id }, data: { status: "REFUNDED" } });
+        await recordOrderStatus(tx, {
+          orderId: order.id,
+          fromStatus: status,
+          toStatus: "REFUNDED",
+          note: `Listing sold out before this payment settled. Refund ${refund.id} (${refund.status}).`,
+        });
+        return {
+          result: { ok: true, status: 200, message: "Listing sold out before payment settled; buyer refunded automatically", orderId: order.id },
+          afterCommit: () =>
+            sendStrayPaymentRefundAlert(existingOrder, refund.id, refund.status, "the listing sold out to another buyer before your payment settled"),
+        };
       }
     }
 
     await tx.order.update({
-      where: { id: existingOrder.id },
+      where: { id: order.id },
       data: {
         status: "FUNDS_HELD",
         transferPendingAt: new Date(),
@@ -341,101 +359,26 @@ export async function completeOrderPayment({
         lastBuyerReminderSentAt: null,
       },
     });
-
     await recordOrderStatus(tx, {
-      orderId: existingOrder.id,
-      fromStatus: normalizedStatus,
+      orderId: order.id,
+      fromStatus: status,
       toStatus: "FUNDS_HELD",
       note: `Payment captured via ${source}`,
     });
 
-    return { oversold: false as const };
-  });
-
-  if (oversold) {
-    const refund = await createBuyerRefund({
-      paymentId: razorpayPaymentId,
-      amountInRupees: existingOrder.totalAmount,
-      orderId: existingOrder.id,
-    });
-
-    await prisma.$transaction(async (tx) => {
-      await tx.order.update({
-        where: { id: existingOrder.id },
-        data: { status: "REFUNDED" },
-      });
-
-      await recordOrderStatus(tx, {
-        orderId: existingOrder.id,
-        fromStatus: normalizedStatus,
-        toStatus: "REFUNDED",
-        note: `Listing sold out before this payment settled. Refund ${refund.id} accepted with status ${refund.status}.`,
-      });
-    });
-
-    await sendStrayPaymentRefundAlert(
-      existingOrder,
-      refund.id,
-      refund.status,
-      "the listing sold out to another buyer before your payment settled"
-    );
-
     return {
-      ok: true as const,
-      status: 200,
-      message: "Listing sold out before payment settled; buyer refunded automatically",
-      orderId: existingOrder.id,
+      result: { ok: true, status: 200, message: "Payment captured and seller notified", orderId: order.id },
+      afterCommit: async () => {
+        const refreshed = await fetchOrder(razorpayOrderId);
+        if (refreshed) await sendSellerPaidNotification(refreshed);
+      },
     };
-  }
-
-  if (wasFirstSuccessfulCompletion) {
-    const refreshedOrder = await fetchOrder(razorpayOrderId);
-
-    if (refreshedOrder) {
-      await sendSellerPaidNotification(refreshedOrder);
-    }
-  }
-
-  return {
-    ok: true as const,
-    status: 200,
-    message: normalizedStatus === "FUNDS_HELD" ? "Payment already processed" : "Payment captured and seller notified",
-    orderId: existingOrder.id,
-  };
-}
-
-export async function markOrderStatus(
-  orderId: string,
-  nextStatus: OrderStatus,
-  note?: string
-) {
-  const order = await prisma.order.findUnique({
-    where: { id: orderId },
   });
 
-  if (!order) {
-    return null;
+  if (afterCommit) {
+    // Notifications must never turn a committed payment into an error response.
+    await Promise.resolve(afterCommit()).catch((error) => console.error("Post-payment notification failed:", error));
   }
 
-  const currentStatus = normalizeOrderStatus(order.status);
-
-  if (currentStatus === nextStatus) {
-    return order;
-  }
-
-  await prisma.$transaction(async (tx) => {
-    await tx.order.update({
-      where: { id: orderId },
-      data: { status: nextStatus },
-    });
-
-    await recordOrderStatus(tx, {
-      orderId,
-      fromStatus: currentStatus,
-      toStatus: nextStatus,
-      note,
-    });
-  });
-
-  return prisma.order.findUnique({ where: { id: orderId } });
+  return result;
 }

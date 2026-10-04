@@ -11,6 +11,7 @@ import {
   recordOrderStatus,
 } from "@/lib/order-flow";
 import { getAdminEmail } from "@/lib/mail";
+import { withLockedOrder } from "@/lib/order-lock";
 import { sendNotification } from "@/lib/notifications";
 import {
   createBuyerRefund,
@@ -113,41 +114,57 @@ export async function GET(req: NextRequest) {
                 );
               }
 
-              const refund = await createBuyerRefund({
-                paymentId: order.payment.paymentId,
-                amountInRupees: order.totalAmount,
-                orderId: order.id,
-              });
+              const paymentId = order.payment.paymentId;
+              // Locked: the seller may start the transfer, or the buyer
+              // cancel, at the same moment this job fires.
+              const refund = await withLockedOrder(
+                order.id,
+                async (tx, lockedStatus) => {
+                  if (lockedStatus !== "FUNDS_HELD") {
+                    return null;
+                  }
 
-              await prisma.$transaction(async (tx) => {
-                await tx.order.update({
-                  where: { id: order.id },
-                  data: { status: "SELLER_TIMEOUT" },
-                });
+                  const refund = await createBuyerRefund({
+                    paymentId,
+                    amountInRupees: order.totalAmount,
+                    orderId: order.id,
+                  });
 
-                await recordOrderStatus(tx, {
-                  orderId: order.id,
-                  fromStatus: status,
-                  toStatus: "SELLER_TIMEOUT",
-                  note: `Automated seller initiation timeout. Refund ${refund.id} accepted with status ${refund.status}.`,
-                });
+                  await tx.order.update({
+                    where: { id: order.id },
+                    data: { status: "SELLER_TIMEOUT" },
+                  });
 
-                await createNotificationRecord(tx, {
-                  userId: order.buyerId,
-                  orderId: order.id,
-                  title: "Seller timeout",
-                  message:
-                    "Seller did not initiate transfer in time. Your payment should be refunded.",
-                });
+                  await recordOrderStatus(tx, {
+                    orderId: order.id,
+                    fromStatus: status,
+                    toStatus: "SELLER_TIMEOUT",
+                    note: `Automated seller initiation timeout. Refund ${refund.id} accepted with status ${refund.status}.`,
+                  });
 
-                await createNotificationRecord(tx, {
-                  userId: seller.id,
-                  orderId: order.id,
-                  title: "Transfer window expired",
-                  message:
-                    "You did not initiate transfer within 30 minutes. This transaction has been cancelled.",
-                });
-              });
+                  await createNotificationRecord(tx, {
+                    userId: order.buyerId,
+                    orderId: order.id,
+                    title: "Seller timeout",
+                    message:
+                      "Seller did not initiate transfer in time. Your payment should be refunded.",
+                  });
+
+                  await createNotificationRecord(tx, {
+                    userId: seller.id,
+                    orderId: order.id,
+                    title: "Transfer window expired",
+                    message:
+                      "You did not initiate transfer within 30 minutes. This transaction has been cancelled.",
+                  });
+
+                  return refund;
+                },
+              );
+
+              if (!refund) {
+                continue;
+              }
 
               await Promise.allSettled([
                 sendNotification({
@@ -205,7 +222,11 @@ export async function GET(req: NextRequest) {
             results.evidenceTimeouts += 1;
 
             if (!dryRun) {
-              await prisma.$transaction(async (tx) => {
+              await withLockedOrder(order.id, async (tx, lockedStatus) => {
+                if (lockedStatus !== "TRANSFER_IN_PROGRESS") {
+                  return;
+                }
+
                 await tx.order.update({
                   where: { id: order.id },
                   data: { status: "EVIDENCE_TIMEOUT" },
@@ -281,13 +302,21 @@ export async function GET(req: NextRequest) {
                 0,
                 sellerGross - (order.platformFeeSeller || 0),
               );
-              const payout = await createSellerPayout({
-                fundAccountId: seller.fundAccountId,
-                amountInRupees: sellerNetPayout,
-                orderId: order.id,
-              });
+              const fundAccountId = seller.fundAccountId;
+              // Locked: the buyer may confirm or raise a dispute at the same
+              // moment. Without the lock the seller could be paid while a
+              // dispute is opened, or stock decremented twice.
+              await withLockedOrder(order.id, async (tx, lockedStatus) => {
+                if (lockedStatus !== "AWAITING_CONFIRMATION") {
+                  return;
+                }
 
-              await prisma.$transaction(async (tx) => {
+                const payout = await createSellerPayout({
+                  fundAccountId,
+                  amountInRupees: sellerNetPayout,
+                  orderId: order.id,
+                });
+
                 await tx.order.update({
                   where: { id: order.id },
                   data: {

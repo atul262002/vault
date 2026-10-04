@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/db";
 import { getOrderPortalUrl } from "@/lib/app-url";
 import { getCurrentDbUser } from "@/lib/current-db-user";
-import { decrementProductInventory, normalizeOrderStatus, recordOrderStatus } from "@/lib/order-flow";
+import { decrementProductInventory, recordOrderStatus } from "@/lib/order-flow";
+import { OrderActionError, requireStatus, withLockedOrder } from "@/lib/order-lock";
 import { createSellerPayout } from "@/lib/razorpay-money-flow";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -41,11 +42,6 @@ export async function POST(
             return NextResponse.json({ message: "Unauthorized: not the buyer" }, { status: 403 });
         }
 
-        const currentStatus = normalizeOrderStatus(order.status);
-        if (currentStatus !== "AWAITING_CONFIRMATION") {
-            return NextResponse.json({ message: "Order is not awaiting buyer confirmation" }, { status: 400 });
-        }
-
         const seller = order.orderItems[0]?.product.seller;
         if (!seller?.fundAccountId) {
             return NextResponse.json(
@@ -63,13 +59,18 @@ export async function POST(
 
         const sellerGross = order.orderItems.reduce((sum, item) => sum + item.price, 0);
         const sellerNetPayout = Math.max(0, sellerGross - (order.platformFeeSeller || 0));
-        const payout = await createSellerPayout({
-            fundAccountId: seller.fundAccountId,
-            amountInRupees: sellerNetPayout,
-            orderId,
-        });
 
-        const updatedOrder = await prisma.$transaction(async (tx) => {
+        // Status check, payout and status change happen under one lock, so a
+        // double click, the auto-confirm job or a dispute can't run in between.
+        const { updatedOrder, payout } = await withLockedOrder(orderId, async (tx, currentStatus) => {
+            requireStatus(currentStatus, ["AWAITING_CONFIRMATION"], "Order is not awaiting buyer confirmation");
+
+            const payout = await createSellerPayout({
+                fundAccountId: seller.fundAccountId!,
+                amountInRupees: sellerNetPayout,
+                orderId,
+            });
+
             const nextOrder = await tx.order.update({
                 where: { id: orderId },
                 data: {
@@ -77,11 +78,10 @@ export async function POST(
                     buyerConfirmedAt: new Date()
                 },
                 include: {
-                    payment: true,
                     orderItems: {
                         include: {
                             product: {
-                                include: { seller: true }
+                                include: { seller: { select: { id: true, name: true, email: true } } }
                             }
                         }
                     }
@@ -97,7 +97,7 @@ export async function POST(
                 note: `Buyer confirmed receipt. Seller payout ${payout.id} accepted with status ${payout.status}.`,
             });
 
-            return nextOrder;
+            return { updatedOrder: nextOrder, payout };
         });
 
         const platformFeeSeller = updatedOrder.platformFeeSeller || 0;
@@ -136,7 +136,10 @@ export async function POST(
         return NextResponse.json(updatedOrder);
 
     } catch (error: unknown) {
+        if (error instanceof OrderActionError) {
+            return NextResponse.json({ message: error.message }, { status: error.status });
+        }
         console.error("Confirm order error:", error);
-        return NextResponse.json({ error: error instanceof Error ? error.message : "Internal server error" }, { status: 500 });
+        return NextResponse.json({ message: "Could not confirm this order. Please try again." }, { status: 500 });
     }
 }

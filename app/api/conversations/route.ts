@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db';
+import { rateLimit } from '@/lib/rate-limit';
 import { currentUser } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -61,6 +62,10 @@ export async function POST(req: NextRequest) {
 
   const me = await prisma.user.findUnique({ where: { email }, select: { id: true } });
   if (!me) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
+  if (!rateLimit(`conversation:${me.id}`, 20, 10 * 60_000)) {
+    return NextResponse.json({ error: 'Too many new conversations. Please wait a few minutes.' }, { status: 429 });
+  }
 
   const body = await req.json().catch(() => null);
   const participantIds: unknown = body?.participantIds;

@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/db";
 import { BUYER_AUTO_CONFIRM_MINUTES, EVIDENCE_TIMEOUT_MINUTES, SELLER_TIMEOUT_MINUTES, decrementProductInventory, normalizeOrderStatus, recordOrderStatus } from "@/lib/order-flow";
+import { OrderActionError, requireStatus, withLockedOrder } from "@/lib/order-lock";
 import { createBuyerRefund, createSellerPayout } from "@/lib/razorpay-money-flow";
-import { currentUser } from "@clerk/nextjs/server";
+import { getCurrentDbUser } from "@/lib/current-db-user";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(
@@ -9,7 +10,8 @@ export async function POST(
     { params }: { params: Promise<{ orderId: string }> }
 ) {
     try {
-        const user = await currentUser();
+        // Compare against the database user id, not the Clerk id.
+        const user = await getCurrentDbUser();
         if (!user) {
             return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
         }
@@ -60,13 +62,14 @@ export async function POST(
                     return NextResponse.json({ message: "Captured payment record not found for this order" }, { status: 400 });
                 }
 
-                const refund = await createBuyerRefund({
-                    paymentId: order.payment.paymentId,
-                    amountInRupees: order.totalAmount,
-                    orderId,
-                });
+                const { updatedOrder, refund } = await withLockedOrder(orderId, async (tx, lockedStatus) => {
+                    requireStatus(lockedStatus, ["FUNDS_HELD"], "This order is no longer waiting for the seller to start the transfer");
+                    const refund = await createBuyerRefund({
+                        paymentId: order.payment!.paymentId,
+                        amountInRupees: order.totalAmount,
+                        orderId,
+                    });
 
-                const updatedOrder = await prisma.$transaction(async (tx) => {
                     const nextOrder = await tx.order.update({
                         where: { id: orderId },
                         data: { status: "SELLER_TIMEOUT" }
@@ -79,7 +82,7 @@ export async function POST(
                         note: `Buyer claimed seller initiation timeout. Refund ${refund.id} accepted with status ${refund.status}.`,
                     });
 
-                    return nextOrder;
+                    return { updatedOrder: nextOrder, refund };
                 });
 
                 // Notify
@@ -113,7 +116,9 @@ export async function POST(
                     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
                 }
 
-                const updatedOrder = await prisma.$transaction(async (tx) => {
+                const updatedOrder = await withLockedOrder(orderId, async (tx, lockedStatus) => {
+                    requireStatus(lockedStatus, ["TRANSFER_IN_PROGRESS"], "This order is no longer waiting for transfer evidence");
+
                     const nextOrder = await tx.order.update({
                         where: { id: orderId },
                         data: { status: "EVIDENCE_TIMEOUT" }
@@ -154,13 +159,14 @@ export async function POST(
 
                 const sellerGross = order.orderItems.reduce((sum, item) => sum + item.price, 0);
                 const sellerNetPayout = Math.max(0, sellerGross - (order.platformFeeSeller || 0));
-                const payout = await createSellerPayout({
-                    fundAccountId: seller.fundAccountId,
-                    amountInRupees: sellerNetPayout,
-                    orderId,
-                });
+                const { updatedOrder, payout } = await withLockedOrder(orderId, async (tx, lockedStatus) => {
+                    requireStatus(lockedStatus, ["AWAITING_CONFIRMATION"], "This order is no longer awaiting buyer confirmation");
+                    const payout = await createSellerPayout({
+                        fundAccountId: seller.fundAccountId!,
+                        amountInRupees: sellerNetPayout,
+                        orderId,
+                    });
 
-                const updatedOrder = await prisma.$transaction(async (tx) => {
                     const nextOrder = await tx.order.update({
                         where: { id: orderId },
                         data: {
@@ -178,7 +184,7 @@ export async function POST(
                         note: `Seller claimed buyer auto-confirm timeout. Payout ${payout.id} accepted with status ${payout.status}.`,
                     });
 
-                    return nextOrder;
+                    return { updatedOrder: nextOrder, payout };
                 });
 
                 // Notify
@@ -205,7 +211,10 @@ export async function POST(
         return NextResponse.json({ message: "No timeout resolution available for current status" }, { status: 400 });
 
     } catch (error: unknown) {
+        if (error instanceof OrderActionError) {
+            return NextResponse.json({ message: error.message }, { status: error.status });
+        }
         console.error("Resolve timeout error:", error);
-        return NextResponse.json({ error: error instanceof Error ? error.message : "Internal server error" }, { status: 500 });
+        return NextResponse.json({ message: "Internal server error" }, { status: 500 });
     }
 }

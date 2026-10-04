@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { isAllowedEvidenceUrl } from "@/lib/evidence-url";
 import { todayInIndia } from "@/lib/product-inventory";
 import { Prisma } from "@prisma/client";
 import { currentUser } from "@clerk/nextjs/server";
@@ -79,6 +80,14 @@ export async function POST(request: NextRequest) {
         }
         if (estimatedTime < todayInIndia()) {
             return NextResponse.json({ message: "Event date can't be in the past" }, { status: 400 });
+        }
+
+        // Images are rendered with next/image on every buyer's dashboard; an
+        // arbitrary host would break rendering (or point buyers elsewhere).
+        for (const url of [imageUrl, image]) {
+            if (url != null && url !== "" && !isAllowedEvidenceUrl(url)) {
+                return NextResponse.json({ message: "Please upload the ticket image through Vault" }, { status: 400 });
+            }
         }
 
         const textFields: Array<[string, unknown, number]> = [

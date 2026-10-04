@@ -2,7 +2,8 @@ import { isAllowedEvidenceUrl } from "@/lib/evidence-url";
 import { prisma } from "@/lib/db";
 import { getOrderPortalUrl } from "@/lib/app-url";
 import { getCurrentDbUser } from "@/lib/current-db-user";
-import { createNotificationRecord, normalizeOrderStatus, recordOrderStatus } from "@/lib/order-flow";
+import { createNotificationRecord, recordOrderStatus } from "@/lib/order-flow";
+import { OrderActionError, requireStatus, withLockedOrder } from "@/lib/order-lock";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(
@@ -37,12 +38,10 @@ export async function POST(
             return NextResponse.json({ message: "Unauthorized: not the buyer" }, { status: 403 });
         }
 
-        const currentStatus = normalizeOrderStatus(order.status);
-        if (currentStatus !== "AWAITING_CONFIRMATION") {
-            return NextResponse.json({ message: "Order cannot be disputed in the current state" }, { status: 400 });
-        }
 
-        const updatedOrder = await prisma.$transaction(async (tx) => {
+        const updatedOrder = await withLockedOrder(orderId, async (tx, currentStatus) => {
+            requireStatus(currentStatus, ["AWAITING_CONFIRMATION"], "Order cannot be disputed in the current state");
+
             const nextOrder = await tx.order.update({
                 where: { id: orderId },
                 data: {
@@ -128,7 +127,10 @@ export async function POST(
         return NextResponse.json(updatedOrder);
 
     } catch (error: unknown) {
+        if (error instanceof OrderActionError) {
+            return NextResponse.json({ message: error.message }, { status: error.status });
+        }
         console.error("Dispute order error:", error);
-        return NextResponse.json({ error: error instanceof Error ? error.message : "Internal server error" }, { status: 500 });
+        return NextResponse.json({ message: "Internal server error" }, { status: 500 });
     }
 }

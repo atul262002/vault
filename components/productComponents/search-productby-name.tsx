@@ -1680,7 +1680,51 @@ const ProductSearchByName = () => {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/30 p-4 text-sm text-amber-900 dark:text-amber-200">
+              <div className="bg-gray-50 dark:bg-slate-800 rounded-lg p-4 space-y-3">
+                <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                  {selectedProduct.description}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Event Time</p>
+                  <p className="font-semibold text-gray-800 dark:text-gray-100">
+                    {selectedProduct.refundPeriod}
+                  </p>
+                </div>
+                <div className="bg-purple-50 dark:bg-purple-950/30 rounded-lg p-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Event Date</p>
+                  <p className="font-semibold text-gray-800 dark:text-gray-100">
+                    {selectedProduct.estimatedTime}
+                  </p>
+                </div>
+                <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-lg p-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Event Location</p>
+                  <p className="font-semibold text-gray-800 dark:text-gray-100">
+                    {selectedProduct.category?.name || "Not specified"}
+                  </p>
+                </div>
+                <div className="bg-orange-50 dark:bg-orange-950/30 rounded-lg p-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Tickets Available</p>
+                  <p className="font-semibold text-gray-800 dark:text-gray-100">
+                    {selectedProduct.availableQuantity ?? selectedProduct.ticketQuantity}
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-center pt-4 border-t border-border">
+                <p className="text-muted-foreground text-xs">
+                  Listed on {new Date(selectedProduct.createdAt).toLocaleDateString('en-IN', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </p>
+              </div>
+
+
+               <div className="rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/30 p-4 text-sm text-amber-900 dark:text-amber-200">
                 <p className="font-semibold">Please read all event details carefully before initiating payment.</p>
                 <p className="mt-2">Vault is only a mediator ensuring tickets are safely traded. We are not affiliated with the event organisers or ticketing partners.</p>
               </div>
@@ -1766,49 +1810,6 @@ const ProductSearchByName = () => {
                     "Chat with Seller"
                   )}
                 </Button>
-              </div>
-
-              <div className="bg-gray-50 dark:bg-slate-800 rounded-lg p-4 space-y-3">
-                <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                  {selectedProduct.description}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Event Time</p>
-                  <p className="font-semibold text-gray-800 dark:text-gray-100">
-                    {selectedProduct.refundPeriod}
-                  </p>
-                </div>
-                <div className="bg-purple-50 dark:bg-purple-950/30 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Event Date</p>
-                  <p className="font-semibold text-gray-800 dark:text-gray-100">
-                    {selectedProduct.estimatedTime}
-                  </p>
-                </div>
-                <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Event Location</p>
-                  <p className="font-semibold text-gray-800 dark:text-gray-100">
-                    {selectedProduct.category?.name || "Not specified"}
-                  </p>
-                </div>
-                <div className="bg-orange-50 dark:bg-orange-950/30 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Tickets Available</p>
-                  <p className="font-semibold text-gray-800 dark:text-gray-100">
-                    {selectedProduct.availableQuantity ?? selectedProduct.ticketQuantity}
-                  </p>
-                </div>
-              </div>
-
-              <div className="text-center pt-4 border-t border-border">
-                <p className="text-muted-foreground text-xs">
-                  Listed on {new Date(selectedProduct.createdAt).toLocaleDateString('en-IN', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </p>
               </div>
             </div>
           </DialogContent>

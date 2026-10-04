@@ -1,15 +1,23 @@
 import { requireAdminSession } from "@/lib/admin-auth";
-import { createBuyerRefund, createSellerPayout } from "@/lib/razorpay-money-flow";
+import {
+  createBuyerRefund,
+  createSellerPayout,
+} from "@/lib/razorpay-money-flow";
 import { prisma } from "@/lib/db";
 import { escapeHtml } from "@/lib/mail";
 import { sendNotification } from "@/lib/notifications";
-import { createNotificationRecord, decrementProductInventory, normalizeOrderStatus, recordOrderStatus } from "@/lib/order-flow";
+import {
+  createNotificationRecord,
+  decrementProductInventory,
+  recordOrderStatus,
+} from "@/lib/order-flow";
+import { OrderActionError, withLockedOrder } from "@/lib/order-lock";
 import { DisputeDecisionType, DisputeStatus, Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ disputeId: string }> }
+  { params }: { params: Promise<{ disputeId: string }> },
 ) {
   const admin = await requireAdminSession();
   if (!admin) {
@@ -20,10 +28,16 @@ export async function POST(
   const decisionType = body?.decisionType as DisputeDecisionType;
   const reason = String(body?.reason || "").trim();
   if (!Object.values(DisputeDecisionType).includes(decisionType)) {
-    return NextResponse.json({ message: "Invalid decision type" }, { status: 400 });
+    return NextResponse.json(
+      { message: "Invalid decision type" },
+      { status: 400 },
+    );
   }
   if (reason.length < 10) {
-    return NextResponse.json({ message: "Decision reason must be at least 10 characters" }, { status: 400 });
+    return NextResponse.json(
+      { message: "Decision reason must be at least 10 characters" },
+      { status: 400 },
+    );
   }
 
   const { disputeId } = await params;
@@ -44,50 +58,48 @@ export async function POST(
   if (!dispute) {
     return NextResponse.json({ message: "Dispute not found" }, { status: 404 });
   }
-  if (dispute.isLocked || dispute.status === DisputeStatus.RESOLVED || dispute.decisionType) {
-    return NextResponse.json({ message: "Dispute is already resolved and locked" }, { status: 400 });
+  if (
+    dispute.isLocked ||
+    dispute.status === DisputeStatus.RESOLVED ||
+    dispute.decisionType
+  ) {
+    return NextResponse.json(
+      { message: "Dispute is already resolved and locked" },
+      { status: 400 },
+    );
   }
 
   const order = dispute.order;
   const seller = order.orderItems[0]?.product.seller;
   if (!seller) {
-    return NextResponse.json({ message: "Seller not found for order" }, { status: 400 });
+    return NextResponse.json(
+      { message: "Seller not found for order" },
+      { status: 400 },
+    );
   }
 
   const buyerName = order.buyer.name || "Buyer";
   const sellerName = seller.name || "Seller";
   const amount = order.totalAmount;
-  const sellerGross = order.orderItems.reduce((sum, item) => sum + item.price, 0);
-  const sellerNetPayout = Math.max(0, sellerGross - (order.platformFeeSeller || 0));
+  const sellerGross = order.orderItems.reduce(
+    (sum, item) => sum + item.price,
+    0,
+  );
+  const sellerNetPayout = Math.max(
+    0,
+    sellerGross - (order.platformFeeSeller || 0),
+  );
 
   if (decisionType === "REFUND" && !order.payment?.paymentId) {
-    return NextResponse.json({ message: "Payment record not found for refund" }, { status: 400 });
+    return NextResponse.json(
+      { message: "Payment record not found for refund" },
+      { status: 400 },
+    );
   }
   if (decisionType === "CREDIT" && !seller.fundAccountId) {
-    return NextResponse.json({ message: "Seller fund account is missing for payout" }, { status: 400 });
-  }
-
-  try {
-    if (decisionType === "REFUND") {
-      await createBuyerRefund({
-        paymentId: order.payment!.paymentId,
-        amountInRupees: amount,
-        orderId: order.id,
-      });
-    } else {
-      await createSellerPayout({
-        fundAccountId: seller.fundAccountId!,
-        amountInRupees: sellerNetPayout,
-        orderId: order.id,
-      });
-    }
-  } catch (moneyErr: unknown) {
-    const description =
-      moneyErr instanceof Error ? moneyErr.message : "Payment provider returned an error";
-    console.error(`[decision/${disputeId}] ${decisionType} failed:`, moneyErr);
     return NextResponse.json(
-      { message: `${decisionType === "REFUND" ? "Refund" : "Payout"} failed: ${description}` },
-      { status: 502 }
+      { message: "Seller fund account is missing for payout" },
+      { status: 400 },
     );
   }
 
@@ -102,78 +114,134 @@ export async function POST(
 
   const nowIso = new Date().toISOString();
 
-  const updated = await prisma.$transaction(async (tx) => {
-    const notificationsLog = Array.isArray(dispute.notificationsLog)
-      ? [...dispute.notificationsLog]
-      : [];
-    notificationsLog.push(
-      {
-        id: crypto.randomUUID(),
-        toUserId: order.buyerId,
+  let updated;
+  try {
+    updated = await withLockedOrder(order.id, async (tx, lockedOrderStatus) => {
+      // Re-check under the lock so two clicks (or two admins) can't both pay out.
+      const fresh = await tx.dispute.findUnique({ where: { id: disputeId } });
+      if (
+        !fresh ||
+        fresh.isLocked ||
+        fresh.decisionType ||
+        fresh.status === DisputeStatus.RESOLVED
+      ) {
+        throw new OrderActionError(
+          "Dispute is already resolved and locked",
+          409,
+        );
+      }
+      if (lockedOrderStatus !== "DISPUTED") {
+        throw new OrderActionError(
+          `Order is ${lockedOrderStatus}, not DISPUTED`,
+          409,
+        );
+      }
+
+      if (decisionType === "REFUND") {
+        await createBuyerRefund({
+          paymentId: order.payment!.paymentId,
+          amountInRupees: amount,
+          orderId: order.id,
+        });
+      } else {
+        await createSellerPayout({
+          fundAccountId: seller.fundAccountId!,
+          amountInRupees: sellerNetPayout,
+          orderId: order.id,
+        });
+      }
+
+      const notificationsLog = Array.isArray(dispute.notificationsLog)
+        ? [...dispute.notificationsLog]
+        : [];
+      notificationsLog.push(
+        {
+          id: crypto.randomUUID(),
+          toUserId: order.buyerId,
+          title: "Dispute outcome",
+          message: buyerMsg,
+          createdAt: nowIso,
+        },
+        {
+          id: crypto.randomUUID(),
+          toUserId: seller.id,
+          title: "Dispute outcome",
+          message: sellerMsg,
+          createdAt: nowIso,
+        },
+      );
+
+      const nextDispute = await tx.dispute.update({
+        where: { id: disputeId },
+        data: {
+          status: DisputeStatus.RESOLVED,
+          decisionType,
+          adminDecisionReason: reason,
+          decidedBy: admin.username,
+          decidedAt: new Date(),
+          resolvedAt: new Date(),
+          isLocked: true,
+          notificationsLog: notificationsLog as Prisma.JsonArray,
+        },
+      });
+
+      await createNotificationRecord(tx, {
+        userId: order.buyerId,
+        orderId: order.id,
         title: "Dispute outcome",
         message: buyerMsg,
-        createdAt: nowIso,
-      },
-      {
-        id: crypto.randomUUID(),
-        toUserId: seller.id,
+      });
+      await createNotificationRecord(tx, {
+        userId: seller.id,
+        orderId: order.id,
         title: "Dispute outcome",
         message: sellerMsg,
-        createdAt: nowIso,
-      }
-    );
-
-    const nextDispute = await tx.dispute.update({
-      where: { id: disputeId },
-      data: {
-        status: DisputeStatus.RESOLVED,
-        decisionType,
-        adminDecisionReason: reason,
-        decidedBy: admin.username,
-        decidedAt: new Date(),
-        resolvedAt: new Date(),
-        isLocked: true,
-        notificationsLog: notificationsLog as Prisma.JsonArray,
-      },
-    });
-
-    await createNotificationRecord(tx, {
-      userId: order.buyerId,
-      orderId: order.id,
-      title: "Dispute outcome",
-      message: buyerMsg,
-    });
-    await createNotificationRecord(tx, {
-      userId: seller.id,
-      orderId: order.id,
-      title: "Dispute outcome",
-      message: sellerMsg,
-    });
-
-    const currentOrderStatus = normalizeOrderStatus(order.status);
-    const nextOrderStatus = decisionType === "REFUND" ? "REFUNDED" : "COMPLETE";
-    if (currentOrderStatus !== nextOrderStatus) {
-      await tx.order.update({
-        where: { id: order.id },
-        data: { status: nextOrderStatus },
-      });
-      await recordOrderStatus(tx, {
-        orderId: order.id,
-        fromStatus: currentOrderStatus,
-        toStatus: nextOrderStatus,
-        note: `Admin dispute decision: ${decisionType}. ${reason}`,
       });
 
-      // The ticket was ruled to have been legitimately delivered, so it
-      // counts against the listing's remaining inventory just like any
-      // other completed order.
-      if (nextOrderStatus === "COMPLETE") {
-        await decrementProductInventory(tx, order.orderItems);
+      const currentOrderStatus = lockedOrderStatus;
+      const nextOrderStatus =
+        decisionType === "REFUND" ? "REFUNDED" : "COMPLETE";
+      {
+        await tx.order.update({
+          where: { id: order.id },
+          data: { status: nextOrderStatus },
+        });
+        await recordOrderStatus(tx, {
+          orderId: order.id,
+          fromStatus: currentOrderStatus,
+          toStatus: nextOrderStatus,
+          note: `Admin dispute decision: ${decisionType}. ${reason}`,
+        });
+
+        // The ticket was ruled to have been legitimately delivered, so it
+        // counts against the listing's remaining inventory just like any
+        // other completed order.
+        if (nextOrderStatus === "COMPLETE") {
+          await decrementProductInventory(tx, order.orderItems);
+        }
       }
+
+      return nextDispute;
+    });
+  } catch (error: unknown) {
+    if (error instanceof OrderActionError) {
+      return NextResponse.json(
+        { message: error.message },
+        { status: error.status },
+      );
     }
-
-    return nextDispute;
-  });
+    const description =
+      error instanceof Error
+        ? error.message
+        : "Payment provider returned an error";
+    console.error(`[decision/${disputeId}] ${decisionType} failed:`, error);
+    return NextResponse.json(
+      {
+        message: `${decisionType === "REFUND" ? "Refund" : "Payout"} failed: ${description}`,
+      },
+      { status: 502 },
+    );
+  }
 
   const deliveryResults = await Promise.allSettled([
     sendNotification({
@@ -194,7 +262,9 @@ export async function POST(
     }),
   ]);
 
-  const failedDeliveries = deliveryResults.filter((result) => result.status === "rejected").length;
+  const failedDeliveries = deliveryResults.filter(
+    (result) => result.status === "rejected",
+  ).length;
   return NextResponse.json({
     ...updated,
     notificationDelivery: {

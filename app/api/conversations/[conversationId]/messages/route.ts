@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getCurrentDbUser } from "@/lib/current-db-user";
 import { prisma } from "@/lib/db";
+import { rateLimit } from "@/lib/rate-limit";
 
 const MAX_MESSAGE_LENGTH = 2000;
 
@@ -46,6 +47,10 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
   const me = await getCurrentDbUser();
   if (!me) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!rateLimit(`message:${me.id}`, 30, 60_000)) {
+    return NextResponse.json({ error: "You're sending messages too fast. Please slow down." }, { status: 429 });
   }
 
   const { conversationId } = await params;
