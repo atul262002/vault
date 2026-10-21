@@ -2,11 +2,13 @@ import { prisma } from "@/lib/db";
 import { eventNotPastSql, reservedTicketCountSql } from "@/lib/product-inventory";
 import { Prisma } from "@prisma/client";
 import { currentUser } from "@clerk/nextjs/server";
+import { getCurrentDbUser } from "@/lib/current-db-user";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request:NextRequest){
     try {
         const user = await currentUser()
+        const viewer = await getCurrentDbUser().catch(() => null)
         if(!user){
             return NextResponse.json({message:"Unauthenticated user"}, {status:404})
         }
@@ -41,7 +43,7 @@ export async function POST(request:NextRequest){
         }>>(Prisma.sql`
             SELECT
                 p.*,
-                ${reservedTicketCountSql(Prisma.raw(`p."id"`))} AS "reserved",
+                ${reservedTicketCountSql(Prisma.raw(`p."id"`), { ignoreUnpaidCheckoutsOf: viewer?.id })} AS "reserved",
                 c."name" AS category_name,
                 u."name" AS seller_name
             FROM "Products" p
@@ -52,7 +54,7 @@ export async function POST(request:NextRequest){
                 OR p."listingId" = ${normalizedProductId.toUpperCase()}
               )
               AND p."isSold" = false
-              AND ${reservedTicketCountSql(Prisma.raw(`p."id"`))} < p."ticketQuantity"
+              AND p."ticketQuantity" > 0
         AND ${eventNotPastSql("p")}
             LIMIT 1
         `);

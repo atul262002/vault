@@ -5978,6 +5978,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt: number
     disputeReason: number
     buyerCounterEvidenceUrl: number
+    checkoutTokens: number
     _all: number
   }
 
@@ -6070,6 +6071,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: true
     disputeReason?: true
     buyerCounterEvidenceUrl?: true
+    checkoutTokens?: true
     _all?: true
   }
 
@@ -6183,6 +6185,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt: Date | null
     disputeReason: string | null
     buyerCounterEvidenceUrl: string | null
+    checkoutTokens: string[]
     _count: OrderCountAggregateOutputType | null
     _avg: OrderAvgAggregateOutputType | null
     _sum: OrderSumAggregateOutputType | null
@@ -6228,6 +6231,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: boolean
     disputeReason?: boolean
     buyerCounterEvidenceUrl?: boolean
+    checkoutTokens?: boolean
     dispute?: boolean | Order$disputeArgs<ExtArgs>
     buyer?: boolean | UserDefaultArgs<ExtArgs>
     notifications?: boolean | Order$notificationsArgs<ExtArgs>
@@ -6261,6 +6265,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: boolean
     disputeReason?: boolean
     buyerCounterEvidenceUrl?: boolean
+    checkoutTokens?: boolean
     buyer?: boolean | UserDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["order"]>
 
@@ -6288,6 +6293,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: boolean
     disputeReason?: boolean
     buyerCounterEvidenceUrl?: boolean
+    checkoutTokens?: boolean
     buyer?: boolean | UserDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["order"]>
 
@@ -6315,9 +6321,10 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: boolean
     disputeReason?: boolean
     buyerCounterEvidenceUrl?: boolean
+    checkoutTokens?: boolean
   }
 
-  export type OrderOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "razorpayId" | "buyerId" | "totalAmount" | "status" | "createdAt" | "updatedAt" | "buyerConfirmedAt" | "evidenceUploadedAt" | "evidenceUrl" | "platformFeeBuyer" | "platformFeeSeller" | "receiverName" | "receiverPhone" | "termsAccepted" | "transferDelayUntil" | "transferStartedAt" | "transferPendingAt" | "lastReminderSentAt" | "lastSellerReminderSentAt" | "lastBuyerReminderSentAt" | "disputeReason" | "buyerCounterEvidenceUrl", ExtArgs["result"]["order"]>
+  export type OrderOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "razorpayId" | "buyerId" | "totalAmount" | "status" | "createdAt" | "updatedAt" | "buyerConfirmedAt" | "evidenceUploadedAt" | "evidenceUrl" | "platformFeeBuyer" | "platformFeeSeller" | "receiverName" | "receiverPhone" | "termsAccepted" | "transferDelayUntil" | "transferStartedAt" | "transferPendingAt" | "lastReminderSentAt" | "lastSellerReminderSentAt" | "lastBuyerReminderSentAt" | "disputeReason" | "buyerCounterEvidenceUrl" | "checkoutTokens", ExtArgs["result"]["order"]>
   export type OrderInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dispute?: boolean | Order$disputeArgs<ExtArgs>
     buyer?: boolean | UserDefaultArgs<ExtArgs>
@@ -6368,6 +6375,11 @@ export namespace Prisma {
       lastBuyerReminderSentAt: Date | null
       disputeReason: string | null
       buyerCounterEvidenceUrl: string | null
+      /**
+       * One token per open Razorpay payment window for this checkout. Closing a
+       * window removes its token; the held ticket is released only when none remain.
+       */
+      checkoutTokens: string[]
     }, ExtArgs["result"]["order"]>
     composites: {}
   }
@@ -6820,6 +6832,7 @@ export namespace Prisma {
     readonly lastBuyerReminderSentAt: FieldRef<"Order", 'DateTime'>
     readonly disputeReason: FieldRef<"Order", 'String'>
     readonly buyerCounterEvidenceUrl: FieldRef<"Order", 'String'>
+    readonly checkoutTokens: FieldRef<"Order", 'String[]'>
   }
     
 
@@ -16276,7 +16289,8 @@ export namespace Prisma {
     lastSellerReminderSentAt: 'lastSellerReminderSentAt',
     lastBuyerReminderSentAt: 'lastBuyerReminderSentAt',
     disputeReason: 'disputeReason',
-    buyerCounterEvidenceUrl: 'buyerCounterEvidenceUrl'
+    buyerCounterEvidenceUrl: 'buyerCounterEvidenceUrl',
+    checkoutTokens: 'checkoutTokens'
   };
 
   export type OrderScalarFieldEnum = (typeof OrderScalarFieldEnum)[keyof typeof OrderScalarFieldEnum]
@@ -16900,6 +16914,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: DateTimeNullableFilter<"Order"> | Date | string | null
     disputeReason?: StringNullableFilter<"Order"> | string | null
     buyerCounterEvidenceUrl?: StringNullableFilter<"Order"> | string | null
+    checkoutTokens?: StringNullableListFilter<"Order">
     dispute?: XOR<DisputeNullableScalarRelationFilter, DisputeWhereInput> | null
     buyer?: XOR<UserScalarRelationFilter, UserWhereInput>
     notifications?: NotificationListRelationFilter
@@ -16932,6 +16947,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: SortOrderInput | SortOrder
     disputeReason?: SortOrderInput | SortOrder
     buyerCounterEvidenceUrl?: SortOrderInput | SortOrder
+    checkoutTokens?: SortOrder
     dispute?: DisputeOrderByWithRelationInput
     buyer?: UserOrderByWithRelationInput
     notifications?: NotificationOrderByRelationAggregateInput
@@ -16968,6 +16984,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: DateTimeNullableFilter<"Order"> | Date | string | null
     disputeReason?: StringNullableFilter<"Order"> | string | null
     buyerCounterEvidenceUrl?: StringNullableFilter<"Order"> | string | null
+    checkoutTokens?: StringNullableListFilter<"Order">
     dispute?: XOR<DisputeNullableScalarRelationFilter, DisputeWhereInput> | null
     buyer?: XOR<UserScalarRelationFilter, UserWhereInput>
     notifications?: NotificationListRelationFilter
@@ -17000,6 +17017,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: SortOrderInput | SortOrder
     disputeReason?: SortOrderInput | SortOrder
     buyerCounterEvidenceUrl?: SortOrderInput | SortOrder
+    checkoutTokens?: SortOrder
     _count?: OrderCountOrderByAggregateInput
     _avg?: OrderAvgOrderByAggregateInput
     _max?: OrderMaxOrderByAggregateInput
@@ -17034,6 +17052,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: DateTimeNullableWithAggregatesFilter<"Order"> | Date | string | null
     disputeReason?: StringNullableWithAggregatesFilter<"Order"> | string | null
     buyerCounterEvidenceUrl?: StringNullableWithAggregatesFilter<"Order"> | string | null
+    checkoutTokens?: StringNullableListFilter<"Order">
   }
 
   export type DisputeWhereInput = {
@@ -17940,6 +17959,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: Date | string | null
     disputeReason?: string | null
     buyerCounterEvidenceUrl?: string | null
+    checkoutTokens?: OrderCreatecheckoutTokensInput | string[]
     dispute?: DisputeCreateNestedOneWithoutOrderInput
     buyer: UserCreateNestedOneWithoutOrdersInput
     notifications?: NotificationCreateNestedManyWithoutOrderInput
@@ -17972,6 +17992,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: Date | string | null
     disputeReason?: string | null
     buyerCounterEvidenceUrl?: string | null
+    checkoutTokens?: OrderCreatecheckoutTokensInput | string[]
     dispute?: DisputeUncheckedCreateNestedOneWithoutOrderInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutOrderInput
     orderItems?: OrderItemUncheckedCreateNestedManyWithoutOrderInput
@@ -18002,6 +18023,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
     buyerCounterEvidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    checkoutTokens?: OrderUpdatecheckoutTokensInput | string[]
     dispute?: DisputeUpdateOneWithoutOrderNestedInput
     buyer?: UserUpdateOneRequiredWithoutOrdersNestedInput
     notifications?: NotificationUpdateManyWithoutOrderNestedInput
@@ -18034,6 +18056,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
     buyerCounterEvidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    checkoutTokens?: OrderUpdatecheckoutTokensInput | string[]
     dispute?: DisputeUncheckedUpdateOneWithoutOrderNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutOrderNestedInput
     orderItems?: OrderItemUncheckedUpdateManyWithoutOrderNestedInput
@@ -18065,6 +18088,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: Date | string | null
     disputeReason?: string | null
     buyerCounterEvidenceUrl?: string | null
+    checkoutTokens?: OrderCreatecheckoutTokensInput | string[]
   }
 
   export type OrderUpdateManyMutationInput = {
@@ -18090,6 +18114,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
     buyerCounterEvidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    checkoutTokens?: OrderUpdatecheckoutTokensInput | string[]
   }
 
   export type OrderUncheckedUpdateManyInput = {
@@ -18116,6 +18141,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
     buyerCounterEvidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    checkoutTokens?: OrderUpdatecheckoutTokensInput | string[]
   }
 
   export type DisputeCreateInput = {
@@ -19084,6 +19110,14 @@ export namespace Prisma {
     not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
   }
 
+  export type StringNullableListFilter<$PrismaModel = never> = {
+    equals?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    has?: string | StringFieldRefInput<$PrismaModel> | null
+    hasEvery?: string[] | ListStringFieldRefInput<$PrismaModel>
+    hasSome?: string[] | ListStringFieldRefInput<$PrismaModel>
+    isEmpty?: boolean
+  }
+
   export type DisputeNullableScalarRelationFilter = {
     is?: DisputeWhereInput | null
     isNot?: DisputeWhereInput | null
@@ -19133,6 +19167,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: SortOrder
     disputeReason?: SortOrder
     buyerCounterEvidenceUrl?: SortOrder
+    checkoutTokens?: SortOrder
   }
 
   export type OrderAvgOrderByAggregateInput = {
@@ -20065,6 +20100,10 @@ export namespace Prisma {
     deleteMany?: ProductsScalarWhereInput | ProductsScalarWhereInput[]
   }
 
+  export type OrderCreatecheckoutTokensInput = {
+    set: string[]
+  }
+
   export type DisputeCreateNestedOneWithoutOrderInput = {
     create?: XOR<DisputeCreateWithoutOrderInput, DisputeUncheckedCreateWithoutOrderInput>
     connectOrCreate?: DisputeCreateOrConnectWithoutOrderInput
@@ -20143,6 +20182,11 @@ export namespace Prisma {
 
   export type NullableDateTimeFieldUpdateOperationsInput = {
     set?: Date | string | null
+  }
+
+  export type OrderUpdatecheckoutTokensInput = {
+    set?: string[]
+    push?: string | string[]
   }
 
   export type DisputeUpdateOneWithoutOrderNestedInput = {
@@ -20936,6 +20980,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: Date | string | null
     disputeReason?: string | null
     buyerCounterEvidenceUrl?: string | null
+    checkoutTokens?: OrderCreatecheckoutTokensInput | string[]
     dispute?: DisputeCreateNestedOneWithoutOrderInput
     notifications?: NotificationCreateNestedManyWithoutOrderInput
     orderItems?: OrderItemCreateNestedManyWithoutOrderInput
@@ -20966,6 +21011,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: Date | string | null
     disputeReason?: string | null
     buyerCounterEvidenceUrl?: string | null
+    checkoutTokens?: OrderCreatecheckoutTokensInput | string[]
     dispute?: DisputeUncheckedCreateNestedOneWithoutOrderInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutOrderInput
     orderItems?: OrderItemUncheckedCreateNestedManyWithoutOrderInput
@@ -21189,6 +21235,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: DateTimeNullableFilter<"Order"> | Date | string | null
     disputeReason?: StringNullableFilter<"Order"> | string | null
     buyerCounterEvidenceUrl?: StringNullableFilter<"Order"> | string | null
+    checkoutTokens?: StringNullableListFilter<"Order">
   }
 
   export type ProductsUpsertWithWhereUniqueWithoutSellerInput = {
@@ -21968,6 +22015,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: Date | string | null
     disputeReason?: string | null
     buyerCounterEvidenceUrl?: string | null
+    checkoutTokens?: OrderCreatecheckoutTokensInput | string[]
     buyer: UserCreateNestedOneWithoutOrdersInput
     notifications?: NotificationCreateNestedManyWithoutOrderInput
     orderItems?: OrderItemCreateNestedManyWithoutOrderInput
@@ -21999,6 +22047,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: Date | string | null
     disputeReason?: string | null
     buyerCounterEvidenceUrl?: string | null
+    checkoutTokens?: OrderCreatecheckoutTokensInput | string[]
     notifications?: NotificationUncheckedCreateNestedManyWithoutOrderInput
     orderItems?: OrderItemUncheckedCreateNestedManyWithoutOrderInput
     payment?: PaymentUncheckedCreateNestedOneWithoutOrderInput
@@ -22044,6 +22093,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
     buyerCounterEvidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    checkoutTokens?: OrderUpdatecheckoutTokensInput | string[]
     buyer?: UserUpdateOneRequiredWithoutOrdersNestedInput
     notifications?: NotificationUpdateManyWithoutOrderNestedInput
     orderItems?: OrderItemUpdateManyWithoutOrderNestedInput
@@ -22075,6 +22125,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
     buyerCounterEvidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    checkoutTokens?: OrderUpdatecheckoutTokensInput | string[]
     notifications?: NotificationUncheckedUpdateManyWithoutOrderNestedInput
     orderItems?: OrderItemUncheckedUpdateManyWithoutOrderNestedInput
     payment?: PaymentUncheckedUpdateOneWithoutOrderNestedInput
@@ -22104,6 +22155,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: Date | string | null
     disputeReason?: string | null
     buyerCounterEvidenceUrl?: string | null
+    checkoutTokens?: OrderCreatecheckoutTokensInput | string[]
     dispute?: DisputeCreateNestedOneWithoutOrderInput
     buyer: UserCreateNestedOneWithoutOrdersInput
     notifications?: NotificationCreateNestedManyWithoutOrderInput
@@ -22135,6 +22187,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: Date | string | null
     disputeReason?: string | null
     buyerCounterEvidenceUrl?: string | null
+    checkoutTokens?: OrderCreatecheckoutTokensInput | string[]
     dispute?: DisputeUncheckedCreateNestedOneWithoutOrderInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutOrderInput
     payment?: PaymentUncheckedCreateNestedOneWithoutOrderInput
@@ -22223,6 +22276,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
     buyerCounterEvidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    checkoutTokens?: OrderUpdatecheckoutTokensInput | string[]
     dispute?: DisputeUpdateOneWithoutOrderNestedInput
     buyer?: UserUpdateOneRequiredWithoutOrdersNestedInput
     notifications?: NotificationUpdateManyWithoutOrderNestedInput
@@ -22254,6 +22308,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
     buyerCounterEvidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    checkoutTokens?: OrderUpdatecheckoutTokensInput | string[]
     dispute?: DisputeUncheckedUpdateOneWithoutOrderNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutOrderNestedInput
     payment?: PaymentUncheckedUpdateOneWithoutOrderNestedInput
@@ -22332,6 +22387,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: Date | string | null
     disputeReason?: string | null
     buyerCounterEvidenceUrl?: string | null
+    checkoutTokens?: OrderCreatecheckoutTokensInput | string[]
     dispute?: DisputeCreateNestedOneWithoutOrderInput
     buyer: UserCreateNestedOneWithoutOrdersInput
     notifications?: NotificationCreateNestedManyWithoutOrderInput
@@ -22363,6 +22419,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: Date | string | null
     disputeReason?: string | null
     buyerCounterEvidenceUrl?: string | null
+    checkoutTokens?: OrderCreatecheckoutTokensInput | string[]
     dispute?: DisputeUncheckedCreateNestedOneWithoutOrderInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutOrderInput
     orderItems?: OrderItemUncheckedCreateNestedManyWithoutOrderInput
@@ -22408,6 +22465,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
     buyerCounterEvidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    checkoutTokens?: OrderUpdatecheckoutTokensInput | string[]
     dispute?: DisputeUpdateOneWithoutOrderNestedInput
     buyer?: UserUpdateOneRequiredWithoutOrdersNestedInput
     notifications?: NotificationUpdateManyWithoutOrderNestedInput
@@ -22439,6 +22497,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
     buyerCounterEvidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    checkoutTokens?: OrderUpdatecheckoutTokensInput | string[]
     dispute?: DisputeUncheckedUpdateOneWithoutOrderNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutOrderNestedInput
     orderItems?: OrderItemUncheckedUpdateManyWithoutOrderNestedInput
@@ -22468,6 +22527,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: Date | string | null
     disputeReason?: string | null
     buyerCounterEvidenceUrl?: string | null
+    checkoutTokens?: OrderCreatecheckoutTokensInput | string[]
     dispute?: DisputeCreateNestedOneWithoutOrderInput
     buyer: UserCreateNestedOneWithoutOrdersInput
     orderItems?: OrderItemCreateNestedManyWithoutOrderInput
@@ -22499,6 +22559,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: Date | string | null
     disputeReason?: string | null
     buyerCounterEvidenceUrl?: string | null
+    checkoutTokens?: OrderCreatecheckoutTokensInput | string[]
     dispute?: DisputeUncheckedCreateNestedOneWithoutOrderInput
     orderItems?: OrderItemUncheckedCreateNestedManyWithoutOrderInput
     payment?: PaymentUncheckedCreateNestedOneWithoutOrderInput
@@ -22597,6 +22658,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
     buyerCounterEvidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    checkoutTokens?: OrderUpdatecheckoutTokensInput | string[]
     dispute?: DisputeUpdateOneWithoutOrderNestedInput
     buyer?: UserUpdateOneRequiredWithoutOrdersNestedInput
     orderItems?: OrderItemUpdateManyWithoutOrderNestedInput
@@ -22628,6 +22690,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
     buyerCounterEvidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    checkoutTokens?: OrderUpdatecheckoutTokensInput | string[]
     dispute?: DisputeUncheckedUpdateOneWithoutOrderNestedInput
     orderItems?: OrderItemUncheckedUpdateManyWithoutOrderNestedInput
     payment?: PaymentUncheckedUpdateOneWithoutOrderNestedInput
@@ -22716,6 +22779,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: Date | string | null
     disputeReason?: string | null
     buyerCounterEvidenceUrl?: string | null
+    checkoutTokens?: OrderCreatecheckoutTokensInput | string[]
     dispute?: DisputeCreateNestedOneWithoutOrderInput
     buyer: UserCreateNestedOneWithoutOrdersInput
     notifications?: NotificationCreateNestedManyWithoutOrderInput
@@ -22747,6 +22811,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: Date | string | null
     disputeReason?: string | null
     buyerCounterEvidenceUrl?: string | null
+    checkoutTokens?: OrderCreatecheckoutTokensInput | string[]
     dispute?: DisputeUncheckedCreateNestedOneWithoutOrderInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutOrderInput
     orderItems?: OrderItemUncheckedCreateNestedManyWithoutOrderInput
@@ -22792,6 +22857,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
     buyerCounterEvidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    checkoutTokens?: OrderUpdatecheckoutTokensInput | string[]
     dispute?: DisputeUpdateOneWithoutOrderNestedInput
     buyer?: UserUpdateOneRequiredWithoutOrdersNestedInput
     notifications?: NotificationUpdateManyWithoutOrderNestedInput
@@ -22823,6 +22889,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
     buyerCounterEvidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    checkoutTokens?: OrderUpdatecheckoutTokensInput | string[]
     dispute?: DisputeUncheckedUpdateOneWithoutOrderNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutOrderNestedInput
     orderItems?: OrderItemUncheckedUpdateManyWithoutOrderNestedInput
@@ -23393,6 +23460,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: Date | string | null
     disputeReason?: string | null
     buyerCounterEvidenceUrl?: string | null
+    checkoutTokens?: OrderCreatecheckoutTokensInput | string[]
   }
 
   export type ProductsCreateManySellerInput = {
@@ -23523,6 +23591,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
     buyerCounterEvidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    checkoutTokens?: OrderUpdatecheckoutTokensInput | string[]
     dispute?: DisputeUpdateOneWithoutOrderNestedInput
     notifications?: NotificationUpdateManyWithoutOrderNestedInput
     orderItems?: OrderItemUpdateManyWithoutOrderNestedInput
@@ -23553,6 +23622,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
     buyerCounterEvidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    checkoutTokens?: OrderUpdatecheckoutTokensInput | string[]
     dispute?: DisputeUncheckedUpdateOneWithoutOrderNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutOrderNestedInput
     orderItems?: OrderItemUncheckedUpdateManyWithoutOrderNestedInput
@@ -23583,6 +23653,7 @@ export namespace Prisma {
     lastBuyerReminderSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
     buyerCounterEvidenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    checkoutTokens?: OrderUpdatecheckoutTokensInput | string[]
   }
 
   export type ProductsUpdateWithoutSellerInput = {

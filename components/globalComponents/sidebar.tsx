@@ -24,9 +24,12 @@ const Sidebar = ({children}:{children:React.ReactNode}) => {
     <SidebarProvider>
             <AppSidebar />
             <SidebarInset>
-              <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+              <header className="flex h-12 md:h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
                 <div className="flex items-center gap-2 px-4">
-                  <SidebarTrigger className="-ml-1" />
+                  {/* On phones the dashboard navigation lives in this drawer, so label it. */}
+                  <SidebarTrigger className="-ml-1 h-9 w-auto gap-2 px-2 md:h-7 md:w-7 md:px-0">
+                    <span className="text-sm font-medium md:hidden">Menu</span>
+                  </SidebarTrigger>
                   {/* <Separator orientation="vertical" className="mr-2 h-4" />
                   <Breadcrumb>
                     <BreadcrumbList>

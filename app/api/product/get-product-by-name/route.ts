@@ -3,6 +3,8 @@ import { eventNotPastSql, reservedTicketCountSql } from "@/lib/product-inventory
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
+import { getCurrentDbUser } from "@/lib/current-db-user";
+
 export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   const search: string = typeof body?.name === "string" ? body.name.trim().slice(0, 100) : "";
@@ -10,6 +12,10 @@ export async function POST(req: Request) {
   if (!search) {
     return NextResponse.json({ result: [] }, { status: 200 });
   }
+
+  // The viewer's own unpaid checkout shouldn't make a listing look unavailable to them.
+  const viewer = await getCurrentDbUser().catch(() => null);
+  const reservedSql = reservedTicketCountSql(Prisma.raw(`p."id"`), { ignoreUnpaidCheckoutsOf: viewer?.id });
 
   try {
     // Smart detection: if query starts with VLT- treat it as a listing ID exact match
@@ -49,12 +55,14 @@ export async function POST(req: Request) {
     }>>(Prisma.sql`
       SELECT
         p.*,
-        ${reservedTicketCountSql(Prisma.raw(`p."id"`))} AS "reserved",
+        ${reservedSql} AS "reserved",
         c."name" AS category_name
       FROM "Products" p
       JOIN "Category" c ON c."id" = p."categoryId"
       WHERE p."isSold" = false
-        AND ${reservedTicketCountSql(Prisma.raw(`p."id"`))} < p."ticketQuantity"
+        -- Tickets held by another buyer's checkout stay listed (shown as reserved)
+        -- rather than vanishing as if they were sold.
+        AND p."ticketQuantity" > 0
         AND ${eventNotPastSql("p")}
         AND (
           ${isListingId

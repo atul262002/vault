@@ -3,8 +3,28 @@ import { getOrderPortalUrl } from "@/lib/app-url";
 import { getCurrentDbUser } from "@/lib/current-db-user";
 import { createNotificationRecord, recordOrderStatus } from "@/lib/order-flow";
 import { OrderActionError, requireStatus, withLockedOrder } from "@/lib/order-lock";
+import { releaseUnpaidCheckout } from "@/lib/checkout-release";
 import { createBuyerRefund } from "@/lib/razorpay-money-flow";
 import { NextRequest, NextResponse } from "next/server";
+
+// Same shape as GET /api/orders/[orderId], so the order page can render the result.
+function loadOrderForClient(id: string) {
+  return prisma.order.findUnique({
+    where: { id },
+    include: {
+            orderItems: {
+              include: {
+                product: {
+                  include: { category: true, seller: { select: { id: true, name: true, email: true } } },
+                },
+              },
+            },
+            buyer: { select: { id: true, name: true, email: true } },
+            payment: true,
+            statusHistory: { orderBy: { createdAt: "asc" } },
+          },
+  });
+}
 
 export async function POST(
   req: NextRequest,
@@ -42,12 +62,36 @@ export async function POST(
       return NextResponse.json({ message: "Only the buyer can cancel this order" }, { status: 403 });
     }
 
+    // An unpaid checkout is cancelled through the same Razorpay-checked path
+    // as closing the payment window: if the buyer's payment is in progress
+    // or already captured, cancelling must not race it.
+    if (order.status === "PAYMENT_PENDING" && !order.payment) {
+      const result = await releaseUnpaidCheckout({
+        razorpayOrderId: order.razorpayId,
+        buyerId: user.id,
+        reason: "buyer cancelled",
+        wholeCheckout: true,
+      });
+      if (result.released) {
+        return NextResponse.json(await loadOrderForClient(order.id));
+      }
+      const messages: Record<string, string> = {
+        paid: "Your payment went through, so this order is now active instead of cancelled.",
+        payment_in_progress: "A payment for this order is still processing. Please wait a minute and try again.",
+        unverified: "We couldn't confirm the payment status right now. Please try again shortly.",
+      };
+      if (result.reason in messages) {
+        return NextResponse.json({ message: messages[result.reason] }, { status: 409 });
+      }
+      // not_pending: the order moved on in the meantime; fall through to the normal checks.
+    }
+
     const seller = order.orderItems[0]?.product.seller;
     const orderPortalUrl = getOrderPortalUrl(order.id);
 
     // Locked so a cancel can't race the payment webhook (money captured but
     // never refunded) or the seller starting the transfer.
-    const { updatedOrder, refundId, refundStatus } = await withLockedOrder(orderId, async (tx, currentStatus) => {
+    const { refundId, refundStatus } = await withLockedOrder(orderId, async (tx, currentStatus) => {
       requireStatus(
         currentStatus,
         ["PAYMENT_PENDING", "FUNDS_HELD", "TRANSFER_PENDING"],
@@ -133,7 +177,7 @@ export async function POST(
       ])
     );
 
-    return NextResponse.json(updatedOrder);
+    return NextResponse.json(await loadOrderForClient(orderId));
   } catch (error: unknown) {
     if (error instanceof OrderActionError) {
       return NextResponse.json({ message: error.message }, { status: error.status });

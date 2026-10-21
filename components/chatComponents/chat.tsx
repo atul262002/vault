@@ -35,7 +35,7 @@ const Chat: React.FC<ChatProps> = ({ conversationId }) => {
   const [userId, setUserId] = useState<string>()
   const [sending, setSending] = useState<boolean>(false)
   const [conversation, setConversation] = useState<ConversationSummary | null>(null)
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
 
   const fetchMessages = useCallback(async () => {
     try {
@@ -76,10 +76,14 @@ const Chat: React.FC<ChatProps> = ({ conversationId }) => {
     return () => clearInterval(interval)
   }, [fetchMessages])
 
-  // Auto-scroll to bottom on new messages
+  // Scroll only the message list (scrollIntoView would also scroll the page
+  // on phones), and only when a new message arrives, so the 3-second refresh
+  // doesn't pull the reader back down while they scroll through history.
+  const lastMessageId = messages[messages.length - 1]?.id
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
+    const list = listRef.current
+    if (list) list.scrollTo({ top: list.scrollHeight, behavior: "smooth" })
+  }, [lastMessageId])
 
   const otherParticipant = conversation?.participants?.find((p) => p.id !== userId);
   const displayName = otherParticipant?.name || otherParticipant?.email || "Chat";
@@ -105,7 +109,7 @@ const Chat: React.FC<ChatProps> = ({ conversationId }) => {
       </div>
 
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
+      <div ref={listRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
         {messages.length === 0 && (
           <div className="flex items-center justify-center h-full">
             <p className="text-muted-foreground text-sm">No messages yet. Say hello!</p>
@@ -130,7 +134,6 @@ const Chat: React.FC<ChatProps> = ({ conversationId }) => {
             </div>
           );
         })}
-        <div ref={bottomRef} />
       </div>
 
       {/* Input bar */}

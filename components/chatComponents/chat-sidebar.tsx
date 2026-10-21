@@ -48,7 +48,7 @@ export default function ChatSidebar({ children }: { children?: React.ReactNode }
     }, []);
 
     return (
-        <div className="flex h-[80vh] w-full overflow-hidden border rounded-xl shadow-lg m-4 bg-background">
+        <div className="flex h-[calc(100dvh-9rem)] md:h-[80vh] w-full overflow-hidden border rounded-xl shadow-lg md:m-4 bg-background">
             {/* Sidebar List */}
             <div className={cn(
                 "w-full md:w-80 border-r flex-col bg-muted/10",

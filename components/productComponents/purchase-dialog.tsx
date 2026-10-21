@@ -50,11 +50,15 @@ export default function PurchaseDialog({
 
   if (!product) return null;
 
+  // Show the city name; categoryId is an internal id.
+  const locationName = (product as Products & { category?: { name?: string } }).category?.name;
+
   // Tickets currently reserved by other buyers' checkouts are not counted.
   const ticketsAvailable =
     (product as Products & { availableQuantity?: number }).availableQuantity ?? product.ticketQuantity;
 
   const canPay =
+    ticketsAvailable > 0 &&
     termsAccepted &&
     receiverName.trim().length > 0 &&
     receiverPhone.trim().length > 0 &&
@@ -124,8 +128,8 @@ export default function PurchaseDialog({
 
               {/* Detail rows */}
               <div className="divide-y divide-white/5">
-                {product.categoryId && (
-                  <DetailRow icon={<MapPin className="h-4 w-4 text-blue-400" />} label={product.categoryId} />
+                {locationName && (
+                  <DetailRow icon={<MapPin className="h-4 w-4 text-blue-400" />} label={locationName} />
                 )}
                 {product.estimatedTime && (
                   <DetailRow icon={<CalendarDays className="h-4 w-4 text-purple-400" />} label={product.estimatedTime} />
@@ -309,7 +313,13 @@ export default function PurchaseDialog({
               </>
             )}
           </Button>
-          {!termsAccepted && (
+          {ticketsAvailable <= 0 && (
+            <p className="text-center text-xs text-amber-700 dark:text-amber-400 mt-2">
+              Another buyer is checking out the last ticket right now. If they don&apos;t pay, it becomes
+              available again within a few minutes.
+            </p>
+          )}
+          {ticketsAvailable > 0 && !termsAccepted && (
             <p className="text-center text-xs text-muted-foreground mt-2">
               Accept terms above to enable payment
             </p>

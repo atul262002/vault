@@ -6,6 +6,7 @@ import { getCurrentDbUser } from "@/lib/current-db-user";
 import { prisma } from "@/lib/db";
 import { PAYMENT_PENDING_LOCK_MINUTES } from "@/lib/order-availability";
 import { recordOrderStatus } from "@/lib/order-flow";
+import { withLockedOrder } from "@/lib/order-lock";
 import { rateLimit } from "@/lib/rate-limit";
 import { eventNotPastSql, reservedTicketCountSql } from "@/lib/product-inventory";
 
@@ -13,6 +14,8 @@ const BUYER_FEE_RATE = 0.05;
 const SELLER_FEE_RATE = 0.025;
 const MAX_RECEIVER_NAME_LENGTH = 100;
 const MAX_OPEN_CHECKOUTS = 2;
+const MIN_REMAINING_HOLD_MINUTES = 5;
+const MAX_WINDOW_TOKENS = 10;
 const CHECKOUTS_PER_WINDOW = 10;
 const CHECKOUT_WINDOW_MS = 10 * 60 * 1000;
 
@@ -66,7 +69,12 @@ function normalizePhone(raw: unknown) {
   return /^[6-9]\d{9}$/.test(local) ? `+91${local}` : null;
 }
 
-function selectListing(db: Prisma.TransactionClient | typeof prisma, productId: string, lock: boolean) {
+function selectListing(
+  db: Prisma.TransactionClient | typeof prisma,
+  productId: string,
+  buyerId: string,
+  lock: boolean
+) {
   return db.$queryRaw<ListingAvailability[]>(Prisma.sql`
     SELECT
       p."id",
@@ -74,7 +82,7 @@ function selectListing(db: Prisma.TransactionClient | typeof prisma, productId: 
       p."isSold",
       p."ticketQuantity",
       p."sellerId",
-      ${reservedTicketCountSql(Prisma.raw(`p."id"`))} AS "reserved",
+      ${reservedTicketCountSql(Prisma.raw(`p."id"`), { ignoreUnpaidCheckoutsOf: buyerId })} AS "reserved",
       ${eventNotPastSql("p")} AS "eventUpcoming",
       (s."fundAccountId" IS NOT NULL) AS "sellerCanBePaid"
     FROM "Products" p
@@ -85,8 +93,14 @@ function selectListing(db: Prisma.TransactionClient | typeof prisma, productId: 
 }
 
 function assertAvailable(listing: ListingAvailability | undefined, buyerId: string) {
-  if (!listing || listing.isSold || listing.reserved >= listing.ticketQuantity) {
-    throw new CheckoutError("This listing is sold out or all remaining tickets are currently reserved.", 409);
+  if (!listing || listing.isSold || listing.ticketQuantity <= 0) {
+    throw new CheckoutError("This listing is sold out.", 409);
+  }
+  if (listing.reserved >= listing.ticketQuantity) {
+    throw new CheckoutError(
+      "Another buyer is checking out the last available ticket right now. If they don't complete payment it will be available again shortly — please try again in a few minutes.",
+      409
+    );
   }
   if (!listing.eventUpcoming) {
     throw new CheckoutError("This event has already taken place, so tickets can no longer be bought.", 409);
@@ -134,7 +148,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "You must accept the terms before paying" }, { status: 400 });
     }
 
-    const [listing] = await selectListing(prisma, productId, false);
+    const [listing] = await selectListing(prisma, productId, buyer.id, false);
     assertAvailable(listing, buyer.id);
 
     if (Math.abs(parsedAmount - listing.price) > 0.01) {
@@ -151,34 +165,64 @@ export async function POST(req: NextRequest) {
     const totalAmountToPay = ticketPrice + platformFeeBuyer;
     const amountInPaise = Math.round(totalAmountToPay * 100);
 
-    // A double click or a retried request must not reserve a second ticket.
-    // Reuse this buyer's own unpaid checkout for the same listing while it
-    // still holds its reservation.
+    // A double click, a retry after closing the payment window, or a second
+    // tab must not reserve a second ticket: reuse this buyer's own unpaid
+    // checkout for the same listing. Only reuse one that still has at least
+    // MIN_REMAINING_HOLD_MINUTES of its reservation left; otherwise its hold
+    // could lapse mid-payment and the ticket go to someone else. A checkout
+    // too old to reuse is superseded when the new one is created below.
+    const reuseCutoff = new Date(
+      Date.now() - (PAYMENT_PENDING_LOCK_MINUTES - MIN_REMAINING_HOLD_MINUTES) * 60 * 1000
+    );
     const existingPending = await prisma.order.findFirst({
       where: {
         buyerId: buyer.id,
         status: "PAYMENT_PENDING",
-        createdAt: { gte: new Date(Date.now() - PAYMENT_PENDING_LOCK_MINUTES * 60 * 1000) },
+        payment: null,
+        createdAt: { gte: reuseCutoff },
         orderItems: { some: { productId } },
       },
       orderBy: { createdAt: "desc" },
     });
 
     if (existingPending && Math.abs(existingPending.totalAmount - totalAmountToPay) < 0.01) {
-      await prisma.order.update({
-        where: { id: existingPending.id },
-        data: { receiverName, receiverPhone, termsAccepted: true },
+      // Under the lock, so a release request racing this retry either
+      // finishes first (we then create a new checkout) or sees the order
+      // was touched and leaves it alone.
+      // This is another payment window on the same checkout (second tab,
+      // or reopening after closing one), so it gets its own token.
+      const windowToken = crypto.randomUUID();
+      const reused = await withLockedOrder(existingPending.id, async (tx, status) => {
+        if (status !== "PAYMENT_PENDING") return false;
+        const current = await tx.order.findUniqueOrThrow({
+          where: { id: existingPending.id },
+          select: { checkoutTokens: true },
+        });
+        await tx.order.update({
+          where: { id: existingPending.id },
+          data: {
+            receiverName,
+            receiverPhone,
+            termsAccepted: true,
+            // Bounded: tokens from windows that died without telling us are dropped.
+            checkoutTokens: [...current.checkoutTokens.slice(-(MAX_WINDOW_TOKENS - 1)), windowToken],
+          },
+        });
+        return true;
       });
 
-      return NextResponse.json(
-        {
-          id: existingPending.razorpayId,
-          amount: amountInPaise,
-          currency: "INR",
-          orderId: existingPending.id,
-        },
-        { status: 200 }
-      );
+      if (reused) {
+        return NextResponse.json(
+          {
+            id: existingPending.razorpayId,
+            amount: amountInPaise,
+            currency: "INR",
+            orderId: existingPending.id,
+            checkoutToken: windowToken,
+          },
+          { status: 200 }
+        );
+      }
     }
 
     // Each unpaid checkout holds a ticket for PAYMENT_PENDING_LOCK_MINUTES.
@@ -188,11 +232,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Too many checkout attempts. Please wait a few minutes." }, { status: 429 });
     }
 
+    // Checkouts for this same listing are superseded below, so they don't count.
     const openCheckouts = await prisma.order.count({
       where: {
         buyerId: buyer.id,
         status: "PAYMENT_PENDING",
         createdAt: { gte: new Date(Date.now() - PAYMENT_PENDING_LOCK_MINUTES * 60 * 1000) },
+        NOT: { orderItems: { some: { productId } } },
       },
     });
     if (openCheckouts >= MAX_OPEN_CHECKOUTS) {
@@ -230,11 +276,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Razorpay returned an invalid order response" }, { status: 502 });
     }
 
+    const firstWindowToken = crypto.randomUUID();
     const newOrderId = await prisma.$transaction(async (tx) => {
       // Re-check under a row lock: another buyer or the seller removing
       // tickets may have changed availability since the first check.
-      const [lockedListing] = await selectListing(tx, productId, true);
+      const [lockedListing] = await selectListing(tx, productId, buyer.id, true);
       assertAvailable(lockedListing, buyer.id);
+
+      // Any older unpaid checkout of this buyer for this listing (e.g. made
+      // before a price change) is superseded, so one buyer never holds two
+      // tickets. If a payment for it lands later, it's refunded automatically.
+      const superseded = await tx.order.findMany({
+        where: {
+          buyerId: buyer.id,
+          status: "PAYMENT_PENDING",
+          payment: null,
+          orderItems: { some: { productId } },
+        },
+        select: { id: true },
+      });
+      for (const old of superseded) {
+        await tx.order.update({ where: { id: old.id }, data: { status: "CANCELLED" } });
+        await recordOrderStatus(tx, {
+          orderId: old.id,
+          fromStatus: "PAYMENT_PENDING",
+          toStatus: "CANCELLED",
+          note: "Superseded by a new checkout from the same buyer",
+        });
+      }
 
       const orderId = crypto.randomUUID();
 
@@ -242,12 +311,12 @@ export async function POST(req: NextRequest) {
         INSERT INTO "Order" (
           "id", "razorpayId", "buyerId", "totalAmount", "status",
           "platformFeeBuyer", "platformFeeSeller", "receiverName", "receiverPhone",
-          "termsAccepted", "createdAt", "updatedAt"
+          "termsAccepted", "checkoutTokens", "createdAt", "updatedAt"
         )
         VALUES (
           ${orderId}, ${razorpayOrder.id}, ${buyer.id}, ${totalAmountToPay},
           ${"PAYMENT_PENDING"}::"OrderStatus", ${platformFeeBuyer}, ${platformFeeSeller},
-          ${receiverName}, ${receiverPhone}, true, NOW(), NOW()
+          ${receiverName}, ${receiverPhone}, true, ARRAY[${firstWindowToken}]::TEXT[], NOW(), NOW()
         )
       `);
 
@@ -272,6 +341,7 @@ export async function POST(req: NextRequest) {
         amount: razorpayOrder.amount,
         currency: razorpayOrder.currency,
         orderId: newOrderId,
+        checkoutToken: firstWindowToken,
       },
       { status: 200 }
     );

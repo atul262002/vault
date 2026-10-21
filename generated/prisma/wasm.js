@@ -184,7 +184,8 @@ exports.Prisma.OrderScalarFieldEnum = {
   lastSellerReminderSentAt: 'lastSellerReminderSentAt',
   lastBuyerReminderSentAt: 'lastBuyerReminderSentAt',
   disputeReason: 'disputeReason',
-  buyerCounterEvidenceUrl: 'buyerCounterEvidenceUrl'
+  buyerCounterEvidenceUrl: 'buyerCounterEvidenceUrl',
+  checkoutTokens: 'checkoutTokens'
 };
 
 exports.Prisma.DisputeScalarFieldEnum = {

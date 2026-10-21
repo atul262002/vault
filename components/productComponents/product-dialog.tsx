@@ -1132,6 +1132,30 @@ const ProductSearchByName = () => {
     }
   };
 
+  // Razorpay order id of the checkout window that is currently open. Used to
+  // release the held ticket if the buyer closes the window without paying.
+  const openCheckoutOrderIdRef = useRef<string | null>(null);
+  // Identifies this payment window, so closing it doesn't release a ticket
+  // that another tab is still paying for on the same checkout.
+  const openCheckoutTokenRef = useRef<string | null>(null);
+
+  const releaseOpenCheckout = (reason: "dismissed" | "payment_failed" | "page_closed") => {
+    const razorpayOrderId = openCheckoutOrderIdRef.current;
+    const checkoutToken = openCheckoutTokenRef.current;
+    openCheckoutOrderIdRef.current = null;
+    openCheckoutTokenRef.current = null;
+    // Never release after a successful payment; the server double-checks with Razorpay too.
+    if (!razorpayOrderId || lastCompletedPaymentIdRef.current) return;
+    fetch("/api/razorpay/release-checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ razorpay_order_id: razorpayOrderId, checkout_token: checkoutToken, reason }),
+      keepalive: true, // still delivered if the tab is closing
+    }).catch(() => {
+      // Best effort: an unreleased checkout expires on its own.
+    });
+  };
+
   const resetPaymentUi = () => {
     clearRazorpayLoaderTimeout();
     clearRazorpayStatusPoll();
@@ -1140,7 +1164,11 @@ const ProductSearchByName = () => {
   };
 
   useEffect(() => {
+    const onPageHide = () => releaseOpenCheckout("page_closed");
+    window.addEventListener("pagehide", onPageHide);
     return () => {
+      window.removeEventListener("pagehide", onPageHide);
+      releaseOpenCheckout("page_closed");
       clearRazorpayLoaderTimeout();
       clearRazorpayStatusPoll();
       closeRazorpayModal();
@@ -1151,6 +1179,9 @@ const ProductSearchByName = () => {
     paymentId: string,
     verifyPaymentAction?: () => Promise<boolean>
   ) => {
+    // Paid: the open checkout must not be released.
+    openCheckoutOrderIdRef.current = null;
+    openCheckoutTokenRef.current = null;
     // FIX: Don't block on deduplication — always process, set ref after success
     clearRazorpayStatusPoll();
     closeRazorpayModal();
@@ -1276,6 +1307,7 @@ const ProductSearchByName = () => {
             ondismiss: function () {
               closeRazorpayModal();
               resetPaymentUi();
+              releaseOpenCheckout("dismissed");
             },
             confirm_close: true,
             animation: true,
@@ -1318,9 +1350,12 @@ const ProductSearchByName = () => {
         razorpay.on('payment.failed', function (response: RazorpayFailureResponse) {
           closeRazorpayModal();
           resetPaymentUi();
+          releaseOpenCheckout("payment_failed");
           alert(`Payment failed: ${response.error.description}`);
         });
 
+        openCheckoutOrderIdRef.current = id;
+        openCheckoutTokenRef.current = response.data.checkoutToken ?? null;
         razorpay.open();
         startRazorpayStatusPolling(id);
 
@@ -1473,11 +1508,16 @@ const ProductSearchByName = () => {
                 fill
                 className="object-cover group-hover:scale-105 transition-transform duration-300"
               />
-              {product.isSold && (
+              {product.isSold ? (
                 <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
                   <span className="text-red-400 font-bold text-sm border border-red-400 px-3 py-1 rounded-full">SOLD OUT</span>
                 </div>
-              )}
+              ) : (product as Products & { availableQuantity?: number }).availableQuantity === 0 ? (
+                <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-1 px-3 text-center">
+                  <span className="text-amber-300 font-bold text-sm border border-amber-300 px-3 py-1 rounded-full">RESERVED</span>
+                  <span className="text-[11px] text-gray-200">Checkout in progress, try again in a few minutes</span>
+                </div>
+              ) : null}
             </div>
             <div className="p-4">
               <h2 className="text-sm font-semibold text-white line-clamp-2 min-h-[2.5rem]">
@@ -1486,8 +1526,10 @@ const ProductSearchByName = () => {
               <p className="text-green-400 font-bold text-base mt-2">
                 ₹{product.price.toFixed(0)}
               </p>
-              {product.categoryId && (
-                <p className="text-xs text-gray-400 mt-1 truncate">{product.categoryId}</p>
+              {(product as Products & { category?: { name?: string } }).category?.name && (
+                <p className="text-xs text-gray-400 mt-1 truncate">
+                  {(product as Products & { category?: { name?: string } }).category?.name}
+                </p>
               )}
               {product.estimatedTime && (
                 <p className="text-xs text-gray-400 mt-0.5">{product.estimatedTime}</p>

@@ -1256,6 +1256,30 @@ const ProductSearchByName = () => {
     }
   };
 
+  // Razorpay order id of the checkout window that is currently open. Used to
+  // release the held ticket if the buyer closes the window without paying.
+  const openCheckoutOrderIdRef = useRef<string | null>(null);
+  // Identifies this payment window, so closing it doesn't release a ticket
+  // that another tab is still paying for on the same checkout.
+  const openCheckoutTokenRef = useRef<string | null>(null);
+
+  const releaseOpenCheckout = (reason: "dismissed" | "payment_failed" | "page_closed") => {
+    const razorpayOrderId = openCheckoutOrderIdRef.current;
+    const checkoutToken = openCheckoutTokenRef.current;
+    openCheckoutOrderIdRef.current = null;
+    openCheckoutTokenRef.current = null;
+    // Never release after a successful payment; the server double-checks with Razorpay too.
+    if (!razorpayOrderId || lastCompletedPaymentIdRef.current) return;
+    fetch("/api/razorpay/release-checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ razorpay_order_id: razorpayOrderId, checkout_token: checkoutToken, reason }),
+      keepalive: true, // still delivered if the tab is closing
+    }).catch(() => {
+      // Best effort: an unreleased checkout expires on its own.
+    });
+  };
+
   const resetPaymentUi = () => {
     clearRazorpayLoaderTimeout();
     clearRazorpayStatusPoll();
@@ -1264,7 +1288,11 @@ const ProductSearchByName = () => {
   };
 
   useEffect(() => {
+    const onPageHide = () => releaseOpenCheckout("page_closed");
+    window.addEventListener("pagehide", onPageHide);
     return () => {
+      window.removeEventListener("pagehide", onPageHide);
+      releaseOpenCheckout("page_closed");
       clearRazorpayLoaderTimeout();
       clearRazorpayStatusPoll();
       closeRazorpayModal();
@@ -1275,6 +1303,9 @@ const ProductSearchByName = () => {
     paymentId: string,
     verifyPaymentAction?: () => Promise<boolean>
   ) => {
+    // Paid: the open checkout must not be released.
+    openCheckoutOrderIdRef.current = null;
+    openCheckoutTokenRef.current = null;
     // FIX: Don't deduplicate here — the polling path passes the same ID
     // and the handler path should always fire. Reset ref AFTER success shown.
     clearRazorpayStatusPoll();
@@ -1409,6 +1440,7 @@ const ProductSearchByName = () => {
             ondismiss: function () {
               closeRazorpayModal();
               resetPaymentUi();
+              releaseOpenCheckout("dismissed");
             },
             confirm_close: true,
             animation: true,
@@ -1451,9 +1483,12 @@ const ProductSearchByName = () => {
         razorpay.on('payment.failed', function (response: RazorpayFailureResponse) {
           closeRazorpayModal();
           resetPaymentUi();
+          releaseOpenCheckout("payment_failed");
           alert(`Payment failed: ${response.error.description}`);
         });
 
+        openCheckoutOrderIdRef.current = id;
+        openCheckoutTokenRef.current = response.data.checkoutToken ?? null;
         razorpay.open();
         startRazorpayStatusPolling(id);
 
@@ -1615,6 +1650,11 @@ const ProductSearchByName = () => {
                 fill
                 className="object-cover"
               />
+              {product.availableQuantity === 0 && (
+                <span className="absolute top-2 left-2 rounded-full bg-amber-500/90 px-2.5 py-0.5 text-xs font-semibold text-white">
+                  Reserved
+                </span>
+              )}
             </div>
             <div className="p-4">
               <h2 className="text-lg font-semibold text-foreground line-clamp-2 min-h-[3.5rem]">
@@ -1777,7 +1817,7 @@ const ProductSearchByName = () => {
                 ) : (
                   <Button
                     onClick={() => handlePurchase(selectedProduct)}
-                    disabled={isRazorpayLoading || !isRazorpayReady || !termsAccepted}
+                    disabled={isRazorpayLoading || !isRazorpayReady || !termsAccepted || selectedProduct.availableQuantity === 0}
                     className="flex-1 w-full"
                   >
                     {isRazorpayLoading ? (
@@ -1790,6 +1830,8 @@ const ProductSearchByName = () => {
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Loading Payment...
                       </>
+                    ) : selectedProduct.availableQuantity === 0 ? (
+                        "Reserved — try again in a few minutes"
                     ) : (
                         "Proceed to Payment"
                     )}

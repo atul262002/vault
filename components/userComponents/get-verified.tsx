@@ -270,7 +270,7 @@ export function Verify() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="default" className="text-sm md:mr-5 ml-5 font-normal" size={"sm"}>
+        <Button variant="default" className="w-full sm:w-auto gap-2 text-sm font-medium">
           <IconExclamationCircle /> Get Verified
         </Button>
       </DialogTrigger>

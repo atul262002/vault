@@ -23,7 +23,17 @@ import { ACTIVE_LISTING_ORDER_STATUSES, PAYMENT_PENDING_LOCK_MINUTES } from "@/l
  * SQL expression counting the active orders that currently reserve a
  * ticket on the listing identified by `productIdColumn`.
  */
-export function reservedTicketCountSql(productIdColumn: Prisma.Sql) {
+export function reservedTicketCountSql(
+  productIdColumn: Prisma.Sql,
+  options: { ignoreUnpaidCheckoutsOf?: string } = {}
+) {
+  // A buyer's own unpaid checkout must not block that same buyer: if they
+  // closed the payment window and click "Buy" again, they retry instead of
+  // being told the listing is unavailable.
+  const ignoreOwn = options.ignoreUnpaidCheckoutsOf
+    ? Prisma.sql`AND NOT (o."status" = ${"PAYMENT_PENDING"}::"OrderStatus" AND o."buyerId" = ${options.ignoreUnpaidCheckoutsOf})`
+    : Prisma.empty;
+
   return Prisma.sql`(
     SELECT COUNT(*)::int
     FROM "OrderItem" oi
@@ -36,6 +46,7 @@ export function reservedTicketCountSql(productIdColumn: Prisma.Sql) {
         o."status" <> ${"PAYMENT_PENDING"}::"OrderStatus"
         OR o."createdAt" >= NOW() - (${PAYMENT_PENDING_LOCK_MINUTES} * INTERVAL '1 minute')
       )
+      ${ignoreOwn}
   )`;
 }
 

@@ -24,9 +24,15 @@ export async function GET() {
 
         const orders = await prisma.order.findMany({
             where: {
+                // A checkout that was closed or expired without payment isn't a
+                // real order; hide it so every closed payment window doesn't
+                // leave a "Cancelled" card behind.
+                NOT: { status: "CANCELLED", payment: null },
                 OR: [
                     { buyerId: existingUser.id },
                     {
+                        // Sellers only see orders once the buyer has paid.
+                        status: { not: "PAYMENT_PENDING" },
                         orderItems: {
                             some: {
                                 product: {

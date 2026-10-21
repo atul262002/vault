@@ -227,7 +227,7 @@ export default function OrderDetailsPage() {
         try {
             const res = await axios.post(`/api/orders/${order?.id}/cancel`);
             setOrder(res.data);
-            toast.success("Order cancelled and refund flow started.");
+            toast.success(res.data?.status === "REFUNDED" ? "Order cancelled and refund started." : "Order cancelled.");
         } catch (error: any) {
             toast.error(error.response?.data?.message || "Failed to cancel order");
         } finally {
@@ -244,15 +244,15 @@ export default function OrderDetailsPage() {
     const isSeller = dbUserId !== null && dbUserId === order.orderItems[0]?.product.sellerId;
 
     return (
-        <div className="max-w-4xl mx-auto p-6 space-y-6">
+        <div className="max-w-4xl mx-auto px-3 py-4 sm:p-6 space-y-6">
             <Card>
-                <CardHeader>
-                    <div className="flex justify-between items-center">
+                <CardHeader className="px-4 sm:px-6">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
                         <div>
-                            <CardTitle className="text-2xl font-bold">Order #{order.id.slice(0, 8)}</CardTitle>
+                            <CardTitle className="text-xl sm:text-2xl font-bold break-all">Order #{order.id.slice(0, 8)}</CardTitle>
                             <CardDescription>Created on {format(new Date(order.createdAt), "PPP")}</CardDescription>
                         </div>
-                        <div className={`px-4 py-2 rounded-full font-semibold text-sm ${currentStatus === 'COMPLETE' ? 'bg-green-100 text-green-800' :
+                        <div className={`self-start sm:self-auto px-3 py-1.5 sm:px-4 sm:py-2 rounded-full font-semibold text-xs sm:text-sm ${currentStatus === 'COMPLETE' ? 'bg-green-100 text-green-800' :
                             currentStatus === 'DISPUTED' ? 'bg-red-100 text-red-800' :
                                 'bg-yellow-100 text-yellow-800'
                             }`}>
@@ -260,7 +260,7 @@ export default function OrderDetailsPage() {
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-6 px-4 sm:px-6">
 
                     {/* Steps Visualizer could go here */}
 
@@ -443,7 +443,8 @@ export default function OrderDetailsPage() {
                                             </div>
                                         )}
 
-                                        <div className="grid grid-cols-2 gap-4">
+                                        {/* Stacked on phones so neither label is cut off; the confirm action comes first there. */}
+                                        <div className="flex flex-col-reverse gap-3 sm:grid sm:grid-cols-2 sm:gap-4">
                                             <Button variant="outline" onClick={handleDispute} disabled={actionLoading} className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700">
                                                 {actionLoading ? <Loader2 className="animate-spin mr-2" /> : <AlertTriangle className="mr-2 h-4 w-4" />}
                                                 No, I didn't receive it

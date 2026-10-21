@@ -90,6 +90,9 @@ model Order {
   lastBuyerReminderSentAt  DateTime?
   disputeReason            String?
   buyerCounterEvidenceUrl  String?
+  /// One token per open Razorpay payment window for this checkout. Closing a
+  /// window removes its token; the held ticket is released only when none remain.
+  checkoutTokens           String[]    @default([])
   dispute                  Dispute?
   buyer                    User        @relation("BuyerOrders", fields: [buyerId], references: [id])
   notifications            Notification[]

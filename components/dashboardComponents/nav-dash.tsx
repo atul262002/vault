@@ -18,7 +18,7 @@ const NavDash = () => {
           {verified ? (
             <AddProduct />
           ) : (
-            <div className="block">
+            <div className="w-full sm:w-auto">
               <Verify />
             </div>
           )}

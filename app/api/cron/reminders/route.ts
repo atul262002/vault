@@ -10,8 +10,15 @@ import {
   normalizeOrderStatus,
   recordOrderStatus,
 } from "@/lib/order-flow";
-import { getAdminEmail } from "@/lib/mail";
+import { escapeHtml, getAdminEmail } from "@/lib/mail";
 import { withLockedOrder } from "@/lib/order-lock";
+import {
+  BUYER_CONFIRM_REMINDERS,
+  SELLER_EVIDENCE_REMINDERS,
+  SELLER_TRANSFER_REMINDERS,
+  claimDueReminder,
+} from "@/lib/reminders";
+import { expireStaleCheckouts } from "@/lib/checkout-release";
 import { sendNotification } from "@/lib/notifications";
 import {
   createBuyerRefund,
@@ -99,9 +106,6 @@ export async function GET(req: NextRequest) {
           const deadline = new Date(
             order.transferPendingAt.getTime() +
               SELLER_TIMEOUT_MINUTES * 60 * 1000,
-          );
-          const minutesLeft = Math.ceil(
-            (deadline.getTime() - now.getTime()) / 60000,
           );
 
           if (now >= deadline) {
@@ -194,14 +198,23 @@ export async function GET(req: NextRequest) {
             continue;
           }
 
-          if ([20, 10, 5].includes(minutesLeft) && !dryRun) {
+          const reminderMinutes = await claimDueReminder({
+            orderId: order.id,
+            field: "lastSellerReminderSentAt",
+            deadline: deadline,
+            schedule: SELLER_TRANSFER_REMINDERS,
+            now,
+            dryRun,
+          });
+          if (reminderMinutes !== null && !dryRun) {
+            const minutesLeft = reminderMinutes;
             results.reminders += 1;
             await sendNotification({
               email: seller.email,
               phone: seller.phone,
               whatsappNumber: seller.whatsappNumber,
-              subject: `Reminder: initiate transfer for order ${order.id}`,
-              html: `<p>You have ${minutesLeft} minutes left to initiate transfer for ${order.orderItems[0]?.product.name}.</p><p><a href="${orderPortalUrl}">Open order in Vault</a></p>`,
+              subject: `Reminder: ${minutesLeft} min left to start the transfer for order ${order.id.slice(0, 8)}`,
+              html: `<p>Your window to start the ticket transfer for <strong>${escapeHtml(order.orderItems[0]?.product.name)}</strong> expires in <strong>${minutesLeft} minute${minutesLeft === 1 ? "" : "s"}</strong>.</p><p>If it expires, the order is cancelled and the buyer is refunded.</p><p><a href="${orderPortalUrl}">Open order in Vault</a></p>`,
               smsText: `Vault reminder: ${minutesLeft} min left to initiate transfer for order ${order.id.slice(0, 8)}. Act now to avoid cancellation.`,
             });
           }
@@ -213,9 +226,6 @@ export async function GET(req: NextRequest) {
           const deadline = new Date(
             order.transferStartedAt.getTime() +
               EVIDENCE_TIMEOUT_MINUTES * 60 * 1000,
-          );
-          const minutesLeft = Math.ceil(
-            (deadline.getTime() - now.getTime()) / 60000,
           );
 
           if (now >= deadline) {
@@ -260,14 +270,23 @@ export async function GET(req: NextRequest) {
             continue;
           }
 
-          if ([10, 5, 1].includes(minutesLeft) && !dryRun) {
+          const reminderMinutes = await claimDueReminder({
+            orderId: order.id,
+            field: "lastSellerReminderSentAt",
+            deadline: deadline,
+            schedule: SELLER_EVIDENCE_REMINDERS,
+            now,
+            dryRun,
+          });
+          if (reminderMinutes !== null && !dryRun) {
+            const minutesLeft = reminderMinutes;
             results.reminders += 1;
             await sendNotification({
               email: seller.email,
               phone: seller.phone,
               whatsappNumber: seller.whatsappNumber,
-              subject: `Reminder: upload evidence for order ${order.id}`,
-              html: `<p>You have ${minutesLeft} minutes left to upload transfer evidence for ${order.orderItems[0]?.product.name}.</p><p><a href="${orderPortalUrl}">Open order in Vault</a></p>`,
+              subject: `Reminder: ${minutesLeft} min left to upload evidence for order ${order.id.slice(0, 8)}`,
+              html: `<p>Your window to upload transfer evidence for <strong>${escapeHtml(order.orderItems[0]?.product.name)}</strong> expires in <strong>${minutesLeft} minute${minutesLeft === 1 ? "" : "s"}</strong>.</p><p>If it expires, the order goes to manual review and your payout is delayed.</p><p><a href="${orderPortalUrl}">Upload evidence in Vault</a></p>`,
               smsText: `Vault reminder: ${minutesLeft} min left to upload evidence for order ${order.id.slice(0, 8)}. Upload now to avoid dispute.`,
             });
           }
@@ -279,9 +298,6 @@ export async function GET(req: NextRequest) {
           const deadline = new Date(
             order.evidenceUploadedAt.getTime() +
               BUYER_AUTO_CONFIRM_MINUTES * 60 * 1000,
-          );
-          const minutesLeft = Math.ceil(
-            (deadline.getTime() - now.getTime()) / 60000,
           );
 
           if (now >= deadline) {
@@ -347,15 +363,24 @@ export async function GET(req: NextRequest) {
             continue;
           }
 
-          if ([5, 2, 1].includes(minutesLeft) && !dryRun) {
+          const reminderMinutes = await claimDueReminder({
+            orderId: order.id,
+            field: "lastBuyerReminderSentAt",
+            deadline: deadline,
+            schedule: BUYER_CONFIRM_REMINDERS,
+            now,
+            dryRun,
+          });
+          if (reminderMinutes !== null && !dryRun) {
+            const minutesLeft = reminderMinutes;
             results.reminders += 1;
             await sendNotification({
               email: order.buyer.email,
               phone: order.buyer.phone,
               whatsappNumber: order.buyer.whatsappNumber,
-              subject: `Reminder: confirm receipt for order ${order.id}`,
-              html: `<p>You have ${minutesLeft} minutes left to confirm receipt or raise a dispute for ${order.orderItems[0]?.product.name}.</p><p><a href="${orderPortalUrl}">Open order in Vault</a></p>`,
-              smsText: `Vault: ${minutesLeft} min left to confirm your ticket receipt for order ${order.id.slice(0, 8)}. Open Vault to confirm or dispute.`,
+              subject: `Action needed: order ${order.id.slice(0, 8)} auto-confirms in ${minutesLeft} min`,
+              html: `<p>The seller has marked the ticket transfer for <strong>${escapeHtml(order.orderItems[0]?.product.name)}</strong> as done.</p><p>If you don't respond in the next <strong>${minutesLeft} minute${minutesLeft === 1 ? "" : "s"}</strong>, the order will be <strong>auto-confirmed</strong> and the payment released to the seller. This can't be undone.</p><p>Received the ticket? Confirm it. Didn't receive it? Raise a dispute before the timer runs out.</p><p><a href="${orderPortalUrl}">Open order in Vault</a></p>`,
+              smsText: `Vault: order ${order.id.slice(0, 8)} auto-confirms in ${minutesLeft} min and payment goes to the seller. Not received the ticket? Raise a dispute now.`,
             });
           }
         }
@@ -367,7 +392,27 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ success: results.failed.length === 0, results });
+    // Checkouts nobody released (browser crashed, phone died): complete the
+
+    // ones that were actually paid and cancel the rest.
+
+    let staleCheckouts: Awaited<
+      ReturnType<typeof expireStaleCheckouts>
+    > | null = null;
+
+    if (!orderId) {
+      try {
+        staleCheckouts = await expireStaleCheckouts({ dryRun });
+      } catch (error) {
+        console.error("Expiring stale checkouts failed:", error);
+      }
+    }
+
+    return NextResponse.json({
+      success: results.failed.length === 0,
+      results,
+      staleCheckouts,
+    });
   } catch (error: unknown) {
     console.error("Cron error:", error);
     return NextResponse.json(

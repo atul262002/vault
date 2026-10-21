@@ -4,6 +4,10 @@ const isPublicRoute = createRouteMatcher([
   '/sign-in(.*)',
   '/sign-up(.*)',
   '/',
+  // Legal pages must be readable without an account (payment gateways require it).
+  '/terms',
+  '/privacy',
+  '/cancellation-policy',
   // Server-to-server callers without a Clerk session. Each of these routes
   // authenticates the request itself (cron secret / Razorpay HMAC signature).
   '/api/cron/reminders(.*)',
@@ -21,7 +25,7 @@ export default clerkMiddleware(async (auth, request) => {
 
 export const config = {
   matcher: [
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest|pdf)).*)',
     '/(api|trpc)(.*)',
   ],
 }

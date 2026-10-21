@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
-import { formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import {
   AlertTriangle,
   ArrowDownAZ,
@@ -55,7 +55,24 @@ type DisputeListItem = {
   };
 };
 
+type RazorpayPaymentDetails = {
+  paymentId: string;
+  status: string;
+  method: string;
+  amountInRupees: number;
+  refundedInRupees: number;
+  rrn: string | null;
+  upiTransactionId: string | null;
+  bankTransactionId: string | null;
+  authCode: string | null;
+  instrument: string | null;
+  paidAt: string;
+  refunds: Array<{ refundId: string; amountInRupees: number; status: string; bankReference: string | null; createdAt: string }>;
+};
+
 type DisputeDetail = DisputeListItem & {
+  razorpayPayment: RazorpayPaymentDetails | null;
+  razorpayPaymentError: string | null;
   buyerEvidenceUrl: string | null;
   sellerEvidenceUrl: string | null;
   adminDecisionReason: string | null;
@@ -529,7 +546,7 @@ export default function AdminPage() {
             </CardHeader>
             <Separator />
             <CardContent className="p-0">
-              <ScrollArea className="h-[min(72vh,640px)]">
+              <ScrollArea className="max-h-[50vh] lg:h-[min(72vh,640px)] lg:max-h-none [&>[data-slot=scroll-area-viewport]]:max-h-[inherit]">
                 <div className="space-y-2 p-4">
                   {filteredDisputes.map((d) => (
                     <button
@@ -666,6 +683,85 @@ export default function AdminPage() {
                       </CardContent>
                     </Card>
                   </div>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">Payment &amp; bank references</CardTitle>
+                      <CardDescription>Live from Razorpay. Share the RRN with the buyer&apos;s bank to trace the payment.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3 text-sm">
+                      {!detail.order.payment?.paymentId ? (
+                        <p className="text-muted-foreground">No captured payment is recorded for this order.</p>
+                      ) : (
+                        <>
+                          {(() => {
+                            const rp = detail.razorpayPayment;
+                            const rows: Array<[string, string | null, boolean]> = [
+                              ["Payment ID", detail.order.payment.paymentId, true],
+                              ["Bank RRN", rp?.rrn ?? null, true],
+                              ["UPI transaction ID", rp?.upiTransactionId ?? null, true],
+                              ["Bank transaction ID", rp?.bankTransactionId ?? null, true],
+                              ["Paid with", rp?.instrument ?? null, false],
+                              ["Razorpay status", rp ? rp.status : null, false],
+                              ["Paid at", rp ? format(new Date(rp.paidAt), "PPpp") : null, false],
+                              ["Amount / refunded", rp ? `₹${rp.amountInRupees.toFixed(2)} / ₹${rp.refundedInRupees.toFixed(2)}` : null, false],
+                            ];
+                            return (
+                              <dl className="grid gap-2">
+                                {rows
+                                  .filter(([label, value]) => value || label === "Bank RRN" || label === "Payment ID")
+                                  .map(([label, value, copyable]) => (
+                                    <div key={label} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg border bg-muted/30 px-3 py-2">
+                                      <dt className="text-xs text-muted-foreground">{label}</dt>
+                                      <dd className="flex min-w-0 items-center gap-2">
+                                        <span className="break-all font-mono text-xs">
+                                          {value ?? (label === "Bank RRN" && rp ? "Not provided by bank yet" : "—")}
+                                        </span>
+                                        {copyable && value && (
+                                          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => copyText(label, value)} aria-label={`Copy ${label}`}>
+                                            <Copy className="h-3.5 w-3.5" />
+                                          </Button>
+                                        )}
+                                      </dd>
+                                    </div>
+                                  ))}
+                              </dl>
+                            );
+                          })()}
+
+                          {detail.razorpayPaymentError && (
+                            <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+                              Couldn&apos;t load bank details from Razorpay: {detail.razorpayPaymentError}. Use Refresh to try again.
+                            </p>
+                          )}
+
+                          {detail.razorpayPayment && detail.razorpayPayment.refunds.length > 0 && (
+                            <div className="space-y-2">
+                              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Refunds</p>
+                              {detail.razorpayPayment.refunds.map((r) => (
+                                <div key={r.refundId} className="space-y-1 rounded-lg border px-3 py-2 text-xs">
+                                  <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <span className="font-mono break-all">{r.refundId}</span>
+                                    <span className="tabular-nums">₹{r.amountInRupees.toFixed(2)} · {r.status}</span>
+                                  </div>
+                                  <div className="flex flex-wrap items-center justify-between gap-2 text-muted-foreground">
+                                    <span>
+                                      Bank reference: <span className="font-mono text-foreground">{r.bankReference ?? "Pending from bank"}</span>
+                                    </span>
+                                    {r.bankReference && (
+                                      <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => copyText("Refund reference", r.bankReference!)}>
+                                        <Copy className="mr-1 h-3.5 w-3.5" /> Copy
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
 
                   <div>
                     <Label className="text-xs uppercase tracking-wide text-muted-foreground">Buyer stated reason</Label>

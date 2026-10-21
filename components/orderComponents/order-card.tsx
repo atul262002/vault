@@ -167,8 +167,12 @@ export default function OrderCard({ order, currentUser, refreshOrders }: OrderCa
 
         try {
             setLoading(true);
-            await axios.post(`/api/orders/${order.id}/cancel`);
-            toast.success("Order cancelled. Refund flow has been started.");
+            const res = await axios.post(`/api/orders/${order.id}/cancel`);
+            toast.success(
+                res.data?.status === "REFUNDED"
+                    ? "Order cancelled. Your refund has been started."
+                    : "Order cancelled."
+            );
             refreshOrders();
         } catch (error: any) {
             toast.error(error.response?.data?.message || "Failed to cancel order");

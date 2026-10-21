@@ -1,5 +1,6 @@
 import { requireAdminSession } from "@/lib/admin-auth";
 import { prisma } from "@/lib/db";
+import { fetchPaymentBankDetails, type PaymentBankDetails } from "@/lib/razorpay-payment-details";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
@@ -38,5 +39,20 @@ export async function GET(
     return NextResponse.json({ message: "Dispute not found" }, { status: 404 });
   }
 
-  return NextResponse.json(dispute);
+  // Live bank references from Razorpay (RRN, UPI/bank txn ids, refund ARNs).
+  // A Razorpay outage must not block the case view, so failures are reported
+  // alongside the dispute instead of failing the request.
+  let razorpayPayment: PaymentBankDetails | null = null;
+  let razorpayPaymentError: string | null = null;
+  const paymentId = dispute.order.payment?.paymentId;
+  if (paymentId) {
+    try {
+      razorpayPayment = await fetchPaymentBankDetails(paymentId);
+    } catch (error) {
+      console.error(`Razorpay lookup failed for payment ${paymentId}:`, error);
+      razorpayPaymentError = error instanceof Error ? error.message : "Could not reach Razorpay";
+    }
+  }
+
+  return NextResponse.json({ ...dispute, razorpayPayment, razorpayPaymentError });
 }

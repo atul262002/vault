@@ -455,7 +455,7 @@ export function AddProduct() {
     return (
         <>
             {createdListingId ? (
-                <div className="fixed top-4 right-4 z-[110] w-[320px] rounded-xl border bg-card p-4 text-card-foreground shadow-xl">
+                <div className="fixed top-4 right-4 left-4 sm:left-auto z-[110] sm:w-[320px] rounded-xl border bg-card p-4 text-card-foreground shadow-xl">
                     <div className="flex items-start justify-between gap-2">
                         <div className="flex items-start gap-2">
                             <CheckCircle2 className="mt-0.5 h-5 w-5 text-green-600 dark:text-green-400" />
@@ -549,18 +549,15 @@ export function AddProduct() {
                 <DialogTrigger asChild>
                     <Button
                         variant="default"
-                        className="mr-5 p-2 font-normal w-full md:w-auto"
-                        size={"icon"}
+                        className="w-full sm:w-auto gap-2 font-medium"
                         onClick={(e) => {
                             e.preventDefault();
                             setTermsAccepted(false);
                             setShowTermsModal(true);
                         }}
                     >
-                        <Plus className="mr-2 md:mr-0" />
-                        <span className="sr-only md:not-sr-only md:inline">
-                            Add Listing
-                        </span>
+                        <Plus className="h-4 w-4" />
+                        Add Listing
                     </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[425px] w-full max-h-[90vh] flex flex-col">
@@ -605,20 +602,6 @@ export function AddProduct() {
                                                 </p>
                                             </div>
                                         )}
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="imageUrl"
-                                render={({ field }) => (
-                                    <FormItem className="col-span-2">
-                                        <FormLabel>Or Enter Poster URL</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="Image url" {...field} disabled={isUploading} />
-                                        </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -676,7 +659,7 @@ export function AddProduct() {
                             />
 
                             {/* Event Time + Date — side by side */}
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
                             {/* Event Time */}
                             <FormField
@@ -724,7 +707,7 @@ export function AddProduct() {
                             </div>{/* end date+time grid */}
 
                             {/* Qty + Ticket Partner — side by side */}
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                                 control={form.control}
                                 name="ticketQuantity"

@@ -3,7 +3,7 @@ import React from 'react'
 
 const page = () => {
   return (
-    <div>
+    <div className="px-3 sm:px-6">
       <MyOrders />
     </div>
   )
